@@ -1,0 +1,72 @@
+name: smart_merchant_erp
+description: Enterprise Resource Planning system for Smart Merchants.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # --- State Management ---
+  flutter_riverpod: ^2.5.1
+  riverpod_annotation: ^2.3.5
+
+  # --- Routing ---
+  go_router: ^14.1.4
+
+  # --- Dependency Injection ---
+  get_it: ^7.7.0
+  injectable: ^2.4.1
+
+  # --- Local Database (Offline First) ---
+  drift: ^2.18.0
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.3
+  path: ^1.9.0
+
+  # --- Networking ---
+  dio: ^5.4.3+1
+
+  # --- Data Models & Functional Programming ---
+  dartz: ^0.10.1
+  equatable: ^2.0.5
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.9.0
+  uuid: ^4.4.0
+  shared_preferences: ^2.2.3
+
+  # --- UI & UX Design System ---
+  google_fonts: ^6.2.1
+  
+  # --- Printing & Sharing (ERP Standard) ---
+  pdf: ^3.11.1
+  printing: ^5.13.0
+  url_launcher: ^6.3.0
+  intl: ^0.20.2
+  
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  
+  # --- Unit Testing ---
+  mocktail: ^1.0.3
+
+  # --- Code Generation Tools ---
+  build_runner: ^2.4.9
+  riverpod_generator: ^2.4.0
+  injectable_generator: ^2.6.1
+  drift_dev: ^2.18.0
+  freezed: ^2.5.2
+  json_serializable: ^6.8.0
+
+flutter:
+  uses-material-design: true
+  generate: true

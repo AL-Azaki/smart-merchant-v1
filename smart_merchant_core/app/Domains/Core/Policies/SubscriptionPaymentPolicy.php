@@ -1,0 +1,18 @@
+<?php
+
+namespace App\Domains\Core\Policies;
+
+use App\Domains\Core\Models\User;
+use App\Models\Core\SubscriptionPayment;
+use App\Models\Core\Subscription;
+use Illuminate\Auth\Access\HandlesAuthorization;
+
+class SubscriptionPaymentPolicy
+{
+    use HandlesAuthorization;
+
+    public function viewAny(User $user, Subscription $subscription): bool { return true; }
+    public function view(User $user, SubscriptionPayment $payment): bool { return true; }
+    public function create(User $user, Subscription $subscription): bool { return true; }
+    public function updateStatus(User $user, SubscriptionPayment $payment): bool { return true; }
+}

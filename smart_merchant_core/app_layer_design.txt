@@ -1,0 +1,5762 @@
+﻿Application Layer Design
+
+
+╪º┘ä┘à╪▒╪¡┘ä╪⌐ ╪º┘ä╪ú┘ê┘ä┘ë ╪»╪º╪«┘ä Core Domain
+╪¬╪¡┘ä┘è┘ä ╪º┘ä┘Ç Domain
+┘é╪¿┘ä ┘â╪¬╪º╪¿╪⌐ Use Cases╪î ┘è╪¼╪¿ ╪ú┘å ┘å╪¡╪»╪» ┘à╪│╪ñ┘ê┘ä┘è╪⌐ ╪º┘ä┘Ç Core Domain.
+
+┘à╪│╪ñ┘ê┘ä┘è╪⌐ Core Domain
+Core Domain ┘ç┘ê ╪º┘ä╪ú╪│╪º╪│ ╪º┘ä╪░┘è ┘è╪╣╪¬┘à╪» ╪╣┘ä┘è┘ç ╪¼┘à┘è╪╣ ╪º┘ä┘Ç Domains ╪º┘ä╪ú╪«╪▒┘ë.
+╪ú┘è ╪ú┘å┘ç ┘à╪│╪ñ┘ê┘ä ╪╣┘å:
+╪º┘ä╪┤╪▒┘â╪º╪¬ (Businesses) 
+╪º┘ä┘ü╪▒┘ê╪╣ (Branches) 
+╪º┘ä┘à╪│╪¬╪«╪»┘à┘è┘å (Users) 
+╪º┘ä╪¡╪│╪º╪¿╪º╪¬ (Accounts) 
+╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬ (Roles & Permissions) 
+╪º┘ä╪╣┘à┘ä╪º╪¬ (Currencies) 
+╪º┘ä╪«╪╖╪╖ (Plans) 
+╪º┘ä╪º╪┤╪¬╪▒╪º┘â╪º╪¬ (Subscriptions) 
+┘à╪»┘ü┘ê╪╣╪º╪¬ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â 
+╪º┘ä┘à╪╡╪º╪»┘é╪⌐ (Authentication) 
+┘ê┘ä╪º ┘è╪¡╪¬┘ê┘è ╪╣┘ä┘ë ╪ú┘è ┘à┘å╪╖┘é ╪«╪º╪╡ ╪¿╪º┘ä┘à╪¿┘è╪╣╪º╪¬ ╪ú┘ê ╪º┘ä┘à╪¡╪º╪│╪¿╪⌐ ╪ú┘ê ╪º┘ä┘à╪«╪▓┘ê┘å.
+
+╪º┘ä┘Ç Entities ╪º┘ä┘à┘ê╪¼┘ê╪»╪⌐
+╪¡╪│╪¿ ┘é╪º╪╣╪»╪⌐ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¡╪º┘ä┘è╪⌐:
+Core Domain
+
+Business
+
+Branch
+
+User
+
+Role
+
+Permission
+
+Account
+
+Currency
+
+Plan
+
+Subscription
+
+SubscriptionPayment
+╪╣╪»╪»┘ç╪º: 10 Entities.
+
+╪º┘ä╪ó┘å ┘å╪¿╪»╪ú ╪¿╪º┘ä╪ú┘ê┘ä┘ë ┘ü┘é╪╖
+Entity 1
+Business
+┘ä┘å ┘å┘å╪¬┘é┘ä ╪Ñ┘ä┘ë Branch ╪¡╪¬┘ë ┘å┘å╪¬┘ç┘è ┘à┘å Business ╪¿╪º┘ä┘â╪º┘à┘ä.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 1
+┘à╪│╪ñ┘ê┘ä┘è╪⌐ Business
+Business ┘è┘à╪½┘ä:
+╪º┘ä╪┤╪▒┘â╪⌐ ╪ú┘ê ╪º┘ä┘à╪ñ╪│╪│╪⌐ ╪º┘ä╪¬┘è ╪¬╪│╪¬╪«╪»┘à ╪º┘ä┘å╪╕╪º┘à.
+┘ê┘ç┘ê ╪ú╪╣┘ä┘ë ┘à╪│╪¬┘ê┘ë ╪»╪º╪«┘ä ╪º┘ä┘Ç ERP.
+┘â┘ä ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪ú╪«╪▒┘ë ┘à╪▒╪¬╪¿╪╖╪⌐ ╪¿┘ç.
+┘à╪½┘ä╪º┘ï:
+Business
+
+Γåô
+
+Branches
+
+Γåô
+
+Users
+
+Γåô
+
+Warehouses
+
+Γåô
+
+Customers
+
+Γåô
+
+Suppliers
+
+Γåô
+
+Products
+
+Γåô
+
+Journal Entries
+
+Γåô
+
+Employees
+╪ú┘è ┘ä╪º ┘è┘ê╪¼╪» ╪┤┘è╪í ┘ü┘è ╪º┘ä┘å╪╕╪º┘à ┘ä╪º ┘è╪▒╪¬╪¿╪╖ ╪¿┘Ç Business.
+╪«╪╡╪º╪ª╪╡ Business
+┘ä┘è╪│ ╪º┘ä┘à┘é╪╡┘ê╪» ╪º┘ä╪ú╪╣┘à╪»╪⌐ ╪º┘ä┘à┘ê╪¼┘ê╪»╪⌐ ┘ü┘è ╪º┘ä╪¼╪»┘ê┘ä.
+╪¿┘ä ┘à╪º╪░╪º ┘è┘à╪½┘ä ╪»╪º╪«┘ä ╪º┘ä┘å╪╕╪º┘à.
+┘è┘à╪½┘ä:
+┘ç┘ê┘è╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐. 
+╪º┘ä╪º╪┤╪¬╪▒╪º┘â. 
+╪º┘ä╪╣┘à┘ä╪⌐ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐. 
+╪º┘ä╪»┘ê┘ä╪⌐. 
+╪º┘ä┘à┘å╪╖┘é╪⌐ ╪º┘ä╪▓┘à┘å┘è╪⌐. 
+╪º┘ä╪Ñ╪╣╪»╪º╪»╪º╪¬ ╪º┘ä╪╣╪º┘à╪⌐. 
+╪º┘ä┘ü╪▒┘ê╪╣. 
+┘à╪º┘ä┘â ╪º┘ä╪┤╪▒┘â╪⌐. 
+╪¡╪º┘ä╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐. 
+
+Business Rules ╪º┘ä╪«╪º╪╡╪⌐ ╪¿┘Ç Business
+┘ç╪░┘ç ╪ú┘ê┘ä ┘à╪▒╪⌐ ┘å┘â╪¬╪¿ ┘é┘ê╪º╪╣╪» ╪º┘ä╪ú╪╣┘à╪º┘ä ╪º┘ä╪«╪º╪╡╪⌐ ╪¿┘â┘è╪º┘å ┘ê╪º╪¡╪».
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 1
+┘è╪¼╪¿ ╪ú┘å ┘è┘â┘ê┘å ┘ä┘â┘ä ╪┤╪▒┘â╪⌐ UUID ┘ü╪▒┘è╪».
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 2
+┘ä╪º ┘è┘à┘â┘å ╪Ñ┘å╪┤╪º╪í ╪┤╪▒┘â╪⌐ ╪¿╪»┘ê┘å ╪«╪╖╪⌐ (Plan).
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 3
+┘ä╪º ┘è┘à┘â┘å ╪Ñ┘å╪┤╪º╪í ╪┤╪▒┘â╪⌐ ╪¿╪»┘ê┘å ╪º╪┤╪¬╪▒╪º┘â.
+╪¡╪¬┘ë ┘ü┘è ╪º┘ä┘å╪│╪«╪⌐ ╪º┘ä╪¬╪¼╪▒┘è╪¿┘è╪⌐ (Trial)╪î ┘è╪¬┘à ╪Ñ┘å╪┤╪º╪í Subscription ╪¿╪¡╪º┘ä╪⌐ Trial.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 4
+┘ä┘â┘ä ╪┤╪▒┘â╪⌐ ┘ü╪▒╪╣ ╪▒╪ª┘è╪│┘è (Main Branch).
+┘ê┘ä╪º ┘è╪¼┘ê╪▓ ┘ê╪¼┘ê╪» ╪┤╪▒┘â╪⌐ ╪¿╪»┘ê┘å ┘ü╪▒╪╣.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 5
+┘ä┘â┘ä ╪┤╪▒┘â╪⌐ ┘à╪│╪¬╪«╪»┘à ┘à╪º┘ä┘â (Owner).
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 6
+┘ä┘â┘ä ╪┤╪▒┘â╪⌐ ╪╣┘à┘ä╪⌐ ╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 7
+┘ä╪º ┘è╪¼┘ê╪▓ ╪¡╪░┘ü ╪º┘ä╪┤╪▒┘â╪⌐.
+╪¿┘ä ┘è╪¬┘à:
+Suspend 
+Archive 
+Delete (Soft Delete ╪Ñ╪░╪º ┘â╪º┘å ╪º┘ä┘å╪╕╪º┘à ┘è╪│┘à╪¡ ╪¿╪░┘ä┘â) 
+╪¡╪│╪¿ ╪│┘è╪º╪│╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 8
+╪º╪│┘à ╪º┘ä╪┤╪▒┘â╪⌐ ┘ä╪º ┘è┘ä╪▓┘à ╪ú┘å ┘è┘â┘ê┘å ┘ü╪▒┘è╪»┘ï╪º ╪╣╪º┘ä┘à┘è┘ï╪º╪î ┘ä┘â┘å ┘è╪¼╪¿ ╪ú┘å ┘è┘â┘ê┘å ┘ü╪▒┘è╪»┘ï╪º ╪╢┘à┘å ╪│┘è╪º╪│╪⌐ ╪º┘ä┘à┘å╪╡╪⌐ ╪º┘ä╪¬┘è ╪¬╪╣╪¬┘à╪»┘ê┘å┘ç╪º. ╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä┘à┘å╪╡╪⌐ ╪¬╪│┘à╪¡ ╪¿╪¬╪╣╪»╪» ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪¿╪º┘ä╪º╪│┘à ┘å┘ü╪│┘ç ┘ü┘ä╪º ╪¬┘ü╪▒╪╢ ┘ç╪░╪º ╪º┘ä┘é┘è╪»╪î ╪ú┘à╪º ╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪¬╪¬╪╖┘ä╪¿ ╪ú╪│┘à╪º╪í ┘à┘à┘è╪▓╪⌐ ┘ü┘ä┘è┘â┘å ╪░┘ä┘â ┘é╪▒╪º╪▒┘ï╪º ┘à┘ê╪½┘é┘ï╪º.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 9
+┘ä╪º ┘è┘à┘â┘å ╪¬┘ü╪╣┘è┘ä ╪º┘ä╪┤╪▒┘â╪⌐ ╪Ñ╪░╪º ┘â╪º┘å ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ╪║┘è╪▒ ╪╡╪º┘ä╪¡.
+
+╪º┘ä┘é╪º╪╣╪»╪⌐ 10
+╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪┤╪▒┘â╪⌐ ┘è╪¼╪¿ ╪ú┘å ╪¬╪│╪¼┘ä ┘ü┘è Audit Log.
+
+╪¡╪º┘ä╪º╪¬ Business
+Trial
+
+Γåô
+
+Active
+
+Γåô
+
+Suspended
+
+Γåô
+
+Archived
+┘ê┘ä╪º ┘è┘ê╪¼╪» ╪º┘å╪¬┘é╪º┘ä ┘à╪¿╪º╪┤╪▒ ┘à┘å:
+Archived
+
+Γåô
+
+Active
+╪Ñ┘ä╪º ╪Ñ╪░╪º ╪│┘à╪¡╪¬ ╪│┘è╪º╪│╪⌐ ╪º┘ä┘å╪╕╪º┘à ╪¿╪░┘ä┘â.
+
+╪º┘ä╪╣┘ä╪º┘é╪º╪¬
+Business ┘è┘à╪¬┘ä┘â:
+1 ---- * Branches
+
+1 ---- * Users
+
+1 ---- * Warehouses
+
+1 ---- * Customers
+
+1 ---- * Suppliers
+
+1 ---- * Products
+
+1 ---- * Employees
+
+1 ---- * Fiscal Years
+
+1 ---- * Journal Entries
+
+1 ---- * Payments
+
+╪º┘ä╪ó┘å ┘å╪¿╪»╪ú ╪ú┘ç┘à ╪¼╪▓╪í
+Use Cases ╪º┘ä╪«╪º╪╡╪⌐ ╪¿┘Ç Business
+┘ç╪░┘ç ╪│╪¬┘â┘ê┘å ╪º┘ä┘à╪▒╪¼╪╣ ╪º┘ä╪▒╪│┘à┘è
+╪º┘ä┘à╪¼┘à┘ê╪╣╪⌐ ╪º┘ä╪ú┘ê┘ä┘ë
+╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐
+Create Business
+View Business
+Update Business
+Archive Business
+Suspend Business
+Activate Business
+╪º┘ä┘à╪¼┘à┘ê╪╣╪⌐ ╪º┘ä╪½╪º┘å┘è╪⌐
+┘à╪╣┘ä┘ê┘à╪º╪¬ ╪º┘ä╪┤╪▒┘â╪⌐
+Update Business Profile
+Update Business Address
+Update Contact Information
+Update Logo
+Update Time Zone
+Update Default Currency
+
+╪º┘ä┘à╪¼┘à┘ê╪╣╪⌐ ╪º┘ä╪▒╪º╪¿╪╣╪⌐
+╪º┘ä╪Ñ╪¡╪╡╪º╪ª┘è╪º╪¬
+View Dashboard
+View Business Statistics
+
+╪º┘ä┘à╪¼┘à┘ê╪╣╪⌐ ╪º┘ä╪«╪º┘à╪│╪⌐
+╪º┘ä╪Ñ╪»╪º╪▒╪⌐
+Assign Owner
+Transfer Ownership
+╪º┘ä┘å╪¬┘è╪¼╪⌐ ╪º┘ä╪¡╪º┘ä┘è╪⌐
+╪¡╪¬┘ë ╪º┘ä╪ó┘å ╪ú╪╡╪¿╪¡ ┘ä╪»┘è┘å╪º ╪ú┘ê┘ä Entity ┘ü┘è ╪º┘ä┘à╪┤╪▒┘ê╪╣ ┘à┘ê╪½┘é┘ï╪º ┘à┘å ┘å╪º╪¡┘è╪⌐:
+┘à╪│╪ñ┘ê┘ä┘è╪¬┘ç. 
+┘é┘ê╪º╪╣╪» ╪º┘ä╪ú╪╣┘à╪º┘ä. 
+╪º┘ä╪¡╪º┘ä╪º╪¬. 
+╪º┘ä╪╣┘ä╪º┘é╪º╪¬. 
+┘à╪¼┘à┘ê╪╣╪º╪¬ ╪º┘ä┘Ç Use Cases.
+Γ¥î ┘ä┘å ┘å┘â╪¬╪¿ ╪ú┘è Action ╪¿╪╣╪».
+┘ü┘è ╪º┘ä╪¼┘ä╪│╪⌐ ╪º┘ä╪¬╪º┘ä┘è╪⌐ ┘à┘å ┘å┘ü╪│ ╪º┘ä┘Ç Entity ╪│┘å╪¿╪»╪ú ╪¿╪¬╪¡┘ä┘è┘ä ╪ú┘ê┘ä Use Case ┘ü┘é╪╖:
+Create Business
+┘ê╪│┘å┘ü┘â┘â┘ç ╪¿╪º┘ä┘â╪º┘à┘ä ╪¡╪¬┘ë ┘à╪│╪¬┘ê┘ë ╪º┘ä╪¬┘å┘ü┘è╪░╪î ╪¿┘à╪º ┘è╪┤┘à┘ä:
+Preconditions. 
+Validation Rules. 
+Authorization. 
+Workflow. 
+Required Actions. 
+Required Services. 
+Required Repositories. 
+Required Events. 
+Required Audit Logs. 
+Unit Test Scenarios.
+ 
+
+
+┘ä┘å ┘å┘â╪¬╪¿ ╪│╪╖╪▒ ┘â┘ê╪» ┘ê╪º╪¡╪» ╪¡╪¬┘ë ┘å┘å╪¬┘ç┘è ┘à┘å ╪¬╪╡┘à┘è┘à ╪º┘ä┘Ç Use Case ╪¿╪º┘ä┘â╪º┘à┘ä.
+┘ê╪│┘å╪¿╪»╪ú ╪¿╪ú┘ê┘ä Use Case ┘ü┘è ╪º┘ä┘à╪┤╪▒┘ê╪╣ ┘â┘ä┘ç.
+
+Core Domain
+    Γåô
+Business
+    Γåô
+Use Case #1
+    Γåô
+Create Business
+┘ç╪░╪º ╪º┘ä┘Ç Use Case ┘ç┘ê ╪ú╪│╪º╪│ ╪º┘ä┘å╪╕╪º┘à ╪¿╪º┘ä┘â╪º┘à┘ä╪î ┘ä╪ú┘å ╪ú┘è ╪«╪╖╪ú ┘ü┘è┘ç ╪│┘è┘å╪╣┘â╪│ ╪╣┘ä┘ë ╪¼┘à┘è╪╣ ╪º┘ä┘Ç Domains.
+
+╪º┘ä┘à╪▒╪¡┘ä╪⌐ ╪º┘ä╪ú┘ê┘ä┘ë: ╪¬╪¡┘ä┘è┘ä ╪º┘ä┘Ç Use Case
+╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Create Business
+
+╪º┘ä┘ç╪»┘ü (Goal)
+╪Ñ┘å╪┤╪º╪í ╪┤╪▒┘â╪⌐ ╪¼╪»┘è╪»╪⌐ ╪»╪º╪«┘ä ┘à┘å╪╡╪⌐ Smart Merchant ERP ╪¿╪¡┘è╪½ ╪¬╪╡╪¿╪¡ ╪¼╪º┘ç╪▓╪⌐ ╪¿╪º┘ä┘â╪º┘à┘ä ┘ä╪º╪│╪¬╪«╪»╪º┘à ╪º┘ä┘å╪╕╪º┘à ╪»┘ê┘å ╪º┘ä╪¡╪º╪¼╪⌐ ┘ä╪ú┘è ╪Ñ╪╣╪»╪º╪»╪º╪¬ ┘è╪»┘ê┘è╪⌐.
+╪¿╪╣╪» ┘å╪¼╪º╪¡ ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪¬┘â┘ê┘å ╪º┘ä╪┤╪▒┘â╪⌐ ╪¼╪º┘ç╪▓╪⌐ ┘à╪¿╪º╪┤╪▒╪⌐ ┘ä╪Ñ┘å╪┤╪º╪í ╪º┘ä┘ü╪▒┘ê╪╣╪î ╪º┘ä┘à╪│╪¬╪«╪»┘à┘è┘å╪î ╪º┘ä┘à┘å╪¬╪¼╪º╪¬╪î ┘ê╪º┘ä┘à╪¿┘è╪╣╪º╪¬.
+
+Actor (┘à┘å ┘è┘å┘ü╪░ ╪º┘ä╪╣┘à┘ä┘è╪⌐╪ƒ)
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä ┘è┘ê╪¼╪» Actor ┘ê╪º╪¡╪» ┘ü┘é╪╖:
+Platform Super Admin
+┘ê┘ü┘è ╪º┘ä┘à╪│╪¬┘é╪¿┘ä ┘è┘à┘â┘å ╪Ñ╪╢╪º┘ü╪⌐:
+Business Owner (Self Registration)
+┘ä┘â┘å ┘ä┘å ┘å╪╣╪¬┘à╪»┘ç╪º ╪º┘ä╪ó┘å.
+
+Trigger (┘à╪¬┘ë ╪¬╪¿╪»╪ú ╪º┘ä╪╣┘à┘ä┘è╪⌐╪ƒ)
+╪¬╪¿╪»╪ú ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪╣┘å╪»┘à╪º ┘è╪╢╪║╪╖ ┘à╪│╪ñ┘ê┘ä ╪º┘ä┘à┘å╪╡╪⌐ ╪╣┘ä┘ë:
+Create New Business
+┘à┘å ┘ä┘ê╪¡╪⌐ ╪º┘ä╪¬╪¡┘â┘à.
+
+Preconditions (╪º┘ä╪┤╪▒┘ê╪╖ ┘é╪¿┘ä ╪º┘ä╪¬┘å┘ü┘è╪░)
+┘é╪¿┘ä ╪¬┘å┘ü┘è╪░ ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘è╪¼╪¿ ╪º┘ä╪¬╪ú┘â╪» ┘à┘å ╪¼┘à┘è╪╣ ╪º┘ä╪┤╪▒┘ê╪╖ ╪º┘ä╪¬╪º┘ä┘è╪⌐.
+
+1
+╪º┘ä┘à╪│╪¬╪«╪»┘à ┘à╪│╪¼┘ä ╪»╪«┘ê┘ä.
+Authenticated
+
+2
+┘è┘à╪¬┘ä┘â ╪╡┘ä╪º╪¡┘è╪⌐:
+business.create
+
+3
+╪º┘ä╪«╪╖╪⌐ (Plan) ┘à┘ê╪¼┘ê╪»╪⌐.
+
+4
+╪º┘ä╪╣┘à┘ä╪⌐ ┘à┘ê╪¼┘ê╪»╪⌐.
+
+5
+╪º┘ä╪»┘ê┘ä╪⌐ ┘à┘ê╪¼┘ê╪»╪⌐.
+
+6
+╪º╪│┘à ╪º┘ä╪┤╪▒┘â╪⌐ ╪╡╪º┘ä╪¡.
+
+7
+╪º┘ä╪¿╪▒┘è╪» ╪º┘ä╪Ñ┘ä┘â╪¬╪▒┘ê┘å┘è ╪╡╪º┘ä╪¡.
+
+8
+╪▒┘é┘à ╪º┘ä┘ç╪º╪¬┘ü ╪╡╪º┘ä╪¡.
+
+9
+┘ä╪º ╪¬┘ê╪¼╪» ╪┤╪▒┘â╪⌐ ┘à╪¡╪░┘ê┘ü╪⌐ ╪¿┘å┘ü╪│ ╪º┘ä┘à╪╣╪▒┘ü ╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪│┘è╪º╪│╪⌐ ╪º┘ä┘å╪╕╪º┘à ╪¬┘à┘å╪╣ ╪░┘ä┘â.
+
+╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä┘à╪╖┘ä┘ê╪¿╪⌐
+╪º┘ä╪¡╪» ╪º┘ä╪ú╪»┘å┘ë ┘à┘å ╪º┘ä╪¿┘è╪º┘å╪º╪¬.
+Business Name
+
+Legal Name
+
+Phone
+
+Email
+
+Country
+
+Currency
+
+Plan
+
+Owner Name
+
+Owner Email
+
+Owner Password
+╪ú┘à╪º ╪¿┘é┘è╪⌐ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ┘à╪½┘ä:
+Logo 
+Tax Number 
+CR Number 
+Address 
+┘ü╪¬┘â┘ê┘å ╪º╪«╪¬┘è╪º╪▒┘è╪⌐ ┘ü┘è ╪º┘ä╪¿╪»╪º┘è╪⌐ ┘ê┘è┘à┘â┘å ╪º╪│╪¬┘â┘à╪º┘ä┘ç╪º ┘ä╪º╪¡┘é┘ï╪º.
+
+Validation Rules
+┘à╪½╪º┘ä ╪ú┘ê┘ä┘è:
+Business Name
+
+Required
+
+String
+
+Max 255
+
+Email
+
+Required
+
+Valid Email
+
+Unique
+
+Phone
+
+Required
+
+Valid Phone
+
+Currency
+
+Must Exist
+
+Plan
+
+Must Exist
+
+Must Be Active
+
+Business Rules
+┘ç╪░┘ç ╪ú┘ç┘à ┘å┘é╪╖╪⌐.
+
+Rule 1
+┘è┘ê┘ä╪» UUID ┘ä┘ä╪┤╪▒┘â╪⌐.
+
+Rule 2
+┘ä╪º ┘è╪│┘à╪¡ ╪¿╪Ñ┘å╪┤╪º╪í ╪º┘ä╪┤╪▒┘â╪⌐ ╪¿╪»┘ê┘å Plan.
+
+Rule 3
+┘è┘å╪┤╪ú Subscription ╪¬┘ä┘é╪º╪ª┘è╪º┘ï.
+
+Rule 4
+┘è┘å╪┤╪ú ╪º┘ä┘ü╪▒╪╣ ╪º┘ä╪▒╪ª┘è╪│┘è ╪¬┘ä┘é╪º╪ª┘è╪º┘ï.
+Main Branch
+
+Rule 5
+┘è┘å╪┤╪ú ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪º┘ä┘à╪º┘ä┘â ╪¬┘ä┘é╪º╪ª┘è╪º┘ï.
+Owner User
+
+Rule 6
+╪¬┘å╪┤╪ú ╪º┘ä╪ú╪»┘ê╪º╪▒ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+┘à╪½┘ä╪º┘ï:
+Owner
+
+Manager
+
+Cashier
+
+Rule 7
+╪¬┘å╪┤╪ú ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+
+Rule 8
+╪¬┘å╪┤╪ú ╪Ñ╪╣╪»╪º╪»╪º╪¬ ╪º┘ä┘å╪╕╪º┘à ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+
+Rule 9
+╪¬┘å╪┤╪ú ╪Ñ╪╣╪»╪º╪»╪º╪¬ ╪º┘ä╪╖╪¿╪º╪╣╪⌐ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+
+Rule 10
+╪¬┘å╪┤╪ú ╪┤╪¼╪▒╪⌐ ╪º┘ä╪¡╪│╪º╪¿╪º╪¬ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐.
+┘ê┘ç╪░┘ç ┘à┘å ╪ú┘ç┘à ╪º┘ä╪«╪╖┘ê╪º╪¬.
+
+Rule 11
+╪¬┘å╪┤╪ú ╪º┘ä╪│┘å╪⌐ ╪º┘ä┘à╪º┘ä┘è╪⌐ ╪º┘ä╪ú┘ê┘ä┘ë.
+
+Rule 12
+┘è┘å╪┤╪ú ╪»┘ä┘è┘ä ╪º┘ä╪╢╪▒╪º╪ª╪¿ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è.
+╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä╪»┘ê┘ä╪⌐ ╪¬╪»╪╣┘à┘ç.
+
+Rule 13
+┘è┘å╪┤╪ú ╪│╪¼┘ä Audit.
+
+Rule 14
+╪¬╪▒╪│┘ä Event ╪»╪º╪«┘ä ╪º┘ä┘å╪╕╪º┘à.
+BusinessCreated
+
+Workflow
+╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘â╪º┘à┘ä╪⌐ ╪¬┘â┘ê┘å:
+Receive Request
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Start Database Transaction
+
+Γåô
+
+Create Business
+
+Γåô
+
+Create Default Branch
+
+Γåô
+
+Create Owner User
+
+Γåô
+
+Assign Owner Role
+
+Γåô
+
+Create Subscription
+
+Γåô
+
+Create Default Settings
+
+Γåô
+
+Create Print Settings
+
+Γåô
+
+Create Chart Of Accounts
+
+Γåô
+
+Create Fiscal Year
+
+Γåô
+
+Create Default Taxes
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Dispatch BusinessCreated Event
+
+Γåô
+
+Commit Transaction
+
+Γåô
+
+Return Success
+┘ä╪º╪¡╪╕ ╪ú┘å┘å╪º ┘ä┘à ┘å┘â╪¬╪¿ Action ┘ê╪º╪¡╪».
+
+Failure Cases
+╪Ñ╪░╪º ┘ü╪┤┘ä ╪ú┘è ╪¼╪▓╪í.
+┘à╪½┘ä╪º┘ï:
+Create Chart Of Accounts
+┘è┘ü╪┤┘ä.
+┘à╪º╪░╪º ┘è╪¡╪»╪½╪ƒ
+Rollback Transaction
+╪ú┘è:
+┘ä╪º ╪¬┘å╪┤╪ú ╪º┘ä╪┤╪▒┘â╪⌐. 
+┘ä╪º ┘è┘å╪┤╪ú ╪º┘ä┘à╪│╪¬╪«╪»┘à. 
+┘ä╪º ┘è┘å╪┤╪ú ╪º┘ä╪º╪┤╪¬╪▒╪º┘â. 
+┘ä╪º ┘è┘å╪┤╪ú ╪º┘ä┘ü╪▒╪╣. 
+┘ê┘â╪ú┘å ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘ä┘à ╪¬╪¿╪»╪ú.
+
+Success Result
+╪¿╪╣╪» ╪º┘ä┘å╪¼╪º╪¡ ┘è╪╡╪¿╪¡ ┘ä╪»┘è┘å╪º:
+Business
+
+Γ£ô
+
+Owner
+
+Γ£ô
+
+Branch
+
+Γ£ô
+
+Roles
+
+Γ£ô
+
+Permissions
+
+Γ£ô
+
+Subscription
+
+Γ£ô
+
+Fiscal Year
+
+Γ£ô
+
+Chart Of Accounts
+
+Γ£ô
+
+Settings
+
+Γ£ô
+
+Audit Log
+
+Γ£ô
+
+Unit Test Cases
+┘é╪¿┘ä ┘â╪¬╪º╪¿╪⌐ ╪º┘ä┘â┘ê╪» ┘è╪¼╪¿ ╪ú┘å ┘å╪╣╪▒┘ü ┘à╪º╪░╪º ╪│┘å╪«╪¬╪¿╪▒.
+╪ú┘à╪½┘ä╪⌐:
+Success
+Create Business Successfully
+
+Failure
+Plan Not Found
+
+Currency Not Found
+
+Unauthorized User
+
+Duplicate Email
+
+Duplicate Phone
+
+Transaction Rollback On Failure
+
+Chart Of Accounts Created
+
+Default Branch Created
+
+Owner Assigned
+
+Subscription Created
+
+┘à╪▒╪º╪¼╪╣╪⌐ ┘à╪╣┘à╪º╪▒┘è╪⌐
+┘é╪¿┘ä ╪ú┘å ┘å┘â╪¬╪¿ CreateBusinessAction╪î ╪ú╪▒┘ë ╪ú┘å ┘ç┘å╪º┘â ╪¬╪¡╪│┘è┘å┘ï╪º ┘à┘ç┘à┘ï╪º ╪│┘è╪¼╪╣┘ä ╪º┘ä┘å╪╕╪º┘à ╪ú┘â╪½╪▒ ╪º╪¡╪¬╪▒╪º┘ü┘è╪⌐.
+╪¿╪»┘ä╪º┘ï ┘à┘å ╪ú┘å ┘è┘é┘ê┘à CreateBusinessAction ╪¿┘â┘ä ╪┤┘è╪í╪î ┘å╪¼╪╣┘ä┘ç Orchestrator ┘ü┘é╪╖╪î ┘ê┘è╪│╪¬╪»╪╣┘è Actions ╪╡╪║┘è╪▒╪⌐ ┘à╪¬╪«╪╡╪╡╪⌐╪î ┘à╪½┘ä:
+CreateBusinessAction
+Γöé
+Γö£ΓöÇΓöÇ CreateBusinessRecordAction
+Γö£ΓöÇΓöÇ CreateMainBranchAction
+Γö£ΓöÇΓöÇ CreateOwnerUserAction
+Γö£ΓöÇΓöÇ AssignOwnerRoleAction
+Γö£ΓöÇΓöÇ CreateSubscriptionAction
+Γö£ΓöÇΓöÇ CreateDefaultSettingsAction
+Γö£ΓöÇΓöÇ CreatePrintSettingsAction
+Γö£ΓöÇΓöÇ CreateChartOfAccountsAction
+Γö£ΓöÇΓöÇ CreateFiscalYearAction
+Γö£ΓöÇΓöÇ CreateDefaultTaxesAction
+Γö£ΓöÇΓöÇ CreateAuditLogAction
+ΓööΓöÇΓöÇ DispatchBusinessCreatedEventAction
+╪¿┘ç╪░┘ç ╪º┘ä╪╖╪▒┘è┘é╪⌐ ┘è╪¡┘é┘é ┘â┘ä Action ┘à╪¿╪»╪ú Single Responsibility╪î ┘ê┘è╪╡╪¿╪¡ ┘à┘å ╪º┘ä╪│┘ç┘ä ╪º╪«╪¬╪¿╪º╪▒┘ç ┘ê╪Ñ╪╣╪º╪»╪⌐ ╪º╪│╪¬╪«╪»╪º┘à┘ç ┘ê╪╡┘è╪º┘å╪¬┘ç╪î ┘â┘à╪º ┘è┘à┘å╪╣ ╪¬╪╢╪«┘à ╪º┘ä┘â┘ê╪» ┘à╪╣ ┘à╪▒┘ê╪▒ ╪º┘ä┘ê┘é╪¬
+╪º┘ä┘à╪▒╪¡┘ä╪⌐ ╪º┘ä╪½╪º┘å┘è╪⌐
+Design the Application Layer
+Core Domain
+
+Business
+
+Γåô
+
+Create Business
+
+Γåô
+
+Application Layer
+
+╪º┘ä╪«╪╖┘ê╪⌐ 1
+CreateBusinessAction
+┘ç╪░╪º ┘ç┘ê Entry Point.
+┘ç┘ê ╪º┘ä┘à╪│╪ñ┘ê┘ä ╪╣┘å ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘ü┘é╪╖.
+┘ê┘ä╪º ┘è╪¡╪¬┘ê┘è ╪╣┘ä┘ë ╪ú┘è Business Logic.
+CreateBusinessAction
+
+Γåô
+
+Validate DTO
+
+Γåô
+
+Start Transaction
+
+Γåô
+
+Call Sub Actions
+
+Γåô
+
+Commit
+
+Γåô
+
+Return Business
+
+╪º┘ä╪«╪╖┘ê╪⌐ 2
+Sub Actions
+┘ê┘ç╪░┘ç ┘ç┘è ╪º┘ä┘Ç Actions ╪º┘ä╪¬┘è ╪│┘è╪│╪¬╪»╪╣┘è┘ç╪º.
+CreateBusinessRecordAction
+
+Γåô
+
+CreateMainBranchAction
+
+Γåô
+
+CreateOwnerUserAction
+
+Γåô
+
+AssignOwnerRoleAction
+
+Γåô
+
+CreateSubscriptionAction
+
+Γåô
+
+CreateBusinessSettingsAction
+
+Γåô
+
+CreatePrintSettingsAction
+
+Γåô
+
+CreateChartOfAccountsAction
+
+Γåô
+
+CreateFiscalYearAction
+
+Γåô
+
+CreateDefaultTaxesAction
+
+Γåô
+
+CreateAuditLogAction
+
+Γåô
+
+DispatchBusinessCreatedEventAction
+┘â┘ä Action ┘à╪│╪ñ┘ê┘ä ╪╣┘å ╪┤┘è╪í ┘ê╪º╪¡╪» ┘ü┘é╪╖.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 3
+Services ╪º┘ä┘à╪╖┘ä┘ê╪¿╪⌐
+┘ä╪º╪¡╪╕ ╪ú┘å┘å╪º ┘ä╪º ┘å┘â╪¬╪¿ ┘â┘ä ╪┤┘è╪í ╪»╪º╪«┘ä Action.
+╪¿╪╣╪╢ ╪º┘ä╪╣┘à┘ä┘è╪º╪¬ ╪│╪¬┘â┘ê┘å ┘à╪╣┘é╪»╪⌐ ┘ê┘è╪╣╪º╪» ╪º╪│╪¬╪«╪»╪º┘à┘ç╪º.
+┘ä╪░┘ä┘â ┘å╪│╪¬╪«╪▒╪¼┘ç╪º ╪Ñ┘ä┘ë Services.
+┘à╪½┘ä╪º┘ï:
+ChartOfAccountsService
+
+SubscriptionService
+
+BusinessSettingsService
+
+FiscalYearService
+
+TaxInitializationService
+
+AuditService
+┘à╪½╪º┘ä:
+CreateChartOfAccountsAction
+
+Γåô
+
+ChartOfAccountsService
+
+Γåô
+
+GenerateDefaultAccounts()
+
+╪º┘ä╪«╪╖┘ê╪⌐ 4
+Repositories
+╪º┘ä┘Ç Actions ┘ä╪º ╪¬╪¬╪╣╪º┘à┘ä ┘à╪¿╪º╪┤╪▒╪⌐ ┘à╪╣ Eloquent ╪Ñ╪░╪º ┘â╪º┘å ╪º┘ä┘à┘å╪╖┘é ┘è╪¡╪¬╪º╪¼ ╪Ñ┘ä┘ë ╪╖╪¿┘é╪⌐ ╪╣╪▓┘ä.
+╪│┘å╪¡╪¬╪º╪¼ ╪¬┘é╪▒┘è╪¿┘ï╪º:
+BusinessRepository
+
+BranchRepository
+
+UserRepository
+
+SubscriptionRepository
+
+RoleRepository
+┘ê┘ä┘â┘ä Repository ┘è┘ê╪¼╪»:
+Contract
+
+Γåô
+
+Eloquent Implementation
+┘à╪½╪º┘ä:
+BusinessRepositoryInterface
+
+Γåô
+
+BusinessRepository
+
+╪º┘ä╪«╪╖┘ê╪⌐ 5
+DTO
+╪¿╪»┘ä╪º┘ï ┘à┘å ╪¬┘à╪▒┘è╪▒ Request ┘ü┘è ┘â┘ä ┘à┘â╪º┘å.
+╪│┘å┘å╪┤╪ª DTO ┘ê╪º╪¡╪».
+CreateBusinessDTO
+┘è╪¡╪¬┘ê┘è ╪╣┘ä┘ë:
+Business Name
+
+Legal Name
+
+Phone
+
+Email
+
+Country
+
+Currency
+
+Plan
+
+Owner
+
+Password
+╪¿╪╣╪» ╪Ñ┘å╪┤╪º╪í ╪º┘ä┘Ç DTO ┘ä╪º ╪¬╪¬╪╣╪º┘à┘ä ╪¿┘é┘è╪⌐ ╪º┘ä╪╖╪¿┘é╪º╪¬ ┘à╪╣ HTTP ╪Ñ╪╖┘ä╪º┘é┘ï╪º.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 6
+Form Request
+╪│┘è┘â┘ê┘å ┘ä╪»┘è┘å╪º:
+CreateBusinessRequest
+┘ê╪╕┘è┘ü╪¬┘ç ┘ü┘é╪╖:
+Validation
+
+Γåô
+
+Authorization
+
+Γåô
+
+Create DTO
+┘ê┘ä╪º ╪┤┘è╪í ╪ó╪«╪▒.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 7
+API Resource
+╪¿╪╣╪» ┘å╪¼╪º╪¡ ╪º┘ä╪╣┘à┘ä┘è╪⌐.
+┘ä┘å ┘å╪▒╪¼╪╣ ╪º┘ä┘Ç Model ┘à╪¿╪º╪┤╪▒╪⌐.
+╪¿┘ä:
+BusinessResource
+┘ê╪│┘è╪¡╪¬┘ê┘è ┘à╪½┘ä╪º┘ï ╪╣┘ä┘ë:
+Business
+
+Owner
+
+Subscription
+
+Main Branch
+
+Current Plan
+
+╪º┘ä╪«╪╖┘ê╪⌐ 8
+Controller
+╪│┘è┘â┘ê┘å ╪╡╪║┘è╪▒┘ï╪º ╪¼╪»┘ï╪º.
+╪¬┘é╪▒┘è╪¿┘ï╪º:
+Receive Request
+
+Γåô
+
+Create DTO
+
+Γåô
+
+Call CreateBusinessAction
+
+Γåô
+
+Return Resource
+┘ê┘ä╪º ┘è╪¡╪¬┘ê┘è ╪╣┘ä┘ë Business Logic.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 9
+Event
+╪¿╪╣╪» ┘å╪¼╪º╪¡ ╪º┘ä╪╣┘à┘ä┘è╪⌐.
+╪│┘å╪╖┘ä┘é:
+BusinessCreated
+╪½┘à ┘è╪│╪¬╪╖┘è╪╣ ╪º┘ä┘å╪╕╪º┘à ╪¬┘å┘ü┘è╪░:
+Send Welcome Email
+
+Γåô
+
+Create Notifications
+
+Γåô
+
+Create Sync Package
+
+Γåô
+
+Analytics
+
+Γåô
+
+Future Integrations
+╪»┘ê┘å ╪¬╪╣╪»┘è┘ä CreateBusinessAction.
+
+╪º┘ä╪«╪╖┘ê╪⌐ 10
+Database Transaction
+┘à┘å ╪ú┘ç┘à ╪º┘ä┘å┘é╪º╪╖.
+┘â┘ä ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘è╪¼╪¿ ╪ú┘å ╪¬╪╣┘à┘ä ╪»╪º╪«┘ä:
+DB Transaction
+Begin Transaction
+
+Γåô
+
+All Actions
+
+Γåô
+
+Commit
+
+Γåô
+
+Rollback
+╪ú┘è ┘ü╪┤┘ä ┘ü┘è ╪«╪╖┘ê╪⌐ ┘ê╪º╪¡╪»╪⌐:
+Rollback Everything
+
+╪º┘ä┘ç┘è┘â┘ä ╪º┘ä┘å┘ç╪º╪ª┘è
+CreateBusinessRequest
+
+Γåô
+
+CreateBusinessDTO
+
+Γåô
+
+CreateBusinessAction
+
+Γöé
+
+Γö£ΓöÇΓöÇ CreateBusinessRecordAction
+
+Γö£ΓöÇΓöÇ CreateMainBranchAction
+
+Γö£ΓöÇΓöÇ CreateOwnerUserAction
+
+Γö£ΓöÇΓöÇ AssignOwnerRoleAction
+
+Γö£ΓöÇΓöÇ CreateSubscriptionAction
+
+Γö£ΓöÇΓöÇ CreateBusinessSettingsAction
+
+Γö£ΓöÇΓöÇ CreatePrintSettingsAction
+
+Γö£ΓöÇΓöÇ CreateChartOfAccountsAction
+
+Γö£ΓöÇΓöÇ CreateFiscalYearAction
+
+Γö£ΓöÇΓöÇ CreateDefaultTaxesAction
+
+Γö£ΓöÇΓöÇ CreateAuditLogAction
+
+ΓööΓöÇΓöÇ DispatchBusinessCreatedEventAction
+
+Γåô
+
+BusinessResource
+
+╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐ ╪º┘ä┘ç┘å╪»╪│┘è╪⌐
+┘é╪¿┘ä ╪º┘ä╪º┘å╪¬┘é╪º┘ä ╪Ñ┘ä┘ë Use Case ╪º┘ä╪¬╪º┘ä┘è (View Business)╪î ╪ú┘ê╪╡┘è ╪¿╪Ñ╪╢╪º┘ü╪⌐ ┘à┘ü┘ç┘ê┘à ┘à╪╣┘à╪º╪▒┘è ┘ê╪º╪¡╪» ╪│┘è╪¼╪╣┘ä ╪º┘ä┘à╪┤╪▒┘ê╪╣ ╪ú┘â╪½╪▒ ┘é┘ê╪⌐ ╪╣┘ä┘ë ╪º┘ä┘à╪»┘ë ╪º┘ä╪╖┘ê┘è┘ä:
+Pipeline Pattern ╪»╪º╪«┘ä ╪º┘ä┘Ç Actions
+╪¿╪»┘ä╪º┘ï ┘à┘å ╪ú┘å ┘è╪│╪¬╪»╪╣┘è CreateBusinessAction ┘â┘ä Action ┘è╪»┘ê┘è┘ï╪º╪î ┘è┘à┘â┘å ╪¬╪╡┘à┘è┘à┘ç ┘â╪«╪╖ ╪ú┘å╪º╪¿┘è╪¿ (Pipeline)╪î ╪¿╪¡┘è╪½ ╪¬┘â┘ê┘å ┘â┘ä ╪«╪╖┘ê╪⌐ ┘à╪│╪¬┘é┘ä╪⌐ ┘ê┘è┘à┘â┘å ╪Ñ╪╣╪º╪»╪⌐ ╪¬╪▒╪¬┘è╪¿┘ç╪º ╪ú┘ê ╪Ñ╪╢╪º┘ü╪⌐ ╪«╪╖┘ê╪º╪¬ ╪¼╪»┘è╪»╪⌐ ╪»┘ê┘å ╪¬╪╣╪»┘è┘ä ╪º┘ä┘â┘ê╪» ╪º┘ä╪ú╪│╪º╪│┘è.
+┘à╪½╪º┘ä:
+CreateBusinessPipeline
+
+Γåô
+
+ValidateBusinessStep
+
+Γåô
+
+CreateBusinessStep
+
+Γåô
+
+CreateBranchStep
+
+Γåô
+
+CreateOwnerStep
+
+Γåô
+
+CreateSubscriptionStep
+
+Γåô
+
+CreateChartOfAccountsStep
+
+Γåô
+
+CreateFiscalYearStep
+
+Γåô
+
+CompleteBusinessSetupStep
+┘ü┘ê╪º╪ª╪» ┘ç╪░╪º ╪º┘ä╪ú╪│┘ä┘ê╪¿:
+┘è╪│┘ç┘ä ╪Ñ╪╢╪º┘ü╪⌐ ╪ú┘ê ╪Ñ╪▓╪º┘ä╪⌐ ╪«╪╖┘ê╪º╪¬ ┘à╪│╪¬┘é╪¿┘ä┘ï╪º. 
+┘â┘ä ╪«╪╖┘ê╪⌐ ┘é╪º╪¿┘ä╪⌐ ┘ä┘ä╪º╪«╪¬╪¿╪º╪▒ ╪¿╪┤┘â┘ä ┘à╪│╪¬┘é┘ä. 
+┘è┘é┘ä┘ä ┘à┘å ╪¬╪╣┘é┘è╪» ╪º┘ä┘Ç Orchestrator. 
+┘à┘å╪º╪│╪¿ ╪¼╪»┘ï╪º ┘ä╪ú┘å╪╕┘à╪⌐ ERP ╪º┘ä╪¬┘è ╪¬╪¬┘ê╪│╪╣ ╪¿╪º╪│╪¬┘à╪▒╪º╪▒.
+
+
+Core Domain
+    Γåô
+Business
+    Γåô
+Use Case #2
+    Γåô
+View Business
+┘ç╪»┘ü ┘ç╪░╪º ╪º┘ä┘Ç Use Case: ╪╣╪▒╪╢ ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪┤╪▒┘â╪⌐ ╪¿╪╖╪▒┘è┘é╪⌐ ╪ó┘à┘å╪⌐╪î ╪│╪▒┘è╪╣╪⌐╪î ┘ê┘é╪º╪¿┘ä╪⌐ ┘ä┘ä╪¬┘ê╪│╪╣╪î ┘à╪╣ ╪º╪¡╪¬╪▒╪º┘à ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬ ┘ê╪¡╪»┘ê╪» ╪º┘ä╪¿┘è╪º┘å╪º╪¬ (Multi-Tenant).
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐ (Use Case Name)
+View Business
+
+2. ╪º┘ä┘ç╪»┘ü (Goal)
+╪¬┘à┘â┘è┘å ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪º┘ä┘à╪«┘ê┘ä ┘à┘å ╪╣╪▒╪╢ ╪¼┘à┘è╪╣ ╪º┘ä┘à╪╣┘ä┘ê┘à╪º╪¬ ╪º┘ä╪«╪º╪╡╪⌐ ╪¿╪º┘ä╪┤╪▒┘â╪⌐╪î ┘à╪╣ ╪Ñ╪▒╪¼╪º╪╣ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä┘à┘å╪º╪│╪¿╪⌐ ╪¡╪│╪¿ ╪╡┘ä╪º╪¡┘è╪º╪¬┘ç╪î ╪»┘ê┘å ┘â╪┤┘ü ╪ú┘è ╪¿┘è╪º┘å╪º╪¬ ╪║┘è╪▒ ┘à╪╡╪▒╪¡ ╪¿┘ç╪º.
+
+3. Actor
+╪º┘ä┘à╪│╪¬╪«╪»┘à┘ê┘å ╪º┘ä┘à╪│┘à┘ê╪¡ ┘ä┘ç┘à ╪¿╪¬┘å┘ü┘è╪░ ╪º┘ä╪╣┘à┘ä┘è╪⌐:
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+Manager (╪¡╪│╪¿ ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬)
+
+4. Trigger
+╪¬╪¿╪»╪ú ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪╣┘å╪»┘à╪º ┘è╪╖┘ä╪¿ ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪╣╪▒╪╢ ╪¿┘è╪º┘å╪º╪¬ ╪┤╪▒┘â╪⌐ ┘à┘å ╪«┘ä╪º┘ä:
+Business Details Page
+
+Dashboard
+
+Business Switcher
+
+API Request
+
+5. Preconditions
+┘é╪¿┘ä ╪¬┘å┘ü┘è╪░ ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘è╪¼╪¿ ╪º┘ä╪¬╪¡┘é┘é ┘à┘å:
+Authentication
+User must be authenticated.
+
+Authorization
+business.view
+
+Business Exists
+Business UUID exists.
+
+Tenant Isolation
+┘è╪¼╪¿ ╪ú┘å ┘è┘â┘ê┘å ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪¬╪º╪¿╪╣┘ï╪º ┘ä┘ç╪░┘ç ╪º┘ä╪┤╪▒┘â╪⌐ ╪ú┘ê ┘è┘à╪¬┘ä┘â ╪╡┘ä╪º╪¡┘è╪⌐ ┘à┘å╪╡╪⌐ ╪¬╪│┘à╪¡ ┘ä┘ç ╪¿╪╣╪▒╪╢┘ç╪º.
+
+Business Status
+╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä╪┤╪▒┘â╪⌐ ┘à╪ñ╪▒╪┤┘ü╪⌐ ╪ú┘ê ┘à┘ê┘é┘ê┘ü╪⌐╪î ┘è╪¬┘à ╪¬╪╖╪¿┘è┘é ╪│┘è╪º╪│╪⌐ ╪º┘ä┘å╪╕╪º┘à ╪¡╪│╪¿ ┘å┘ê╪╣ ╪º┘ä┘à╪│╪¬╪«╪»┘à.
+
+6. Input
+Business UUID
+╪º╪«╪¬┘è╪º╪▒┘è┘ï╪º:
+include=
+
+fields=
+┘à╪½╪º┘ä:
+include=subscription,owner
+
+fields=id,name,email
+
+7. Validation Rules
+Business UUID:
+Required
+
+UUID
+
+Exists
+
+include:
+┘è╪│┘à╪¡ ┘ü┘é╪╖ ╪¿╪º┘ä╪╣┘ä╪º┘é╪º╪¬ ╪º┘ä┘à╪╣╪▒┘ü╪⌐ ┘à╪│╪¿┘é┘ï╪º.
+┘à╪½╪º┘ä:
+owner
+
+subscription
+
+mainBranch
+
+currency
+┘ê┘ä╪º ┘è╪│┘à╪¡ ╪¿╪ú┘è ╪╣┘ä╪º┘é╪⌐ ╪║┘è╪▒ ┘à╪╣╪▒┘ü╪⌐.
+
+fields:
+┘è╪¬┘à ╪º┘ä╪¬╪¡┘é┘é ┘à┘å ╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä┘à╪│┘à┘ê╪¡ ╪¿╪Ñ╪▒╪¼╪º╪╣┘ç╪º.
+
+8. Business Rules
+Rule 1
+┘ä╪º ┘è╪¼┘ê╪▓ ╪╣╪▒╪╢ ╪┤╪▒┘â╪⌐ ╪║┘è╪▒ ┘à┘ê╪¼┘ê╪»╪⌐.
+
+Rule 2
+┘ä╪º ┘è╪¼┘ê╪▓ ┘ä┘à╪│╪¬╪«╪»┘à ╪▒╪ñ┘è╪⌐ ╪┤╪▒┘â╪⌐ ╪ú╪«╪▒┘ë.
+
+Rule 3
+┘è╪╣╪▒╪╢ ╪º┘ä┘å╪╕╪º┘à ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪¡╪│╪¿ ╪╡┘ä╪º╪¡┘è╪º╪¬ ╪º┘ä┘à╪│╪¬╪«╪»┘à.
+┘à╪½╪º┘ä:
+Business Owner ┘è╪▒┘ë:
+Subscription
+
+Plan
+
+Financial Information
+
+Settings
+╪¿┘è┘å┘à╪º Manager ┘é╪» ┘ä╪º ┘è╪▒┘ë ╪º┘ä╪º╪┤╪¬╪▒╪º┘â.
+
+Rule 4
+┘ä╪º ┘è╪¬┘à ╪Ñ╪▒╪¼╪º╪╣ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¡╪│╪º╪│╪⌐.
+┘à╪½┘ä:
+API Keys
+
+Secrets
+
+Internal Notes
+
+Deleted Records
+
+Rule 5
+╪Ñ╪░╪º ╪╖┘ä╪¿ ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪╣┘ä╪º┘é╪º╪¬ (Includes)╪î ┘è╪¬┘à ╪¬╪¡┘à┘è┘ä┘ç╪º ┘ü┘é╪╖ ╪Ñ╪░╪º ┘â╪º┘å╪¬ ┘à╪│┘à┘ê╪¡╪⌐.
+
+Rule 6
+┘ä╪º ┘è╪¬┘à ╪¬╪¡┘à┘è┘ä ╪¼┘à┘è╪╣ ╪º┘ä╪╣┘ä╪º┘é╪º╪¬ ╪º┘ü╪¬╪▒╪º╪╢┘è┘ï╪º.
+
+Rule 7
+╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪╣╪▒╪╢ ╪º┘ä┘à┘ç┘à╪⌐ ┘è┘à┘â┘å ╪¬╪│╪¼┘è┘ä┘ç╪º ┘ü┘è Audit ╪¡╪│╪¿ ╪│┘è╪º╪│╪⌐ ╪º┘ä┘å╪╕╪º┘à.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate UUID
+
+Γåô
+
+Load Business
+
+Γåô
+
+Validate Tenant
+
+Γåô
+
+Load Allowed Relationships
+
+Γåô
+
+Apply Field Selection
+
+Γåô
+
+Transform Resource
+
+Γåô
+
+Return Response
+
+10. Failure Cases
+Business ╪║┘è╪▒ ┘à┘ê╪¼┘ê╪»:
+404 Not Found
+
+╪º┘ä┘à╪│╪¬╪«╪»┘à ╪║┘è╪▒ ┘à╪«┘ê┘ä:
+403 Forbidden
+
+╪║┘è╪▒ ┘à╪│╪¼┘ä ╪»╪«┘ê┘ä:
+401 Unauthorized
+
+UUID ╪║┘è╪▒ ╪╡╪º┘ä╪¡:
+422 Validation Error
+
+11. Application Layer
+┘è╪¬┘â┘ê┘å ╪º┘ä╪¬┘å┘ü┘è╪░ ┘à┘å:
+ViewBusinessRequest
+
+Γåô
+
+ViewBusinessDTO
+
+Γåô
+
+ViewBusinessAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Repository Responsibilities
+Repository ┘à╪│╪ñ┘ê┘ä ╪╣┘å:
+Find Business By UUID
+
+Γåô
+
+Apply Includes
+
+Γåô
+
+Apply Fields
+
+Γåô
+
+Return Aggregate
+┘ê┘ä╪º ┘è╪¡╪¬┘ê┘è ╪╣┘ä┘ë Business Rules.
+
+13. Resource
+BusinessResource ┘è╪╣┘è╪» ┘ü┘é╪╖ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä┘à╪│┘à┘ê╪¡ ╪¿┘ç╪º.
+┘à╪½╪º┘ä:
+{
+    "id": "...",
+    "name": "...",
+    "email": "...",
+    "currency": {},
+    "subscription": {},
+    "owner": {}
+}
+┘ê┘ä╪º ┘è╪╣┘è╪» ╪ú┘è ╪¿┘è╪º┘å╪º╪¬ ╪»╪º╪«┘ä┘è╪⌐ ╪ú┘ê ╪¡╪│╪º╪│╪⌐.
+
+14. Performance Considerations
+┘ä╪╢┘à╪º┘å ╪º┘ä╪ú╪»╪º╪í ╪º┘ä╪╣╪º┘ä┘è:
+╪º╪│╪¬╪«╪»╪º┘à UUID Index ┘ä┘ä╪¿╪¡╪½. 
+╪º╪│╪¬╪«╪»╪º┘à Eager Loading ┘ä┘ä╪╣┘ä╪º┘é╪º╪¬ ╪º┘ä┘à╪╖┘ä┘ê╪¿╪⌐ ┘ü┘é╪╖. 
+┘à┘å╪╣ N+1 Queries. 
+╪╣╪»┘à ╪¬╪¡┘à┘è┘ä ╪º┘ä╪╣┘ä╪º┘é╪º╪¬ ╪º┘ü╪¬╪▒╪º╪╢┘è┘ï╪º. 
+╪º┘ä╪│┘à╪º╪¡ ╪¿╪º╪│╪¬╪«╪»╪º┘à Field Selection ┘ä╪¬┘é┘ä┘è┘ä ╪¡╪¼┘à ╪º┘ä╪º╪│╪¬╪¼╪º╪¿╪⌐. 
+╪Ñ┘à┘â╪º┘å┘è╪⌐ ╪Ñ╪╢╪º┘ü╪⌐ Cache ┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪┤╪▒┘â╪⌐ ╪º┘ä╪¬┘è ╪¬╪¬╪║┘è╪▒ ┘å╪º╪»╪▒┘ï╪º╪î ┘à╪╣ ╪Ñ╪¿╪╖╪º┘ä┘ç╪º ╪╣┘å╪» ╪ú┘è ╪¬╪¡╪»┘è╪½. 
+
+15. Security Considerations
+╪º┘ä╪¬╪¡┘é┘é ┘à┘å ┘ç┘ê┘è╪⌐ ╪º┘ä┘à╪│╪¬╪«╪»┘à. 
+╪º┘ä╪¬╪¡┘é┘é ┘à┘å ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬. 
+╪º┘ä╪¬╪¡┘é┘é ┘à┘å ╪¡╪»┘ê╪» ╪º┘ä╪┤╪▒┘â╪⌐ (Tenant Isolation). 
+╪╣╪»┘à ┘â╪┤┘ü ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¡╪│╪º╪│╪⌐. 
+┘à┘å╪╣ ╪º┘ä┘ê╪╡┘ê┘ä ╪Ñ┘ä┘ë ╪┤╪▒┘â╪º╪¬ ╪ú╪«╪▒┘ë ╪¡╪¬┘ë ┘à╪╣ ┘à╪╣╪▒┘ü╪⌐ ╪º┘ä┘Ç UUID. 
+╪¬╪│╪¼┘è┘ä ┘à╪¡╪º┘ê┘ä╪º╪¬ ╪º┘ä┘ê╪╡┘ê┘ä ╪║┘è╪▒ ╪º┘ä┘à╪╡╪▒╪¡ ╪¿┘ç╪º ╪╣┘å╪» ╪º┘ä╪¡╪º╪¼╪⌐. 
+
+16. Unit Test Scenarios
+┘è╪¼╪¿ ╪º╪«╪¬╪¿╪º╪▒:
+Success
+View Business Successfully
+
+Authorization
+Unauthorized User
+
+Forbidden User
+
+Validation
+Invalid UUID
+
+Business Not Found
+
+Tenant Isolation
+User Cannot View Another Business
+
+Includes
+Allowed Include
+
+Forbidden Include
+
+Fields
+Allowed Fields
+
+Forbidden Fields
+
+Performance
+No N+1 Queries
+
+Loads Only Requested Relations
+
+Security
+Sensitive Fields Are Hidden
+
+17. Expected Output
+╪¿╪╣╪» ┘å╪¼╪º╪¡ ╪º┘ä╪╣┘à┘ä┘è╪⌐:
+Business Loaded
+
+Γåô
+
+Authorized
+
+Γåô
+
+Correct Relationships Loaded
+
+Γåô
+
+Sensitive Data Hidden
+
+Γåô
+
+Standard API Response Returned
+
+≡ƒÅ¢∩╕Å ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐ ╪º┘ä┘à╪╣┘à╪º╪▒┘è╪⌐
+┘ç╪░╪º ╪º┘ä┘Ç Use Case ╪¼┘è╪» ╪¼╪»┘ï╪º╪î ┘ä┘â┘å ┘ä╪»┘è ╪¬╪¡╪│┘è┘å ┘ê╪º╪¡╪» ╪ú┘ê╪╡┘è ╪¿╪º╪╣╪¬┘à╪º╪»┘ç ┘à┘å ╪º┘ä╪ó┘å ┘ü┘è ╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ View ╪»╪º╪«┘ä ╪º┘ä┘å╪╕╪º┘à.
+╪¿╪»┘ä┘ï╪º ┘à┘å ╪ú┘å ┘è┘é┘ê┘à ViewBusinessAction ╪¿╪¿┘å╪º╪í ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à ╪¿┘å┘ü╪│┘ç╪î ╪ú┘å╪┤╪ª Query Object ┘à╪«╪╡╪╡┘ï╪º╪î ┘à╪½┘ä:
+BusinessDetailsQuery
+╪¿╪¡┘è╪½ ┘è╪╡╪¿╪¡ ╪º┘ä╪¬╪│┘ä╪│┘ä:
+ViewBusinessAction
+        Γåô
+BusinessDetailsQuery
+        Γåô
+BusinessRepository
+        Γåô
+BusinessResource
+┘ä┘à╪º╪░╪º╪ƒ
+┘è┘ü╪╡┘ä ┘à┘å╪╖┘é ┘é╪▒╪º╪í╪⌐ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪╣┘å ┘à┘å╪╖┘é ╪º┘ä╪¬┘å┘ü┘è╪░. 
+┘è╪│┘ç┘ä ╪¬╪¡╪│┘è┘å ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à╪º╪¬ ┘ä╪º╪¡┘é┘ï╪º. 
+┘è╪¼╪╣┘ä ╪Ñ╪╢╪º┘ü╪⌐ ╪º┘ä┘ü┘ä╪º╪¬╪▒╪î ╪º┘ä╪╣┘ä╪º┘é╪º╪¬╪î ┘ê╪º┘ä┘Ç Caching ╪ú╪│┘ç┘ä. 
+┘à┘å╪º╪│╪¿ ╪¼╪»┘ï╪º ┘à╪╣ ╪º┘ä╪ú┘å╪╕┘à╪⌐ ╪º┘ä╪¬┘è ╪¬╪¡╪¬┘ê┘è ╪╣┘ä┘ë ╪¬┘é╪º╪▒┘è╪▒ ┘ê┘ä┘ê╪¡╪º╪¬ ┘à╪╣┘ä┘ê┘à╪º╪¬ ┘à╪╣┘é╪»╪⌐ ┘à╪½┘ä Smart Merchant ERP.
+Core Domain
+
+Γåô
+
+Business
+
+Γåô
+
+Use Case #3
+
+Γåô
+
+List Businesses
+┘ç╪░╪º ╪º┘ä┘Ç Use Case ┘ç┘ê ╪º┘ä╪ú╪│╪º╪│ ┘ä╪¼┘à┘è╪╣ ╪º┘ä╪┤╪º╪┤╪º╪¬ ╪º┘ä╪¬┘è ╪¬╪╣╪▒╪╢ ╪ú┘â╪½╪▒ ┘à┘å ╪┤╪▒┘â╪⌐╪î ╪│┘ê╪º╪í ┘ü┘è ┘ä┘ê╪¡╪⌐ ╪º┘ä╪¬╪¡┘â┘à ╪ú┘ê ┘ü┘è ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+List Businesses
+
+2. ╪º┘ä┘ç╪»┘ü (Goal)
+╪╣╪▒╪╢ ┘é╪º╪ª┘à╪⌐ ╪¿╪º┘ä╪┤╪▒┘â╪º╪¬ ╪º┘ä┘à╪│┘à┘ê╪¡ ┘ä┘ä┘à╪│╪¬╪«╪»┘à ╪¿╪▒╪ñ┘è╪¬┘ç╪º╪î ┘à╪╣ ╪»╪╣┘à ╪º┘ä╪¿╪¡╪½╪î ╪º┘ä╪¬╪╡┘ü┘è╪⌐╪î ╪º┘ä╪¬╪▒╪¬┘è╪¿╪î ┘ê╪º┘ä╪¬╪▒┘é┘è┘à (Pagination)╪î ╪»┘ê┘å ╪¬╪¡┘à┘è┘ä ╪¿┘è╪º┘å╪º╪¬ ╪║┘è╪▒ ╪╢╪▒┘ê╪▒┘è╪⌐.
+
+3. Actor
+Platform Super Admin
+
+Platform Support (╪¡╪│╪¿ ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬)
+
+Business Owner (╪Ñ╪░╪º ┘â╪º┘å ╪º┘ä┘å╪╕╪º┘à ┘è╪│┘à╪¡ ╪¿╪Ñ╪»╪º╪▒╪⌐ ╪╣╪»╪⌐ ╪┤╪▒┘â╪º╪¬)
+
+4. Trigger
+╪¬╪¿╪»╪ú ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪╣┘å╪»:
+┘ü╪¬╪¡ ╪╡┘ü╪¡╪⌐ ╪º┘ä╪┤╪▒┘â╪º╪¬
+
+╪¬╪¡╪»┘è╪½ ╪º┘ä┘é╪º╪ª┘à╪⌐
+
+╪¬╪║┘è┘è╪▒ ╪º┘ä┘ü┘ä╪º╪¬╪▒
+
+╪º┘ä╪¿╪¡╪½
+
+╪º┘ä╪¬┘å┘é┘ä ╪¿┘è┘å ╪º┘ä╪╡┘ü╪¡╪º╪¬
+
+5. Preconditions
+┘é╪¿┘ä ╪º┘ä╪¬┘å┘ü┘è╪░ ┘è╪¼╪¿ ╪º┘ä╪¬╪¡┘é┘é ┘à┘å:
+╪º┘ä┘à╪│╪¬╪«╪»┘à ┘à╪│╪¼┘ä ╪»╪«┘ê┘ä. 
+┘è┘à╪¬┘ä┘â ╪╡┘ä╪º╪¡┘è╪⌐: 
+business.list
+╪¬╪¡╪»┘è╪» ╪¡╪»┘ê╪» ╪º┘ä╪¿┘è╪º┘å╪º╪¬ (Tenant Scope). 
+╪╡╪¡╪⌐ ╪º┘ä┘ü┘ä╪º╪¬╪▒ ┘ê╪º┘ä╪¿╪º╪▒╪º┘à╪¬╪▒╪º╪¬. 
+
+6. Query Parameters
+┘è╪»╪╣┘à ╪º┘ä┘Ç Endpoint:
+page
+
+per_page
+
+search
+
+sort
+
+status
+
+plan
+
+country
+
+currency
+
+created_from
+
+created_to
+
+7. Validation Rules
+page
+Integer
+
+Minimum 1
+
+per_page
+Integer
+
+Between 10 and 100
+
+search
+String
+
+Max Length
+
+sort
+┘è╪│┘à╪¡ ┘ü┘é╪╖ ╪¿╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä┘à╪╣╪¬┘à╪»╪⌐.
+┘à╪½┘ä╪º┘ï
+name
+
+created_at
+
+status
+
+8. Business Rules
+Rule 1
+┘ä╪º ╪¬╪╣╪▒╪╢ ╪Ñ┘ä╪º ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪º┘ä╪¬┘è ┘è┘à┘ä┘â ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪╡┘ä╪º╪¡┘è╪⌐ ╪▒╪ñ┘è╪¬┘ç╪º.
+
+Rule 2
+┘ä╪º ┘è╪¬┘à ╪¬╪¡┘à┘è┘ä ╪º┘ä╪╣┘ä╪º┘é╪º╪¬ ╪º┘ü╪¬╪▒╪º╪╢┘è╪º┘ï.
+
+Rule 3
+┘ä╪º ┘è╪¬┘à ╪Ñ╪▒╪¼╪º╪╣ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¡╪│╪º╪│╪⌐.
+
+Rule 4
+┘è╪¼╪¿ ╪ú┘å ╪¬┘â┘ê┘å ╪º┘ä┘å╪¬╪º╪ª╪¼ ┘à╪▒╪¬╪¿╪⌐ ╪¿╪╖╪▒┘è┘é╪⌐ ╪½╪º╪¿╪¬╪⌐.
+╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è:
+Created At DESC
+
+Rule 5
+╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪¿╪¡╪½ ┘è╪¼╪¿ ╪ú┘å ╪¬┘â┘ê┘å Case-Insensitive.
+
+Rule 6
+┘è┘à┘â┘å ╪»┘à╪¼ ╪ú┘â╪½╪▒ ┘à┘å Filter.
+┘à╪½┘ä╪º┘ï:
+Status = Active
+
++
+
+Country = Saudi Arabia
+
++
+
+Plan = Professional
+
+Rule 7
+┘ä╪º ┘è╪│┘à╪¡ ╪¿╪Ñ╪▒╪¼╪º╪╣ ╪¼┘à┘è╪╣ ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪»┘ü╪╣╪⌐ ┘ê╪º╪¡╪»╪⌐.
+Pagination ╪Ñ┘ä╪▓╪º┘à┘è╪⌐.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate
+
+Γåô
+
+Authorize
+
+Γåô
+
+Validate Filters
+
+Γåô
+
+Apply Tenant Scope
+
+Γåô
+
+Apply Search
+
+Γåô
+
+Apply Filters
+
+Γåô
+
+Apply Sorting
+
+Γåô
+
+Apply Pagination
+
+Γåô
+
+Transform Resource Collection
+
+Γåô
+
+Return Response
+
+10. Failure Cases
+╪╣╪»┘à ╪¬╪│╪¼┘è┘ä ╪º┘ä╪»╪«┘ê┘ä
+401
+
+╪╣╪»┘à ┘ê╪¼┘ê╪» ╪╡┘ä╪º╪¡┘è╪⌐
+403
+
+┘ü┘ä╪¬╪▒ ╪║┘è╪▒ ╪╡╪¡┘è╪¡
+422
+
+╪¬╪▒╪¬┘è╪¿ ╪║┘è╪▒ ┘à╪│┘à┘ê╪¡
+422
+
+11. Application Layer
+ListBusinessesRequest
+
+Γåô
+
+ListBusinessesDTO
+
+Γåô
+
+ListBusinessesAction
+
+Γåô
+
+BusinessListQuery
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessCollection
+
+12. Query Object
+╪¿╪»┘ä╪º┘ï ┘à┘å ╪¿┘å╪º╪í ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à ╪»╪º╪«┘ä Action.
+┘è┘å╪┤╪ú:
+BusinessListQuery
+┘à╪│╪ñ┘ê┘ä ╪╣┘å:
+Search
+
+Γåô
+
+Filters
+
+Γåô
+
+Sorting
+
+Γåô
+
+Pagination
+
+13. Resource Collection
+╪¿╪»┘ä╪º┘ï ┘à┘å:
+BusinessResource
+╪│┘å╪│╪¬╪«╪»┘à:
+BusinessCollection
+┘ä╪¬┘ê╪¡┘è╪»:
+data
+
+meta
+
+links
+
+14. Response Example
+{
+  "data": [
+    {
+      "id": "...",
+      "name": "...",
+      "status": "active",
+      "currency": "SAR"
+    }
+  ],
+  "meta": {
+    "current_page": 1,
+    "per_page": 25,
+    "total": 420,
+    "last_page": 17
+  }
+}
+
+15. Performance Considerations
+┘è╪¼╪¿ ╪ú┘å:
+╪¬╪│╪¬╪«╪»┘à Pagination ╪»╪º╪ª┘à╪º┘ï. 
+╪¬╪│╪¬╪«╪»┘à Indexes ╪╣┘ä┘ë: 
+name 
+status 
+created_at 
+plan_id 
+╪¬┘à┘å╪╣ N+1 Queries. 
+┘ä╪º ╪¬╪│╪¬╪«╪»┘à SELECT *. 
+╪¬╪╣┘è╪» ╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä┘à╪╖┘ä┘ê╪¿╪⌐ ┘ü┘é╪╖. 
+╪¬╪»╪╣┘à Cache ╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ┘é┘ä┘è┘ä╪⌐ ╪º┘ä╪¬╪║┘è╪▒. 
+
+16. Security Considerations
+╪º╪¡╪¬╪▒╪º┘à Tenant Isolation. 
+┘à┘å╪╣ ╪▒╪ñ┘è╪⌐ ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪║┘è╪▒ ╪º┘ä┘à╪╡╪▒╪¡ ╪¿┘ç╪º. 
+╪╣╪»┘à ┘â╪┤┘ü ╪º┘ä╪¿╪▒┘è╪» ╪ú┘ê ╪º┘ä┘ç╪º╪¬┘ü ╪Ñ╪░╪º ┘ä┘à ┘è┘â┘å ┘ä┘ä┘à╪│╪¬╪«╪»┘à ╪╡┘ä╪º╪¡┘è╪⌐. 
+╪º┘ä╪¬╪¡┘é┘é ┘à┘å ╪¼┘à┘è╪╣ ┘à╪╣╪º┘à┘ä╪º╪¬ ╪º┘ä╪¿╪¡╪½ ┘ê╪º┘ä╪¬╪▒╪¬┘è╪¿ ┘ä┘à┘å╪╣ ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à╪º╪¬ ╪║┘è╪▒ ╪º┘ä┘à╪╡╪▒╪¡ ╪¿┘ç╪º. 
+
+17. Unit Test Scenarios
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä┘å╪¼╪º╪¡:
+List Businesses Successfully
+
+Pagination Works
+
+Sorting Works
+
+Filtering Works
+
+Search Works
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä┘ü╪┤┘ä:
+Unauthorized User
+
+Forbidden User
+
+Invalid Filter
+
+Invalid Sort
+
+Invalid Pagination
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä╪ú╪»╪º╪í:
+No N+1 Queries
+
+Pagination Performance
+
+Large Dataset Performance
+
+18. ╪º┘ä┘å╪¬┘è╪¼╪⌐ ╪º┘ä┘à╪¬┘ê┘é╪╣╪⌐
+╪¿╪╣╪» ┘å╪¼╪º╪¡ ╪º┘ä╪╣┘à┘ä┘è╪⌐:
+Businesses Retrieved
+
+Γåô
+
+Filtered
+
+Γåô
+
+Sorted
+
+Γåô
+
+Paginated
+
+Γåô
+
+Returned As Standard Collection
+
+≡ƒÅ¢∩╕Å ┘à╪▒╪º╪¼╪╣╪⌐ ┘à╪╣┘à╪º╪▒┘è╪⌐
+╪¿╪╣╪» ┘à╪▒╪º╪¼╪╣╪⌐ ┘ç╪░╪º ╪º┘ä┘Ç Use Case╪î ╪ú┘ê╪╡┘è ╪¿╪Ñ╪╢╪º┘ü╪⌐ ┘à┘â┘ê┘å ╪ú╪│╪º╪│┘è ╪Ñ┘ä┘ë ╪º┘ä┘à╪┤╪▒┘ê╪╣ ┘à┘å ╪º┘ä╪ó┘å ╪¿╪»┘ä┘ï╪º ┘à┘å ╪Ñ╪╣╪º╪»╪⌐ ╪¿┘å╪º╪ª┘ç ┘ä╪º╪¡┘é┘ï╪º╪î ┘ê┘ç┘ê:
+Shared/
+ΓööΓöÇΓöÇ QueryBuilder/
+    Γö£ΓöÇΓöÇ Filters/
+    Γö£ΓöÇΓöÇ Sorting/
+    Γö£ΓöÇΓöÇ Pagination/
+    ΓööΓöÇΓöÇ Includes/
+╪¿╪»┘ä╪º┘ï ┘à┘å ╪ú┘å ┘è┘é┘ê┘à ┘â┘ä Domain ╪¿╪¿┘å╪º╪í ╪º┘ä╪¿╪¡╪½╪î ╪º┘ä╪¬╪╡┘ü┘è╪⌐╪î ┘ê╪º┘ä╪¬╪▒╪¬┘è╪¿ ╪¿┘å┘ü╪│┘ç╪î ╪│┘è┘â┘ê┘å ┘ä╪»┘è┘å╪º Query Builder ┘à╪┤╪¬╪▒┘â ┘è╪│╪¬╪«╪»┘à┘ç:
+Business 
+Products 
+Customers 
+Suppliers 
+Sales Invoices 
+Purchase Invoices 
+Journal Entries 
+Employees 
+┘ç╪░╪º ╪│┘è┘é┘ä┘ä ╪¬┘â╪▒╪º╪▒ ╪º┘ä┘â┘ê╪» ╪¿╪┤┘â┘ä ┘â╪¿┘è╪▒╪î ┘ê┘è┘ê╪¡╪» ╪│┘ä┘ê┘â ╪¼┘à┘è╪╣ ╪┤╪º╪┤╪º╪¬ ╪º┘ä╪¿╪¡╪½ ┘ê╪º┘ä┘é┘ê╪º╪ª┘à ┘ü┘è Smart Merchant ERP╪î ┘ê┘ç┘ê ┘é╪▒╪º╪▒ ┘à╪╣┘à╪º╪▒┘è ┘è┘ê┘ü╪▒ ┘ê┘é╪¬┘ï╪º ┘â╪¿┘è╪▒┘ï╪º ┘à╪╣ ╪¬┘ê╪│╪╣ ╪º┘ä┘å╪╕╪º┘à.
+Core Domain
+Business
+Use Case #4
+Search Businesses
+┘é╪» ┘è╪¿╪»┘ê ┘ä┘ä╪¿╪╣╪╢ ╪ú┘å Search ╪¼╪▓╪í ┘à┘å List╪î ┘ê┘ä┘â┘å ┘ü┘è ╪ú┘å╪╕┘à╪⌐ ERP ╪º┘ä┘â╪¿┘è╪▒╪⌐ ┘à╪½┘ä SAP ┘ê Oracle ┘ê Dynamics 365 ┘è╪¬┘à ┘ü╪╡┘ä┘ç╪º ┘à┘å╪╖┘é┘è┘ï╪º╪î ┘ä╪ú┘å ╪º┘ä╪¿╪¡╪½ ┘ä╪º╪¡┘é┘ï╪º ┘é╪» ┘è╪│╪¬╪«╪»┘à:
+Full Text Search 
+Elasticsearch / OpenSearch 
+Trigram Search ┘ü┘è PostgreSQL 
+╪º┘ä╪¿╪¡╪½ ╪º┘ä╪░┘â┘è 
+╪º┘ä╪¿╪¡╪½ ╪º┘ä╪╡┘ê╪¬┘è 
+╪º┘ä╪¿╪¡╪½ ╪¿╪º┘ä╪░┘â╪º╪í ╪º┘ä╪º╪╡╪╖┘å╪º╪╣┘è 
+┘ä╪░┘ä┘â ┘ü╪╡┘ä┘ç ╪º┘ä╪ó┘å ┘é╪▒╪º╪▒ ┘à╪╣┘à╪º╪▒┘è ╪╡╪¡┘è╪¡.
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Search Businesses
+
+2. ╪º┘ä┘ç╪»┘ü (Goal)
+╪º┘ä╪¿╪¡╪½ ╪╣┘å ╪┤╪▒┘â╪⌐ ╪ú┘ê ┘à╪¼┘à┘ê╪╣╪⌐ ╪┤╪▒┘â╪º╪¬ ╪¿╪º╪│╪¬╪«╪»╪º┘à ┘â┘ä┘à╪⌐ ╪ú┘ê ╪ú┘â╪½╪▒╪î ┘à╪╣ ╪Ñ╪▒╪¼╪º╪╣ ╪º┘ä┘å╪¬╪º╪ª╪¼ ╪º┘ä╪¬┘è ┘è┘à┘ä┘â ╪º┘ä┘à╪│╪¬╪«╪»┘à ╪╡┘ä╪º╪¡┘è╪⌐ ╪▒╪ñ┘è╪¬┘ç╪º ┘ü┘é╪╖.
+
+3. Actor
+Platform Super Admin
+
+Platform Support
+
+Business Owner (╪Ñ╪░╪º ┘â╪º┘å ┘è╪»┘è╪▒ ╪ú┘â╪½╪▒ ┘à┘å ╪┤╪▒┘â╪⌐)
+
+4. Trigger
+╪¬╪¿╪»╪ú ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪╣┘å╪» ╪Ñ╪»╪«╪º┘ä ╪º┘ä┘à╪│╪¬╪«╪»┘à ┘å╪╡┘ï╪º ┘ü┘è ┘à╪▒╪¿╪╣ ╪º┘ä╪¿╪¡╪½.
+┘à╪½┘ä:
+Search...
+
+5. Preconditions
+┘é╪¿┘ä ╪¬┘å┘ü┘è╪░ ╪º┘ä╪¿╪¡╪½ ┘è╪¼╪¿ ╪º┘ä╪¬╪ú┘â╪» ┘à┘å:
+╪º┘ä┘à╪│╪¬╪«╪»┘à ┘à╪│╪¼┘ä ╪»╪«┘ê┘ä. 
+┘è┘à╪¬┘ä┘â ╪╡┘ä╪º╪¡┘è╪⌐: 
+business.search
+╪º┘ä┘å╪╡ ╪╡╪º┘ä╪¡. 
+╪¬╪╖╪¿┘è┘é ╪¡╪»┘ê╪» ╪º┘ä╪┤╪▒┘â╪⌐ (Tenant Isolation). 
+
+6. Input
+search
+
+page
+
+per_page
+
+filters
+
+sort
+
+7. Validation Rules
+Search
+Required
+
+String
+
+Minimum 2 Characters
+
+Maximum 255 Characters
+
+Page
+Integer
+
+Minimum 1
+
+Per Page
+10 ΓåÆ 100
+
+8. Business Rules
+Rule 1
+┘ä╪º ┘è╪¬┘à ╪º┘ä╪¿╪¡╪½ ╪Ñ┘ä╪º ╪»╪º╪«┘ä ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪º┘ä┘à╪│┘à┘ê╪¡ ┘ä┘ä┘à╪│╪¬╪«╪»┘à ╪¿╪▒╪ñ┘è╪¬┘ç╪º.
+
+Rule 2
+┘è┘â┘ê┘å ╪º┘ä╪¿╪¡╪½ ╪║┘è╪▒ ╪¡╪│╪º╪│ ┘ä╪¡╪º┘ä╪⌐ ╪º┘ä╪ú╪¡╪▒┘ü (Case-Insensitive).
+
+Rule 3
+┘è╪»╪╣┘à ╪º┘ä╪¿╪¡╪½ ╪º┘ä╪¼╪▓╪ª┘è (Partial Match).
+┘à╪½╪º┘ä:
+Aza
+┘è╪╣┘è╪»:
+Al-Azaki Trading
+
+Rule 4
+┘è╪¿╪¡╪½ ┘ü┘è ╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä┘à╪│┘à┘ê╪¡ ╪¿┘ç╪º ┘ü┘é╪╖.
+┘à╪½┘ä:
+Business Name
+
+Legal Name
+
+Phone
+
+Email
+
+Tax Number
+┘ê┘ä╪º ┘è╪¿╪¡╪½ ┘ü┘è ╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä╪¡╪│╪º╪│╪⌐ ╪ú┘ê ╪º┘ä╪»╪º╪«┘ä┘è╪⌐.
+
+Rule 5
+╪Ñ╪░╪º ┘ä┘à ╪¬┘ê╪¼╪» ┘å╪¬╪º╪ª╪¼╪î ┘è╪╣╪º╪» ╪▒╪» ┘å╪º╪¼╪¡ ┘à╪╣ ┘é╪º╪ª┘à╪⌐ ┘ü╪º╪▒╪║╪⌐╪î ┘ê┘ä┘è╪│ ╪«╪╖╪ú.
+
+Rule 6
+┘è┘à┘â┘å ╪»┘à╪¼ ╪º┘ä╪¿╪¡╪½ ┘à╪╣ ╪º┘ä┘ü┘ä╪º╪¬╪▒.
+┘à╪½╪º┘ä:
+Search = Stone
+
+Status = Active
+
+Country = Saudi Arabia
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate
+
+Γåô
+
+Authorize
+
+Γåô
+
+Validate Search Text
+
+Γåô
+
+Apply Tenant Scope
+
+Γåô
+
+Apply Search Query
+
+Γåô
+
+Apply Filters
+
+Γåô
+
+Apply Sorting
+
+Γåô
+
+Apply Pagination
+
+Γåô
+
+Return Collection
+
+10. Failure Cases
+╪║┘è╪▒ ┘à╪│╪¼┘ä ╪»╪«┘ê┘ä
+401 Unauthorized
+
+╪¿╪»┘ê┘å ╪╡┘ä╪º╪¡┘è╪⌐
+403 Forbidden
+
+┘å╪╡ ╪¿╪¡╪½ ╪║┘è╪▒ ╪╡╪º┘ä╪¡
+422 Validation Error
+
+11. Application Layer
+SearchBusinessesRequest
+
+Γåô
+
+SearchBusinessesDTO
+
+Γåô
+
+SearchBusinessesAction
+
+Γåô
+
+BusinessSearchQuery
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessCollection
+
+12. Search Query
+┘è┘å╪┤╪ú Query Object ┘à╪│╪¬┘é┘ä:
+BusinessSearchQuery
+┘à╪│╪ñ┘ê┘ä ╪╣┘å:
+╪¿┘å╪º╪í ╪º╪│╪¬╪╣┘ä╪º┘à ╪º┘ä╪¿╪¡╪½. 
+╪¬╪╖╪¿┘è┘é ╪º┘ä┘ü┘ä╪º╪¬╪▒. 
+╪¬╪╖╪¿┘è┘é ╪º┘ä╪¬╪▒╪¬┘è╪¿. 
+╪¬╪¡╪│┘è┘å ╪º┘ä╪ú╪»╪º╪í. 
+
+13. Response
+┘è╪╣┘è╪»:
+{
+  "data": [
+    {
+      "id": "...",
+      "name": "Smart Merchant",
+      "status": "active"
+    }
+  ],
+  "meta": {
+    "search": "smart",
+    "total": 3
+  }
+}
+
+14. Performance Considerations
+╪º╪│╪¬╪«╪»╪º┘à Index ╪╣┘ä┘ë: 
+business_name 
+legal_name 
+email 
+phone 
+╪º╪│╪¬╪«╪»╪º┘à PostgreSQL Full-Text Search ┘à╪│╪¬┘é╪¿┘ä┘ï╪º ╪Ñ╪░╪º ╪▓╪º╪» ╪¡╪¼┘à ╪º┘ä╪¿┘è╪º┘å╪º╪¬. 
+┘à┘å╪╣ LIKE '%text%' ╪║┘è╪▒ ╪º┘ä╪╢╪▒┘ê╪▒┘è ╪╣┘ä┘ë ╪º┘ä╪¼╪»╪º┘ê┘ä ╪º┘ä╪╢╪«┘à╪⌐. 
+╪»╪╣┘à Pagination ╪»╪º╪ª┘à┘ï╪º. 
+
+15. Security Considerations
+╪º╪¡╪¬╪▒╪º┘à Tenant Isolation. 
+╪╣╪»┘à ┘â╪┤┘ü ╪º┘ä╪┤╪▒┘â╪º╪¬ ╪║┘è╪▒ ╪º┘ä┘à╪╡╪▒╪¡ ╪¿┘ç╪º. 
+╪╣╪»┘à ╪º┘ä╪¿╪¡╪½ ┘ü┘è ╪º┘ä╪¡┘é┘ê┘ä ╪º┘ä╪│╪▒┘è╪⌐. 
+┘à┘å╪╣ ┘ç╪¼┘à╪º╪¬ ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à ╪º┘ä┘à┘â╪½┘ü (Abuse) ╪╣╪¿╪▒ ╪¬╪¡╪»┘è╪» ╪¡╪» ╪ú╪»┘å┘ë ┘ä╪╖┘ê┘ä ┘â┘ä┘à╪⌐ ╪º┘ä╪¿╪¡╪½. 
+
+16. Unit Test Scenarios
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä┘å╪¼╪º╪¡:
+Search By Name
+
+Search By Email
+
+Search By Phone
+
+Partial Search
+
+Combined Search And Filters
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä┘ü╪┤┘ä:
+Unauthorized User
+
+Forbidden User
+
+Invalid Search Query
+╪º╪«╪¬╪¿╪º╪▒╪º╪¬ ╪º┘ä╪ú╪»╪º╪í:
+Search Performance
+
+Large Dataset Search
+
+No N+1 Queries
+
+17. ╪º┘ä┘å╪¬┘è╪¼╪⌐ ╪º┘ä┘à╪¬┘ê┘é╪╣╪⌐
+Search Request
+
+Γåô
+
+Authorized
+
+Γåô
+
+Tenant Scope Applied
+
+Γåô
+
+Results Filtered
+
+Γåô
+
+Paginated
+
+Γåô
+
+Returned Successfully
+
+≡ƒÅ¢∩╕Å ┘à╪▒╪º╪¼╪╣╪⌐ ┘à╪╣┘à╪º╪▒┘è╪⌐
+╪ú┘ä╪º╪¡╪╕ ╪ú┘å┘å╪º ╪¿╪»╪ú┘å╪º ┘å┘â╪▒╪▒ ╪¿┘å┘è╪⌐ ┘à╪¬╪┤╪º╪¿┘ç╪⌐ ╪¿┘è┘å:
+View 
+List 
+Search 
+┘ä╪░┘ä┘â ╪ú┘é╪¬╪▒╪¡ ╪º╪╣╪¬┘à╪º╪» ┘à╪¿╪»╪ú ╪▒╪│┘à┘è ┘ü┘è ╪º┘ä┘à╪┤╪▒┘ê╪╣:
+Query Use Cases
+╪ú┘è ╪ú┘å ╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä┘é╪▒╪º╪í╪⌐ (Read Operations) ╪¬╪│╪¬╪«╪»┘à ┘å┘à╪╖┘ï╪º ┘à┘ê╪¡╪»┘ï╪º:
+Request
+    Γåô
+DTO
+    Γåô
+Query
+    Γåô
+Repository
+    Γåô
+Resource / Collection
+╪¿┘è┘å┘à╪º ╪¼┘à┘è╪╣ ╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä┘â╪¬╪º╪¿╪⌐ (Write Operations) ╪¬╪│╪¬╪«╪»┘à ┘å┘à╪╖┘ï╪º ╪ó╪«╪▒:
+Request
+    Γåô
+DTO
+    Γåô
+Action (Orchestrator)
+    Γåô
+Sub Actions
+    Γåô
+Services
+    Γåô
+Repository
+    Γåô
+Events
+    Γåô
+Resource
+╪¿┘ç╪░╪º ┘è╪╡╪¿╪¡ ┘ä╪»┘è┘å╪º ┘ü╪╡┘ä ┘ê╪º╪╢╪¡ ╪¿┘è┘å ╪º┘ä╪º╪│╪¬╪╣┘ä╪º┘à╪º╪¬ (Queries) ┘ê╪º┘ä╪ú┘ê╪º┘à╪▒ (Commands) ╪»┘ê┘å ╪¬╪╣┘é┘è╪» ╪º┘ä┘ê╪╡┘ê┘ä ╪Ñ┘ä┘ë ┘å┘à╪╖ CQRS ╪º┘ä┘â╪º┘à┘ä╪î ┘ê┘ç┘ê ╪¬┘ê╪º╪▓┘å ┘à┘à╪¬╪º╪▓ ┘ä┘à╪┤╪▒┘ê╪╣ Smart Merchant ERP ┘ê┘è╪¼╪╣┘ä ╪º┘ä┘à╪╣┘à╪º╪▒┘è╪⌐ ╪ú┘â╪½╪▒ ┘ê╪╢┘ê╪¡┘ï╪º ┘ê┘é╪º╪¿┘ä┘è╪⌐ ┘ä┘ä╪╡┘è╪º┘å╪⌐.
+
+Core Domain
+Business
+Use Case #5
+Update Business Profile
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Update Business Profile
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¡╪»┘è╪½ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪ú╪│╪º╪│┘è╪⌐ ┘ä┘ä╪┤╪▒┘â╪⌐ ┘à╪╣ ╪º┘ä╪¡┘ü╪º╪╕ ╪╣┘ä┘ë ╪│┘ä╪º┘à╪⌐ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ┘ê╪¬╪│╪¼┘è┘ä ╪º┘ä╪╣┘à┘ä┘è╪⌐ ┘ü┘è ╪º┘ä┘å╪╕╪º┘à.
+
+3. Actor
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+4. Trigger
+Update Business Profile
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Accessible
+
+6. Input
+Business UUID
+
+Business Name
+
+Legal Name
+
+Phone
+
+Email
+
+Website
+
+Description
+
+7. Validation Rules
+Business UUID
+Required
+Exists
+
+Business Name
+Required
+Max 255
+
+Legal Name
+Required
+Max 255
+
+Phone
+Nullable
+Valid Phone
+
+Email
+Nullable
+Valid Email
+
+Website
+Nullable
+Valid URL
+
+Description
+Nullable
+Max Length
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have update permission.
+
+Γåô
+
+Only editable fields can be updated.
+
+Γåô
+
+UUID cannot be changed.
+
+Γåô
+
+Created At cannot be changed.
+
+Γåô
+
+Audit Log must be created.
+
+Γåô
+
+Updated At is updated automatically.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Update Business
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+422 Validation Error
+
+11. Application Layer
+UpdateBusinessProfileRequest
+
+Γåô
+
+UpdateBusinessProfileDTO
+
+Γåô
+
+UpdateBusinessProfileAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Update Business Successfully
+
+Permission Denied
+
+Business Not Found
+
+Validation Failed
+
+Audit Log Created
+
+13. Expected Result
+Business Updated Successfully
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Resource Returned
+Core Domain
+Business
+Use Case #6
+Update Contact Information
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Update Contact Information
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¡╪»┘è╪½ ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¬┘ê╪º╪╡┘ä ╪º┘ä╪«╪º╪╡╪⌐ ╪¿╪º┘ä╪┤╪▒┘â╪⌐ ┘ä╪╢┘à╪º┘å ╪º╪│╪¬╪«╪»╪º┘à┘ç╪º ┘ü┘è ╪º┘ä┘ü┘ê╪º╪¬┘è╪▒╪î ╪º┘ä╪¬┘é╪º╪▒┘è╪▒╪î ╪º┘ä╪Ñ╪┤╪╣╪º╪▒╪º╪¬╪î ┘ê╪º┘ä╪¬┘ê╪º╪╡┘ä ┘à╪╣ ╪º┘ä╪╣┘à┘ä╪º╪í.
+
+3. Actor
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+4. Trigger
+Update Contact Information
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.update_contact)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Accessible
+
+6. Input
+Business UUID
+
+Phone
+
+Mobile
+
+Email
+
+Website
+
+WhatsApp
+
+7. Validation Rules
+Business UUID
+Required
+Exists
+
+Phone
+Nullable
+Valid Phone Number
+
+Mobile
+Nullable
+Valid Phone Number
+
+Email
+Nullable
+Valid Email
+
+Website
+Nullable
+Valid URL
+
+WhatsApp
+Nullable
+Valid Phone Number
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Only contact fields can be updated.
+
+Γåô
+
+Business identity fields cannot be modified.
+
+Γåô
+
+Email format must be valid.
+
+Γåô
+
+Website format must be valid.
+
+Γåô
+
+Audit Log must be created.
+
+Γåô
+
+updated_at is updated automatically.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Update Contact Information
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+422 Validation Error
+
+11. Application Layer
+UpdateContactInformationRequest
+
+Γåô
+
+UpdateContactInformationDTO
+
+Γåô
+
+UpdateContactInformationAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Update Contact Successfully
+
+Permission Denied
+
+Business Not Found
+
+Invalid Email
+
+Invalid Website
+
+Invalid Phone
+
+Audit Log Created
+
+13. Expected Result
+Contact Information Updated
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #6
+Update Contact Information
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Update Contact Information
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¡╪»┘è╪½ ╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¬┘ê╪º╪╡┘ä ╪º┘ä╪«╪º╪╡╪⌐ ╪¿╪º┘ä╪┤╪▒┘â╪⌐ ┘ä╪╢┘à╪º┘å ╪º╪│╪¬╪«╪»╪º┘à┘ç╪º ┘ü┘è ╪º┘ä┘ü┘ê╪º╪¬┘è╪▒╪î ╪º┘ä╪¬┘é╪º╪▒┘è╪▒╪î ╪º┘ä╪Ñ╪┤╪╣╪º╪▒╪º╪¬╪î ┘ê╪º┘ä╪¬┘ê╪º╪╡┘ä ┘à╪╣ ╪º┘ä╪╣┘à┘ä╪º╪í.
+
+3. Actor
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+4. Trigger
+Update Contact Information
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.update_contact)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Accessible
+
+6. Input
+Business UUID
+
+Phone
+
+Mobile
+
+Email
+
+Website
+
+WhatsApp
+
+7. Validation Rules
+Business UUID
+Required
+Exists
+
+Phone
+Nullable
+Valid Phone Number
+
+Mobile
+Nullable
+Valid Phone Number
+
+Email
+Nullable
+Valid Email
+
+Website
+Nullable
+Valid URL
+
+WhatsApp
+Nullable
+Valid Phone Number
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Only contact fields can be updated.
+
+Γåô
+
+Business identity fields cannot be modified.
+
+Γåô
+
+Email format must be valid.
+
+Γåô
+
+Website format must be valid.
+
+Γåô
+
+Audit Log must be created.
+
+Γåô
+
+updated_at is updated automatically.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Update Contact Information
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+422 Validation Error
+
+11. Application Layer
+UpdateContactInformationRequest
+
+Γåô
+
+UpdateContactInformationDTO
+
+Γåô
+
+UpdateContactInformationAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Update Contact Successfully
+
+Permission Denied
+
+Business Not Found
+
+Invalid Email
+
+Invalid Website
+
+Invalid Phone
+
+Audit Log Created
+
+13. Expected Result
+Contact Information Updated
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #8
+Update Address
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Update Address
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¡╪»┘è╪½ ╪╣┘å┘ê╪º┘å ╪º┘ä╪┤╪▒┘â╪⌐ ╪º┘ä╪▒╪│┘à┘è ┘ä╪º╪│╪¬╪«╪»╪º┘à┘ç ┘ü┘è ╪º┘ä┘ü┘ê╪º╪¬┘è╪▒╪î ╪º┘ä╪¬┘é╪º╪▒┘è╪▒╪î ╪º┘ä┘à╪│╪¬┘å╪»╪º╪¬ ╪º┘ä╪▒╪│┘à┘è╪⌐╪î ┘ê╪Ñ╪╣╪»╪º╪»╪º╪¬ ╪º┘ä┘å╪╕╪º┘à.
+
+3. Actor
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+4. Trigger
+Update Business Address
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.update_address)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Accessible
+
+6. Input
+Business UUID
+
+Country
+
+State / Province
+
+City
+
+District
+
+Street
+
+Building Number
+
+Postal Code
+
+Latitude
+
+Longitude
+
+7. Validation Rules
+Business UUID
+Required
+Exists
+
+Country
+Required
+Exists
+
+State / Province
+Nullable
+String
+
+City
+Required
+String
+
+District
+Nullable
+String
+
+Street
+Nullable
+String
+
+Building Number
+Nullable
+String
+
+Postal Code
+Nullable
+String
+
+Latitude
+Nullable
+Numeric
+
+Longitude
+Nullable
+Numeric
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Country must be valid.
+
+Γåô
+
+Latitude and Longitude must be provided together if used.
+
+Γåô
+
+Only address fields can be updated.
+
+Γåô
+
+Business identity fields cannot be modified.
+
+Γåô
+
+Audit Log must be created.
+
+Γåô
+
+updated_at is updated automatically.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Update Address
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+422 Validation Error
+
+11. Application Layer
+UpdateAddressRequest
+
+Γåô
+
+UpdateAddressDTO
+
+Γåô
+
+UpdateAddressAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Update Address Successfully
+
+Business Not Found
+
+Permission Denied
+
+Invalid Country
+
+Invalid Coordinates
+
+Audit Log Created
+
+13. Expected Result
+Business Address Updated
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #9
+Update Default Currency
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Update Default Currency
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¡╪»┘è╪½ ╪º┘ä╪╣┘à┘ä╪⌐ ╪º┘ä╪º┘ü╪¬╪▒╪º╪╢┘è╪⌐ ┘ä┘ä╪┤╪▒┘â╪⌐ ╪¿╪¡┘è╪½ ╪¬╪│╪¬╪«╪»┘à ┘ü┘è ╪¼┘à┘è╪╣ ╪º┘ä╪╣┘à┘ä┘è╪º╪¬ ╪º┘ä╪¼╪»┘è╪»╪⌐ ╪»╪º╪«┘ä ╪º┘ä┘å╪╕╪º┘à╪î ┘à╪╣ ╪º┘ä╪¡┘ü╪º╪╕ ╪╣┘ä┘ë ╪│┘ä╪º┘à╪⌐ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ╪º┘ä╪¬╪º╪▒┘è╪«┘è╪⌐ ┘ê╪╣╪»┘à ╪º┘ä╪¬╪ú╪½┘è╪▒ ╪╣┘ä┘ë ╪º┘ä╪│╪¼┘ä╪º╪¬ ╪º┘ä╪│╪º╪¿┘é╪⌐.
+
+3. Actor
+Platform Super Admin
+
+Business Owner
+
+Business Admin
+
+4. Trigger
+Update Default Currency
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.update_currency)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Accessible
+
+Γåô
+
+Currency Exists
+
+Γåô
+
+Currency Is Active
+
+6. Input
+Business UUID
+
+Currency UUID
+
+7. Validation Rules
+Business UUID
+Required
+UUID
+Exists
+
+Currency UUID
+Required
+UUID
+Exists
+Active
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Currency must exist.
+
+Γåô
+
+Currency must be active.
+
+Γåô
+
+The new currency becomes the default currency only for future transactions.
+
+Γåô
+
+Historical transactions must never be modified.
+
+Γåô
+
+Historical journal entries must never be recalculated.
+
+Γåô
+
+Historical invoices must never change their currency.
+
+Γåô
+
+Audit Log must be created.
+
+Γåô
+
+updated_at is updated automatically.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Currency
+
+Γåô
+
+Update Default Currency
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Currency Not Found
+
+422 Validation Error
+
+11. Application Layer
+UpdateDefaultCurrencyRequest
+
+Γåô
+
+UpdateDefaultCurrencyDTO
+
+Γåô
+
+UpdateDefaultCurrencyAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Update Currency Successfully
+
+Business Not Found
+
+Currency Not Found
+
+Inactive Currency
+
+Permission Denied
+
+Audit Log Created
+
+Historical Transactions Not Modified
+
+13. Expected Result
+Default Currency Updated
+
+Γåô
+
+Future Transactions Use New Currency
+
+Γåô
+
+Historical Data Preserved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #10
+Activate Business
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Activate Business
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬┘ü╪╣┘è┘ä ╪┤╪▒┘â╪⌐ ┘à┘ê┘é┘ê┘ü╪⌐ ╪ú┘ê ╪║┘è╪▒ ┘à┘ü╪╣┘ä╪⌐╪î ┘ê╪º┘ä╪│┘à╪º╪¡ ┘ä┘ç╪º ╪¿╪º┘ä╪╣┘ê╪»╪⌐ ┘ä╪º╪│╪¬╪«╪»╪º┘à ╪¼┘à┘è╪╣ ╪«╪»┘à╪º╪¬ ╪º┘ä┘å╪╕╪º┘à ┘ê┘ü┘é┘ï╪º ┘ä╪¡╪º┘ä╪⌐ ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ┘ê╪º┘ä╪│┘è╪º╪│╪º╪¬ ╪º┘ä┘à╪╣╪¬┘à╪»╪⌐.
+
+3. Actor
+Platform Super Admin
+
+Business Owner (╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä╪│┘è╪º╪│╪⌐ ╪¬╪│┘à╪¡)
+
+Business Admin (╪¡╪│╪¿ ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬)
+
+4. Trigger
+Activate Business
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.activate)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Business Is Currently Inactive
+
+Γåô
+
+Subscription Is Active
+
+6. Input
+Business UUID
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Archived businesses cannot be activated.
+
+Γåô
+
+Business must not already be active.
+
+Γåô
+
+Subscription must be active.
+
+Γåô
+
+Current date must be within subscription period.
+
+Γåô
+
+Business status changes to Active.
+
+Γåô
+
+Activation timestamp is recorded.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Validate Business Status
+
+Γåô
+
+Validate Subscription
+
+Γåô
+
+Activate Business
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+409 Business Already Active
+
+409 Subscription Expired
+
+409 Business Archived
+
+422 Validation Error
+
+11. Application Layer
+ActivateBusinessRequest
+
+Γåô
+
+ActivateBusinessDTO
+
+Γåô
+
+ActivateBusinessAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Activate Business Successfully
+
+Business Not Found
+
+Business Already Active
+
+Business Archived
+
+Expired Subscription
+
+Permission Denied
+
+Audit Log Created
+
+13. Expected Result
+Business Activated
+
+Γåô
+
+Status Changed To Active
+
+Γåô
+
+Activation Recorded
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #11
+Suspend Business
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Suspend Business
+
+2. ╪º┘ä┘ç╪»┘ü
+╪Ñ┘è┘é╪º┘ü ╪º┘ä╪┤╪▒┘â╪⌐ ┘à╪ñ┘é╪¬┘ï╪º ┘ê┘à┘å╪╣┘ç╪º ┘à┘å ╪º╪│╪¬╪«╪»╪º┘à ╪º┘ä┘å╪╕╪º┘à ┘à╪╣ ╪º┘ä┘à╪¡╪º┘ü╪╕╪⌐ ╪╣┘ä┘ë ╪¼┘à┘è╪╣ ╪¿┘è╪º┘å╪º╪¬┘ç╪º ┘ê╪│╪¼┘ä╪º╪¬┘ç╪º ╪»┘ê┘å ╪¡╪░┘ü ╪ú┘ê ╪¬╪╣╪»┘è┘ä.
+
+3. Actor
+Platform Super Admin
+
+Business Owner (╪Ñ╪░╪º ┘â╪º┘å╪¬ ╪º┘ä╪│┘è╪º╪│╪⌐ ╪¬╪│┘à╪¡)
+
+Business Admin (╪¡╪│╪¿ ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬)
+
+4. Trigger
+Suspend Business
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.suspend)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Active
+
+Γåô
+
+Business Is Not Archived
+
+6. Input
+Business UUID
+
+Suspension Reason
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Suspension Reason
+
+Required
+
+String
+
+Max Length
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must currently be Active.
+
+Γåô
+
+Archived businesses cannot be suspended.
+
+Γåô
+
+Business status changes to Suspended.
+
+Γåô
+
+Suspension reason is stored.
+
+Γåô
+
+Suspension timestamp is recorded.
+
+Γåô
+
+All new operations are blocked.
+
+Γåô
+
+Existing historical data remains unchanged.
+
+Γåô
+
+No financial data is deleted.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Validate Current Status
+
+Γåô
+
+Suspend Business
+
+Γåô
+
+Store Suspension Reason
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+409 Business Already Suspended
+
+409 Business Archived
+
+422 Validation Error
+
+11. Application Layer
+SuspendBusinessRequest
+
+Γåô
+
+SuspendBusinessDTO
+
+Γåô
+
+SuspendBusinessAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Suspend Business Successfully
+
+Business Not Found
+
+Business Already Suspended
+
+Business Archived
+
+Permission Denied
+
+Suspension Reason Saved
+
+Audit Log Created
+
+13. Expected Result
+Business Suspended
+
+Γåô
+
+Status Changed To Suspended
+
+Γåô
+
+Suspension Reason Saved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #12
+Archive Business
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Archive Business
+
+2. ╪º┘ä┘ç╪»┘ü
+╪ú╪▒╪┤┘ü╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐ ┘ê╪Ñ╪«╪▒╪º╪¼┘ç╪º ┘å┘ç╪º╪ª┘è╪º┘ï ┘à┘å ╪»┘ê╪▒╪⌐ ╪º┘ä╪╣┘à┘ä ╪º┘ä┘è┘ê┘à┘è╪⌐ ┘à╪╣ ╪º┘ä╪º╪¡╪¬┘ü╪º╪╕ ╪¿╪¼┘à┘è╪╣ ╪¿┘è╪º┘å╪º╪¬┘ç╪º ┘ê╪│╪¼┘ä┘ç╪º ╪º┘ä╪¬╪º╪▒┘è╪«┘è ┘ä╪ú╪║╪▒╪º╪╢ ╪º┘ä┘à╪▒╪º╪¼╪╣╪⌐ ┘ê╪º┘ä╪¬╪»┘é┘è┘é╪î ╪»┘ê┘å ╪¡╪░┘ü ╪ú┘è ╪¿┘è╪º┘å╪º╪¬.
+
+3. Actor
+Platform Super Admin
+┘ä╪º ┘è╪│┘à╪¡ ┘ä┘à╪º┘ä┘â ╪º┘ä╪┤╪▒┘â╪⌐ ╪ú┘ê ┘à╪»┘è╪▒┘ç╪º ╪¿╪ú╪▒╪┤┘ü╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐. ┘ç╪░┘ç ╪╡┘ä╪º╪¡┘è╪⌐ ╪«╪º╪╡╪⌐ ╪¿╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Archive Business
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.archive)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Business Is Suspended
+┘à┘ä╪º╪¡╪╕╪⌐: ┘ä╪º ┘è┘à┘â┘å ╪ú╪▒╪┤┘ü╪⌐ ╪┤╪▒┘â╪⌐ ┘ê┘ç┘è ┘ü┘è ╪¡╪º┘ä╪⌐ Active. ┘è╪¼╪¿ ╪Ñ┘è┘é╪º┘ü┘ç╪º (Suspend) ╪ú┘ê┘ä╪º┘ï.
+
+6. Input
+Business UUID
+
+Archive Reason
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Archive Reason
+
+Required
+
+String
+
+Max Length
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must be Suspended.
+
+Γåô
+
+Archived businesses cannot be archived again.
+
+Γåô
+
+Business status changes to Archived.
+
+Γåô
+
+Archive reason is stored.
+
+Γåô
+
+Archive timestamp is recorded.
+
+Γåô
+
+Business becomes read-only.
+
+Γåô
+
+No login is allowed.
+
+Γåô
+
+No API access is allowed.
+
+Γåô
+
+No synchronization is allowed.
+
+Γåô
+
+Historical data remains unchanged.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Validate Current Status
+
+Γåô
+
+Archive Business
+
+Γåô
+
+Store Archive Reason
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+409 Business Already Archived
+
+409 Business Is Active
+
+422 Validation Error
+
+11. Application Layer
+ArchiveBusinessRequest
+
+Γåô
+
+ArchiveBusinessDTO
+
+Γåô
+
+ArchiveBusinessAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Archive Business Successfully
+
+Business Not Found
+
+Business Already Archived
+
+Business Still Active
+
+Permission Denied
+
+Archive Reason Saved
+
+Audit Log Created
+
+13. Expected Result
+Business Archived
+
+Γåô
+
+Status Changed To Archived
+
+Γåô
+
+Archive Reason Saved
+
+Γåô
+
+Business Locked
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #13
+Restore Business
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Restore Business
+
+2. ╪º┘ä┘ç╪»┘ü
+╪Ñ╪╣╪º╪»╪⌐ ╪¬┘ü╪╣┘è┘ä ╪┤╪▒┘â╪⌐ ╪¬┘à╪¬ ╪ú╪▒╪┤┘ü╪¬┘ç╪º ╪│╪º╪¿┘é┘ï╪º ┘ê╪º┘ä╪│┘à╪º╪¡ ┘ä┘ç╪º ╪¿╪º┘ä╪╣┘ê╪»╪⌐ ┘ä┘ä╪╣┘à┘ä ╪»╪º╪«┘ä ╪º┘ä┘å╪╕╪º┘à ╪¿╪╣╪» ╪º╪│╪¬┘è┘ü╪º╪í ╪¼┘à┘è╪╣ ╪º┘ä╪┤╪▒┘ê╪╖ ┘ê╪º┘ä┘à╪¬╪╖┘ä╪¿╪º╪¬.
+
+3. Actor
+Platform Super Admin
+┘ç╪░┘ç ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪«╪º╪╡╪⌐ ╪¿╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐ ┘ü┘é╪╖.
+
+4. Trigger
+Restore Business
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.restore)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Archived
+
+Γåô
+
+Subscription Is Active Or Renewed
+
+6. Input
+Business UUID
+
+Restore Reason
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Restore Reason
+
+Required
+
+String
+
+Max Length
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must be Archived.
+
+Γåô
+
+Business cannot be restored twice.
+
+Γåô
+
+Subscription must be valid.
+
+Γåô
+
+Business status changes to Active.
+
+Γåô
+
+Restore reason is stored.
+
+Γåô
+
+Restore timestamp is recorded.
+
+Γåô
+
+Business regains access to the system.
+
+Γåô
+
+API access is enabled.
+
+Γåô
+
+Synchronization is enabled.
+
+Γåô
+
+Historical data remains unchanged.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Validate Business Status
+
+Γåô
+
+Validate Subscription
+
+Γåô
+
+Restore Business
+
+Γåô
+
+Store Restore Reason
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+409 Business Is Not Archived
+
+409 Subscription Expired
+
+422 Validation Error
+
+11. Application Layer
+RestoreBusinessRequest
+
+Γåô
+
+RestoreBusinessDTO
+
+Γåô
+
+RestoreBusinessAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Restore Business Successfully
+
+Business Not Found
+
+Business Not Archived
+
+Subscription Expired
+
+Permission Denied
+
+Restore Reason Saved
+
+Audit Log Created
+
+13. Expected Result
+Business Restored
+
+Γåô
+
+Status Changed To Active
+
+Γåô
+
+Restore Reason Saved
+
+Γåô
+
+Business Access Enabled
+
+Γåô
+
+Synchronization Enabled
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #14
+Assign Subscription
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Assign Subscription
+
+2. ╪º┘ä┘ç╪»┘ü
+╪Ñ╪│┘å╪º╪» ╪º╪┤╪¬╪▒╪º┘â (Subscription) ╪Ñ┘ä┘ë ╪┤╪▒┘â╪⌐ ┘ä╪ú┘ê┘ä ┘à╪▒╪⌐ ╪ú┘ê ╪¿╪╣╪» ╪º┘å╪¬┘ç╪º╪í ╪º╪┤╪¬╪▒╪º┘â┘ç╪º╪î ╪¿╪¡┘è╪½ ╪¬╪╡╪¿╪¡ ╪º┘ä╪┤╪▒┘â╪⌐ ┘é╪º╪»╪▒╪⌐ ╪╣┘ä┘ë ╪º╪│╪¬╪«╪»╪º┘à ╪º┘ä┘å╪╕╪º┘à ┘ê┘ü┘é ╪¡╪»┘ê╪» ┘ê┘à╪▓╪º┘è╪º ╪º┘ä╪«╪╖╪⌐ ╪º┘ä┘à╪¡╪»╪»╪⌐.
+
+3. Actor
+Platform Super Admin
+┘ç╪░┘ç ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪«╪º╪╡╪⌐ ╪¿╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐ ┘ü┘é╪╖.
+
+4. Trigger
+Assign Subscription
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (subscription.assign)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Plan Exists
+
+Γåô
+
+Plan Is Active
+
+6. Input
+Business UUID
+
+Plan UUID
+
+Start Date
+
+End Date
+
+Payment Method (Optional)
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Plan UUID
+
+Required
+
+UUID
+
+Exists
+
+Active
+Start Date
+
+Required
+
+Valid Date
+End Date
+
+Required
+
+Must Be Greater Than Start Date
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must not be archived.
+
+Γåô
+
+Plan must exist.
+
+Γåô
+
+Plan must be active.
+
+Γåô
+
+Business cannot have more than one active subscription.
+
+Γåô
+
+Previous active subscription must be closed before assigning a new one.
+
+Γåô
+
+Subscription status becomes Active.
+
+Γåô
+
+Subscription dates are recorded.
+
+Γåô
+
+Business plan is updated.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Plan
+
+Γåô
+
+Check Active Subscription
+
+Γåô
+
+Create Subscription
+
+Γåô
+
+Update Business Plan
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Subscription
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Plan Not Found
+
+409 Active Subscription Already Exists
+
+422 Validation Error
+
+11. Application Layer
+AssignSubscriptionRequest
+
+Γåô
+
+AssignSubscriptionDTO
+
+Γåô
+
+AssignSubscriptionAction
+
+Γåô
+
+SubscriptionRepository
+
+Γåô
+
+SubscriptionResource
+
+12. Unit Test Scenarios
+Assign Subscription Successfully
+
+Business Not Found
+
+Plan Not Found
+
+Plan Inactive
+
+Business Already Has Active Subscription
+
+Permission Denied
+
+Audit Log Created
+
+13. Expected Result
+Subscription Assigned
+
+Γåô
+
+Business Linked To Plan
+
+Γåô
+
+Subscription Activated
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Subscription Returned
+Core Domain
+Business
+Use Case #15
+Upgrade Plan
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Upgrade Plan
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪▒┘é┘è╪⌐ ╪º╪┤╪¬╪▒╪º┘â ╪º┘ä╪┤╪▒┘â╪⌐ ╪Ñ┘ä┘ë ╪«╪╖╪⌐ ╪ú╪╣┘ä┘ë ┘à╪╣ ╪¬╪╖╪¿┘è┘é ╪º┘ä┘à╪▓╪º┘è╪º ╪º┘ä╪¼╪»┘è╪»╪⌐ ┘ü┘ê╪▒┘ï╪º╪î ┘à╪╣ ╪º┘ä╪¡┘ü╪º╪╕ ╪╣┘ä┘ë ╪º┘ä╪│╪¼┘ä ╪º┘ä┘â╪º┘à┘ä ┘ä┘ä╪º╪┤╪¬╪▒╪º┘â╪º╪¬ ╪º┘ä╪│╪º╪¿┘é╪⌐.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ╪¬╪¬┘à ╪º┘ä╪¬╪▒┘é┘è╪⌐ ┘ü┘é╪╖ ╪¿┘ê╪º╪│╪╖╪⌐ ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Upgrade Business Plan
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (subscription.upgrade)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Active Subscription Exists
+
+Γåô
+
+Target Plan Exists
+
+Γåô
+
+Target Plan Is Active
+
+Γåô
+
+Target Plan Is Different From Current Plan
+
+Γåô
+
+Target Plan Has Higher Level
+
+6. Input
+Business UUID
+
+Target Plan UUID
+
+Effective Date
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Target Plan UUID
+
+Required
+
+UUID
+
+Exists
+
+Active
+Effective Date
+
+Required
+
+Valid Date
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must have an active subscription.
+
+Γåô
+
+Current subscription cannot be expired.
+
+Γåô
+
+Target plan must exist.
+
+Γåô
+
+Target plan must be active.
+
+Γåô
+
+Target plan must be different from current plan.
+
+Γåô
+
+Target plan must be a higher plan.
+
+Γåô
+
+Current subscription is closed.
+
+Γåô
+
+New subscription is created.
+
+Γåô
+
+Business current plan is updated.
+
+Γåô
+
+Subscription history is preserved.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Current Subscription
+
+Γåô
+
+Load Target Plan
+
+Γåô
+
+Validate Upgrade Rules
+
+Γåô
+
+Close Current Subscription
+
+Γåô
+
+Create New Subscription
+
+Γåô
+
+Update Business Plan
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Subscription
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Plan Not Found
+
+409 No Active Subscription
+
+409 Same Plan
+
+409 Target Plan Is Lower
+
+422 Validation Error
+
+11. Application Layer
+UpgradePlanRequest
+
+Γåô
+
+UpgradePlanDTO
+
+Γåô
+
+UpgradePlanAction
+
+Γåô
+
+SubscriptionRepository
+
+Γåô
+
+SubscriptionResource
+
+12. Unit Test Scenarios
+Upgrade Plan Successfully
+
+Business Not Found
+
+Plan Not Found
+
+Inactive Plan
+
+No Active Subscription
+
+Upgrade To Same Plan
+
+Upgrade To Lower Plan
+
+Permission Denied
+
+Audit Log Created
+
+Subscription History Preserved
+
+13. Expected Result
+Current Subscription Closed
+
+Γåô
+
+New Subscription Created
+
+Γåô
+
+Business Plan Updated
+
+Γåô
+
+Subscription History Preserved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Subscription Returned
+Core Domain
+Business
+Use Case #16
+Downgrade Plan
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Downgrade Plan
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪«┘ü┘è╪╢ ╪º╪┤╪¬╪▒╪º┘â ╪º┘ä╪┤╪▒┘â╪⌐ ╪Ñ┘ä┘ë ╪«╪╖╪⌐ ╪ú┘é┘ä╪î ┘à╪╣ ╪¬╪╖╪¿┘è┘é ╪¡╪»┘ê╪» ┘ê┘à╪▓╪º┘è╪º ╪º┘ä╪«╪╖╪⌐ ╪º┘ä╪¼╪»┘è╪»╪⌐ ╪º╪╣╪¬╪¿╪º╪▒┘ï╪º ┘à┘å ╪º┘ä╪¬╪º╪▒┘è╪« ╪º┘ä┘à╪¡╪»╪»╪î ┘à╪╣ ╪º┘ä┘à╪¡╪º┘ü╪╕╪⌐ ╪╣┘ä┘ë ╪º┘ä╪│╪¼┘ä ╪º┘ä╪¬╪º╪▒┘è╪«┘è ╪º┘ä┘â╪º┘à┘ä ┘ä┘ä╪º╪┤╪¬╪▒╪º┘â╪º╪¬.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ╪¬╪¬┘à ╪╣┘à┘ä┘è╪⌐ ╪¬╪«┘ü┘è╪╢ ╪º┘ä╪«╪╖╪⌐ ┘ü┘é╪╖ ┘à┘å ┘é╪¿┘ä ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Downgrade Business Plan
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (subscription.downgrade)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Active Subscription Exists
+
+Γåô
+
+Target Plan Exists
+
+Γåô
+
+Target Plan Is Active
+
+Γåô
+
+Target Plan Is Different From Current Plan
+
+Γåô
+
+Target Plan Has Lower Level
+
+6. Input
+Business UUID
+
+Target Plan UUID
+
+Effective Date
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Target Plan UUID
+
+Required
+
+UUID
+
+Exists
+
+Active
+Effective Date
+
+Required
+
+Valid Date
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must have an active subscription.
+
+Γåô
+
+Current subscription must be active.
+
+Γåô
+
+Target plan must exist.
+
+Γåô
+
+Target plan must be active.
+
+Γåô
+
+Target plan must be different from current plan.
+
+Γåô
+
+Target plan must be a lower plan.
+
+Γåô
+
+Current subscription is closed.
+
+Γåô
+
+New subscription is created.
+
+Γåô
+
+Business current plan is updated.
+
+Γåô
+
+Subscription history is preserved.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Current Subscription
+
+Γåô
+
+Load Target Plan
+
+Γåô
+
+Validate Downgrade Rules
+
+Γåô
+
+Close Current Subscription
+
+Γåô
+
+Create New Subscription
+
+Γåô
+
+Update Business Plan
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Subscription
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Plan Not Found
+
+409 No Active Subscription
+
+409 Same Plan
+
+409 Target Plan Is Higher
+
+422 Validation Error
+
+11. Application Layer
+DowngradePlanRequest
+
+Γåô
+
+DowngradePlanDTO
+
+Γåô
+
+DowngradePlanAction
+
+Γåô
+
+SubscriptionRepository
+
+Γåô
+
+SubscriptionResource
+
+12. Unit Test Scenarios
+Downgrade Plan Successfully
+
+Business Not Found
+
+Plan Not Found
+
+Inactive Plan
+
+No Active Subscription
+
+Downgrade To Same Plan
+
+Downgrade To Higher Plan
+
+Permission Denied
+
+Audit Log Created
+
+Subscription History Preserved
+
+13. Expected Result
+Current Subscription Closed
+
+Γåô
+
+New Subscription Created
+
+Γåô
+
+Business Plan Updated
+
+Γåô
+
+Subscription History Preserved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Subscription Returned
+Core Domain
+Business
+Use Case #17
+Renew Subscription
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Renew Subscription
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪¼╪»┘è╪» ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ╪º┘ä╪¡╪º┘ä┘è ┘ä┘ä╪┤╪▒┘â╪⌐ ┘ä┘ü╪¬╪▒╪⌐ ╪¼╪»┘è╪»╪⌐ ┘à╪╣ ╪º┘ä╪¡┘ü╪º╪╕ ╪╣┘ä┘ë ╪º╪│╪¬┘à╪▒╪º╪▒┘è╪⌐ ╪º┘ä╪«╪»┘à╪⌐╪î ┘ê╪Ñ┘å╪┤╪º╪í ╪│╪¼┘ä ╪º╪┤╪¬╪▒╪º┘â ╪¼╪»┘è╪» ╪»┘ê┘å ╪¬╪╣╪»┘è┘ä ╪º┘ä╪│╪¼┘ä╪º╪¬ ╪º┘ä╪¬╪º╪▒┘è╪«┘è╪⌐.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ╪¬╪¬┘à ╪╣┘à┘ä┘è╪⌐ ╪¬╪¼╪»┘è╪» ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ╪¿┘ê╪º╪│╪╖╪⌐ ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐ ┘ü┘é╪╖.
+
+4. Trigger
+Renew Subscription
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (subscription.renew)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Subscription Exists
+
+Γåô
+
+Plan Exists
+
+Γåô
+
+Plan Is Active
+
+6. Input
+Business UUID
+
+Renewal Period
+
+Start Date
+
+End Date
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Renewal Period
+
+Required
+
+Positive Integer
+Start Date
+
+Required
+
+Valid Date
+End Date
+
+Required
+
+Greater Than Start Date
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must not be archived.
+
+Γåô
+
+Subscription must exist.
+
+Γåô
+
+Plan must remain active.
+
+Γåô
+
+Renewal creates a new subscription record.
+
+Γåô
+
+Previous subscription is marked as Expired or Completed.
+
+Γåô
+
+Subscription history must be preserved.
+
+Γåô
+
+Business remains active.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Current Subscription
+
+Γåô
+
+Validate Renewal Rules
+
+Γåô
+
+Close Current Subscription
+
+Γåô
+
+Create Renewed Subscription
+
+Γåô
+
+Update Business Subscription
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Subscription
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Subscription Not Found
+
+404 Plan Not Found
+
+409 Archived Business
+
+422 Validation Error
+
+11. Application Layer
+RenewSubscriptionRequest
+
+Γåô
+
+RenewSubscriptionDTO
+
+Γåô
+
+RenewSubscriptionAction
+
+Γåô
+
+SubscriptionRepository
+
+Γåô
+
+SubscriptionResource
+
+12. Unit Test Scenarios
+Renew Subscription Successfully
+
+Business Not Found
+
+Subscription Not Found
+
+Archived Business
+
+Inactive Plan
+
+Permission Denied
+
+Audit Log Created
+
+Subscription History Preserved
+
+13. Expected Result
+New Subscription Created
+
+Γåô
+
+Previous Subscription Closed
+
+Γåô
+
+Business Subscription Updated
+
+Γåô
+
+Subscription History Preserved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Subscription Returned
+Core Domain
+Business
+Use Case #18
+Cancel Subscription
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Cancel Subscription
+
+2. ╪º┘ä┘ç╪»┘ü
+╪Ñ┘ä╪║╪º╪í ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ╪º┘ä╪¡╪º┘ä┘è ┘ä┘ä╪┤╪▒┘â╪⌐ ┘ê╪Ñ┘è┘é╪º┘ü ╪º╪│╪¬┘à╪▒╪º╪▒┘ç╪î ┘à╪╣ ╪º┘ä╪º╪¡╪¬┘ü╪º╪╕ ╪¿╪¼┘à┘è╪╣ ╪º┘ä╪¿┘è╪º┘å╪º╪¬ ┘ê╪º┘ä╪│╪¼┘ä ╪º┘ä╪¬╪º╪▒┘è╪«┘è ┘ä┘ä╪º╪┤╪¬╪▒╪º┘â╪º╪¬ ╪»┘ê┘å ╪¡╪░┘ü ╪ú┘è ╪│╪¼┘ä.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ┘ä╪º ┘è╪│┘à╪¡ ╪¿╪Ñ┘ä╪║╪º╪í ╪º┘ä╪º╪┤╪¬╪▒╪º┘â ╪Ñ┘ä╪º ┘à┘å ┘é╪¿┘ä ╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Cancel Subscription
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (subscription.cancel)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Active Subscription Exists
+
+6. Input
+Business UUID
+
+Cancellation Reason
+
+Effective Date
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Cancellation Reason
+
+Required
+
+String
+
+Max Length
+Effective Date
+
+Required
+
+Valid Date
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must not be archived.
+
+Γåô
+
+An active subscription must exist.
+
+Γåô
+
+Subscription status changes to Cancelled.
+
+Γåô
+
+Cancellation reason is stored.
+
+Γåô
+
+Cancellation date is recorded.
+
+Γåô
+
+Subscription history must be preserved.
+
+Γåô
+
+Business status changes according to subscription policy.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Active Subscription
+
+Γåô
+
+Validate Cancellation Rules
+
+Γåô
+
+Cancel Subscription
+
+Γåô
+
+Update Business Status
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Subscription
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Active Subscription Not Found
+
+409 Business Archived
+
+422 Validation Error
+
+11. Application Layer
+CancelSubscriptionRequest
+
+Γåô
+
+CancelSubscriptionDTO
+
+Γåô
+
+CancelSubscriptionAction
+
+Γåô
+
+SubscriptionRepository
+
+Γåô
+
+SubscriptionResource
+
+12. Unit Test Scenarios
+Cancel Subscription Successfully
+
+Business Not Found
+
+No Active Subscription
+
+Archived Business
+
+Permission Denied
+
+Cancellation Reason Saved
+
+Audit Log Created
+
+Subscription History Preserved
+
+13. Expected Result
+Subscription Cancelled
+
+Γåô
+
+Business Status Updated
+
+Γåô
+
+Cancellation Recorded
+
+Γåô
+
+Subscription History Preserved
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Subscription Returned
+Core Domain
+Business
+Use Case #19
+Assign Owner
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Assign Owner
+
+2. ╪º┘ä┘ç╪»┘ü
+╪¬╪╣┘è┘è┘å ┘à╪│╪¬╪«╪»┘à ┘â┘à╪º┘ä┘â ╪▒╪│┘à┘è ┘ä┘ä╪┤╪▒┘â╪⌐ ┘ê┘à┘å╪¡┘ç ╪¼┘à┘è╪╣ ╪╡┘ä╪º╪¡┘è╪º╪¬ ╪º┘ä┘à╪º┘ä┘â╪î ┘à╪╣ ╪Ñ╪▓╪º┘ä╪⌐ ┘ç╪░┘ç ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬ ┘à┘å ╪º┘ä┘à╪º┘ä┘â ╪º┘ä╪│╪º╪¿┘é ╪Ñ┘å ┘ê╪¼╪»╪î ┘à╪╣ ╪º┘ä╪¡┘ü╪º╪╕ ╪╣┘ä┘ë ╪º┘ä╪│╪¼┘ä ╪º┘ä╪¬╪º╪▒┘è╪«┘è ┘ä┘ä╪╣┘à┘ä┘è╪⌐.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ┘ä╪º ┘è╪│┘à╪¡ ╪¿╪¬┘å┘ü┘è╪░ ┘ç╪░┘ç ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪Ñ┘ä╪º ┘ä╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Assign Business Owner
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.assign_owner)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Target User Exists
+
+Γåô
+
+Target User Belongs To Business
+
+Γåô
+
+Business Is Not Archived
+
+Γåô
+
+Target User Is Active
+
+6. Input
+Business UUID
+
+User UUID
+
+Reason (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+User UUID
+
+Required
+
+UUID
+
+Exists
+
+Active
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Target user must belong to the same business.
+
+Γåô
+
+Target user must be active.
+
+Γåô
+
+Business must not be archived.
+
+Γåô
+
+Only one owner is allowed per business.
+
+Γåô
+
+Previous owner loses owner privileges.
+
+Γåô
+
+Target user receives owner role.
+
+Γåô
+
+Business owner reference is updated.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Target User
+
+Γåô
+
+Validate Business Rules
+
+Γåô
+
+Remove Owner Role From Previous Owner
+
+Γåô
+
+Assign Owner Role To Target User
+
+Γåô
+
+Update Business Owner
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 User Not Found
+
+409 User Does Not Belong To Business
+
+409 Business Archived
+
+422 Validation Error
+
+11. Application Layer
+AssignOwnerRequest
+
+Γåô
+
+AssignOwnerDTO
+
+Γåô
+
+AssignOwnerAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+UserRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Assign Owner Successfully
+
+Business Not Found
+
+User Not Found
+
+User Belongs To Another Business
+
+Archived Business
+
+Inactive User
+
+Permission Denied
+
+Previous Owner Removed
+
+Audit Log Created
+
+13. Expected Result
+Owner Assigned
+
+Γåô
+
+Previous Owner Updated
+
+Γåô
+
+Business Owner Updated
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #20
+Transfer Ownership
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Transfer Ownership
+
+2. ╪º┘ä┘ç╪»┘ü
+┘å┘é┘ä ┘à┘ä┘â┘è╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐ ┘à┘å ╪º┘ä┘à╪º┘ä┘â ╪º┘ä╪¡╪º┘ä┘è ╪Ñ┘ä┘ë ┘à╪│╪¬╪«╪»┘à ╪ó╪«╪▒ ╪»╪º╪«┘ä ┘å┘ü╪│ ╪º┘ä╪┤╪▒┘â╪⌐╪î ┘à╪╣ ╪╢┘à╪º┘å ╪º┘å╪¬┘é╪º┘ä ╪¼┘à┘è╪╣ ╪╡┘ä╪º╪¡┘è╪º╪¬ ╪º┘ä┘à╪º┘ä┘â ╪¿╪┤┘â┘ä ╪ó┘à┘å╪î ┘ê╪¬┘ê╪½┘è┘é ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪¿╪º┘ä┘â╪º┘à┘ä ╪»┘ê┘å ┘ü┘é╪»╪º┘å ╪ú┘è ╪¿┘è╪º┘å╪º╪¬.
+
+3. Actor
+Platform Super Admin
+┘ü┘è ╪º┘ä╪Ñ╪╡╪»╪º╪▒ ╪º┘ä╪ú┘ê┘ä╪î ┘ä╪º ┘è╪│┘à╪¡ ╪¿╪¬┘å┘ü┘è╪░ ┘ç╪░┘ç ╪º┘ä╪╣┘à┘ä┘è╪⌐ ╪Ñ┘ä╪º ┘ä╪Ñ╪»╪º╪▒╪⌐ ╪º┘ä┘à┘å╪╡╪⌐.
+
+4. Trigger
+Transfer Business Ownership
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (business.transfer_ownership)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Current Owner Exists
+
+Γåô
+
+Target User Exists
+
+Γåô
+
+Target User Belongs To Business
+
+Γåô
+
+Target User Is Active
+
+Γåô
+
+Business Is Not Archived
+
+6. Input
+Business UUID
+
+Current Owner UUID
+
+New Owner UUID
+
+Transfer Reason
+
+Notes (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Current Owner UUID
+
+Required
+
+UUID
+
+Exists
+New Owner UUID
+
+Required
+
+UUID
+
+Exists
+
+Active
+
+Must Be Different From Current Owner
+Transfer Reason
+
+Required
+
+String
+
+Max Length
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Business must not be archived.
+
+Γåô
+
+Current owner must be the official owner of the business.
+
+Γåô
+
+New owner must belong to the same business.
+
+Γåô
+
+New owner must be active.
+
+Γåô
+
+Current owner and new owner cannot be the same user.
+
+Γåô
+
+Only one owner is allowed per business.
+
+Γåô
+
+Owner role is transferred to the new owner.
+
+Γåô
+
+Previous owner loses owner privileges.
+
+Γåô
+
+Business owner reference is updated.
+
+Γåô
+
+Transfer reason is recorded.
+
+Γåô
+
+Transfer timestamp is recorded.
+
+Γåô
+
+Audit Log must be created.
+
+9. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Current Owner
+
+Γåô
+
+Load New Owner
+
+Γåô
+
+Validate Business Rules
+
+Γåô
+
+Remove Owner Role From Current Owner
+
+Γåô
+
+Assign Owner Role To New Owner
+
+Γåô
+
+Update Business Owner
+
+Γåô
+
+Record Transfer Information
+
+Γåô
+
+Create Audit Log
+
+Γåô
+
+Return Updated Business
+
+10. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+404 Current Owner Not Found
+
+404 New Owner Not Found
+
+409 Business Archived
+
+409 New Owner Belongs To Another Business
+
+409 Same Owner
+
+409 New Owner Inactive
+
+422 Validation Error
+
+11. Application Layer
+TransferOwnershipRequest
+
+Γåô
+
+TransferOwnershipDTO
+
+Γåô
+
+TransferOwnershipAction
+
+Γåô
+
+BusinessRepository
+
+Γåô
+
+UserRepository
+
+Γåô
+
+BusinessResource
+
+12. Unit Test Scenarios
+Transfer Ownership Successfully
+
+Business Not Found
+
+Current Owner Not Found
+
+New Owner Not Found
+
+Same Owner Selected
+
+New Owner From Another Business
+
+Inactive New Owner
+
+Permission Denied
+
+Owner Role Transferred
+
+Audit Log Created
+
+13. Expected Result
+Ownership Transferred
+
+Γåô
+
+Previous Owner Updated
+
+Γåô
+
+New Owner Assigned
+
+Γåô
+
+Business Owner Updated
+
+Γåô
+
+Transfer Recorded
+
+Γåô
+
+Audit Log Recorded
+
+Γåô
+
+Updated Business Returned
+Core Domain
+Business
+Use Case #21
+Business Dashboard
+
+1. ╪º╪│┘à ╪º┘ä╪╣┘à┘ä┘è╪⌐
+Business Dashboard
+
+2. ╪º┘ä┘ç╪»┘ü
+╪╣╪▒╪╢ ┘ä┘ê╪¡╪⌐ ╪º┘ä┘à╪╣┘ä┘ê┘à╪º╪¬ ╪º┘ä╪▒╪ª┘è╪│┘è╪⌐ ╪º┘ä╪«╪º╪╡╪⌐ ╪¿╪º┘ä╪┤╪▒┘â╪⌐╪î ┘ê╪º┘ä╪¬┘è ╪¬┘ê┘ü╪▒ ┘à┘ä╪«╪╡┘ï╪º ┘ä╪¡╪º┘ä╪⌐ ╪º┘ä╪┤╪▒┘â╪⌐ ┘ê┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä╪ú╪»╪º╪í ╪º┘ä╪▒╪ª┘è╪│┘è╪⌐ (KPIs) ╪¿╪┤┘â┘ä ┘ä╪¡╪╕┘è╪î ┘ä┘à╪│╪º╪╣╪»╪⌐ ╪º┘ä╪Ñ╪»╪º╪▒╪⌐ ╪╣┘ä┘ë ╪º╪¬╪«╪º╪░ ╪º┘ä┘é╪▒╪º╪▒ ╪¿╪│╪▒╪╣╪⌐.
+
+3. Actor
+Business Owner
+
+Business Admin
+
+Manager (╪¡╪│╪¿ ╪º┘ä╪╡┘ä╪º╪¡┘è╪º╪¬)
+
+Platform Super Admin
+
+4. Trigger
+Open Dashboard
+
+5. Preconditions
+User Authenticated
+
+Γåô
+
+Has Permission (dashboard.view)
+
+Γåô
+
+Business Exists
+
+Γåô
+
+Business Is Active
+
+Γåô
+
+Subscription Is Active
+
+6. Input
+Business UUID
+
+Branch UUID (Optional)
+
+Date Range (Optional)
+
+7. Validation Rules
+Business UUID
+
+Required
+
+UUID
+
+Exists
+Branch UUID
+
+Optional
+
+UUID
+
+Exists
+
+Belongs To Business
+Date Range
+
+Optional
+
+Valid Date Range
+
+8. Business Rules
+Business must exist.
+
+Γåô
+
+User must have permission.
+
+Γåô
+
+Dashboard displays only data belonging to the current business.
+
+Γåô
+
+If Branch is specified, only that branch data is displayed.
+
+Γåô
+
+Historical data is read-only.
+
+Γåô
+
+Dashboard does not modify any data.
+
+Γåô
+
+Only summarized information is returned.
+
+Γåô
+
+All values respect user permissions.
+
+9. Dashboard Contents
+╪¬╪╣╪▒╪╢ ┘ä┘ê╪¡╪⌐ ╪º┘ä┘à╪╣┘ä┘ê┘à╪º╪¬ ╪º┘ä┘à╪ñ╪┤╪▒╪º╪¬ ╪º┘ä╪¬╪º┘ä┘è╪⌐:
+Business Information
+
+Γåô
+
+Current Subscription
+
+Γåô
+
+Current Plan
+
+Γåô
+
+Number Of Branches
+
+Γåô
+
+Number Of Users
+
+Γåô
+
+Number Of Products
+
+Γåô
+
+Number Of Customers
+
+Γåô
+
+Number Of Suppliers
+
+Γåô
+
+Number Of Employees
+
+Γåô
+
+Today's Sales
+
+Γåô
+
+Today's Purchases
+
+Γåô
+
+Current Inventory Value
+
+Γåô
+
+Cash Balance
+
+Γåô
+
+Bank Balance
+
+Γåô
+
+Outstanding Receivables
+
+Γåô
+
+Outstanding Payables
+
+Γåô
+
+Active Fiscal Year
+
+Γåô
+
+Recent Activities
+
+Γåô
+
+System Notifications
+
+10. Workflow
+Receive Request
+
+Γåô
+
+Authenticate User
+
+Γåô
+
+Authorize User
+
+Γåô
+
+Validate Request
+
+Γåô
+
+Load Business
+
+Γåô
+
+Load Dashboard Widgets
+
+Γåô
+
+Calculate KPIs
+
+Γåô
+
+Build Dashboard Response
+
+Γåô
+
+Return Dashboard
+
+11. Failure Cases
+401 Unauthorized
+
+403 Forbidden
+
+404 Business Not Found
+
+409 Subscription Expired
+
+422 Validation Error
+
+12. Application Layer
+BusinessDashboardRequest
+
+Γåô
+
+BusinessDashboardDTO
+
+Γåô
+
+BusinessDashboardAction
+
+Γåô
+
+DashboardRepository
+
+Γåô
+
+BusinessDashboardResource
+
+13. Unit Test Scenarios
+Load Dashboard Successfully
+
+Business Not Found
+
+Permission Denied
+
+Subscription Expired
+
+Branch Filter Works
+
+Dashboard Returns Correct KPIs
+
+14. Expected Result
+Dashboard Loaded
+
+Γåô
+
+KPIs Calculated
+
+Γåô
+
+Widgets Loaded
+
+Γåô
+
+Business Summary Returned
+
