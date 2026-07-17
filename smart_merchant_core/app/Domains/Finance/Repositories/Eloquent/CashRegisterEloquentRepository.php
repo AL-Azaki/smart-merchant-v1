@@ -4,10 +4,7 @@ namespace App\Domains\Finance\Repositories\Eloquent;
 
 use App\Domains\Finance\Models\CashRegister;
 use App\Domains\Finance\Repositories\Contracts\CashRegisterRepositoryInterface;
-use App\Domains\Finance\DTOs\CashRegisterListCriteriaDTO;
-use App\Domains\Finance\DTOs\CashRegisterSearchCriteriaDTO;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class CashRegisterEloquentRepository implements CashRegisterRepositoryInterface
 {
@@ -16,15 +13,11 @@ class CashRegisterEloquentRepository implements CashRegisterRepositoryInterface
         return CashRegister::create($data);
     }
     
-    public function update(CashRegister $cashRegister, array $data): CashRegister
+    public function update(string $id, array $data): CashRegister
     {
-        $cashRegister->update($data);
-        return $cashRegister;
-    }
-    
-    public function delete(CashRegister $cashRegister): bool
-    {
-        return $cashRegister->delete();
+        $register = CashRegister::findOrFail($id);
+        $register->update($data);
+        return $register;
     }
     
     public function findById(string $id): ?CashRegister
@@ -32,45 +25,41 @@ class CashRegisterEloquentRepository implements CashRegisterRepositoryInterface
         return CashRegister::find($id);
     }
     
-    public function findByName(string $businessId, string $registerName): ?CashRegister
+    public function findByCode(string $businessId, string $code): ?CashRegister
     {
+        // Using register_name as the unique identifier/code per business
         return CashRegister::where('business_id', $businessId)
-            ->where('register_name', $registerName)
+            ->where('register_name', $code)
             ->first();
     }
     
-    public function paginate(CashRegisterListCriteriaDTO $criteria): LengthAwarePaginator
+    public function list(array $filters = []): Collection
     {
-        return CashRegister::where('business_id', $criteria->businessId)
-            ->orderBy('register_name')
-            ->paginate($criteria->perPage);
-    }
-    
-    public function search(CashRegisterSearchCriteriaDTO $criteria): LengthAwarePaginator
-    {
-        $query = CashRegister::where('business_id', $criteria->businessId);
-            
-        if ($criteria->registerName) {
-            $query->where('register_name', 'like', '%' . $criteria->registerName . '%');
+        $query = CashRegister::query();
+
+        if (isset($filters['business_id'])) {
+            $query->where('business_id', $filters['business_id']);
         }
 
-        if ($criteria->branchId) {
-            $query->where('branch_id', $criteria->branchId);
+        if (isset($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
         }
 
-        if ($criteria->isActive !== null) {
-            $query->where('is_active', $criteria->isActive);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
-        
-        return $query->orderBy('register_name')->paginate($criteria->perPage);
+
+        return $query->get();
     }
     
-    public function isUsedInOperations(string $id): bool
+    public function loadAggregate(string $id): ?CashRegister
     {
-        // Check if cash register is linked to payments or other operational tables
-        $usedInPayments = DB::table('payments')->where('cash_register_id', $id)->exists();
-        // Since we don't have the full V1 implementation yet for all possible usages, we check the most obvious one.
-        
-        return $usedInPayments;
+        return CashRegister::with(['transactions', 'currency', 'creator', 'updater'])->find($id);
+    }
+
+    public function addTransaction(string $registerId, array $transactionData): \App\Domains\Finance\Models\CashTransaction
+    {
+        $register = CashRegister::findOrFail($registerId);
+        return $register->transactions()->create($transactionData);
     }
 }

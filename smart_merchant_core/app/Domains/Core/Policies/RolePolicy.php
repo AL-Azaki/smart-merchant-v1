@@ -3,7 +3,7 @@
 namespace App\Domains\Core\Policies;
 
 use App\Domains\Core\Models\User;
-use App\Models\Core\Role;
+use App\Domains\Core\Models\Role;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class RolePolicy

@@ -29,5 +29,14 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(SalesInvoice::class, SalesInvoicePolicy::class);
         Gate::policy(InventoryTransaction::class, InventoryTransactionPolicy::class);
         Gate::policy(PurchaseInvoice::class, PurchaseInvoicePolicy::class);
+        Gate::policy(\App\Domains\Catalog\Models\Unit::class, \App\Domains\Catalog\Policies\UnitPolicy::class);
     }
 }
+
+
+
+
+
+
+
+

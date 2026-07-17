@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\Subscription;
+use App\Domains\Core\Models\Subscription;
 
 interface SubscriptionRepositoryInterface
 {

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\Plan;
+use App\Domains\Core\Models\Plan;
 
 interface PlanRepositoryInterface
 {

@@ -18,10 +18,11 @@ class CreateFiscalYearAction
         
         $fiscalYear = $this->repository->create([
             'business_id' => $businessId,
-            'year_name'   => $yearName,
+            'fiscal_year_code' => 'FY-' . $yearName,
+            'fiscal_year_name' => 'Fiscal Year ' . $yearName,
             'start_date'  => $startDate->toDateString(),
             'end_date'    => $endDate->toDateString(),
-            'is_closed'   => false,
+            'status'   => 'Open',
         ]);
 
         $periods = [];
@@ -30,10 +31,11 @@ class CreateFiscalYearAction
             $periodEnd = $periodStart->copy()->endOfMonth()->endOfDay();
             
             $periods[] = [
+                'period_number' => $month,
                 'period_name' => date('F Y', mktime(0, 0, 0, $month, 1, date('Y'))),
                 'start_date'  => $periodStart->toDateString(),
                 'end_date'    => $periodEnd->toDateString(),
-                'is_closed'   => false,
+                'status'   => 'Open',
             ];
         }
 

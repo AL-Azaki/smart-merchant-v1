@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\Permission;
+use App\Domains\Core\Models\Permission;
 
 interface PermissionRepositoryInterface
 {

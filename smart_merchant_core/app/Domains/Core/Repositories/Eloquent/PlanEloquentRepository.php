@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Plan;
+use App\Domains\Core\Models\Plan;
 use App\Domains\Core\Repositories\Contracts\PlanRepositoryInterface;
 use App\Domains\Core\DTOs\PlanListCriteriaDTO;
 use App\Domains\Core\DTOs\PlanSearchCriteriaDTO;

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\SubscriptionPayment;
 
-use App\Models\Core\SubscriptionPayment;
+use App\Domains\Core\Models\SubscriptionPayment;
 use App\Domains\Core\Repositories\Contracts\SubscriptionPaymentRepositoryInterface;
 use App\Domains\Core\Actions\Subscription\ActivateSubscriptionAction;
 use App\Domains\Core\Exceptions\CoreDomainException;

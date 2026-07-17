@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\SubscriptionPayment;
+use App\Domains\Core\Models\SubscriptionPayment;
 
 interface SubscriptionPaymentRepositoryInterface
 {

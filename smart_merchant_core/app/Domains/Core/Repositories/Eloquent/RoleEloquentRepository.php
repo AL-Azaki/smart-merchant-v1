@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Role;
+use App\Domains\Core\Models\Role;
 use App\Domains\Core\Repositories\Contracts\RoleRepositoryInterface;
 use App\Domains\Core\DTOs\RoleListCriteriaDTO;
 use App\Domains\Core\DTOs\RoleSearchCriteriaDTO;
@@ -74,5 +74,41 @@ class RoleEloquentRepository implements RoleRepositoryInterface
     public function hasUsers(Role $role): bool
     {
         return $role->users()->exists();
+    }
+
+    public function createDefaultRoles(string $businessId): array
+    {
+        $roles = [
+            Role::create([
+                'business_id' => $businessId,
+                'role_name' => 'Owner',
+                'description' => 'System Owner with full access',
+                'is_system_role' => true,
+                'is_active' => true,
+            ]),
+            Role::create([
+                'business_id' => $businessId,
+                'role_name' => 'Manager',
+                'description' => 'Store Manager',
+                'is_system_role' => true,
+                'is_active' => true,
+            ]),
+            Role::create([
+                'business_id' => $businessId,
+                'role_name' => 'Cashier',
+                'description' => 'Point of Sale Cashier',
+                'is_system_role' => true,
+                'is_active' => true,
+            ]),
+        ];
+        return $roles;
+    }
+
+    public function assignRoleToUser(string $userId, string $roleId): void
+    {
+        $user = \App\Domains\Core\Models\User::find($userId);
+        if ($user) {
+            $user->roles()->syncWithoutDetaching([$roleId]);
+        }
     }
 }

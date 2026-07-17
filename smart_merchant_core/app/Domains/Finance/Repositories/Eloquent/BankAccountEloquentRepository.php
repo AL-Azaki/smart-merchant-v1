@@ -3,11 +3,9 @@
 namespace App\Domains\Finance\Repositories\Eloquent;
 
 use App\Domains\Finance\Models\BankAccount;
+use App\Domains\Finance\Models\BankTransaction;
 use App\Domains\Finance\Repositories\Contracts\BankAccountRepositoryInterface;
-use App\Domains\Finance\DTOs\BankAccountListCriteriaDTO;
-use App\Domains\Finance\DTOs\BankAccountSearchCriteriaDTO;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
 
 class BankAccountEloquentRepository implements BankAccountRepositoryInterface
 {
@@ -15,23 +13,19 @@ class BankAccountEloquentRepository implements BankAccountRepositoryInterface
     {
         return BankAccount::create($data);
     }
-    
-    public function update(BankAccount $bankAccount, array $data): BankAccount
+
+    public function update(string $id, array $data): BankAccount
     {
-        $bankAccount->update($data);
-        return $bankAccount;
+        $account = BankAccount::findOrFail($id);
+        $account->update($data);
+        return $account;
     }
-    
-    public function delete(BankAccount $bankAccount): bool
-    {
-        return $bankAccount->delete();
-    }
-    
+
     public function findById(string $id): ?BankAccount
     {
         return BankAccount::find($id);
     }
-    
+
     public function findByAccountNumber(string $businessId, string $accountNumber): ?BankAccount
     {
         return BankAccount::where('business_id', $businessId)
@@ -39,58 +33,37 @@ class BankAccountEloquentRepository implements BankAccountRepositoryInterface
             ->first();
     }
 
-    public function findByIban(string $businessId, string $iban): ?BankAccount
+    public function list(array $filters = []): Collection
     {
-        return BankAccount::where('business_id', $businessId)
-            ->where('iban', $iban)
-            ->first();
-    }
-    
-    public function paginate(BankAccountListCriteriaDTO $criteria): LengthAwarePaginator
-    {
-        return BankAccount::where('business_id', $criteria->businessId)
-            ->orderBy('bank_name')
-            ->paginate($criteria->perPage);
-    }
-    
-    public function search(BankAccountSearchCriteriaDTO $criteria): LengthAwarePaginator
-    {
-        $query = BankAccount::where('business_id', $criteria->businessId);
-            
-        if ($criteria->bankName) {
-            $query->where('bank_name', 'like', '%' . $criteria->bankName . '%');
+        $query = BankAccount::query();
+
+        if (isset($filters['business_id'])) {
+            $query->where('business_id', $filters['business_id']);
         }
 
-        if ($criteria->accountNumber) {
-            $query->where('account_number', 'like', '%' . $criteria->accountNumber . '%');
+        if (isset($filters['branch_id'])) {
+            $query->where('branch_id', $filters['branch_id']);
         }
 
-        if ($criteria->currencyId) {
-            $query->where('currency_id', $criteria->currencyId);
+        if (isset($filters['status'])) {
+            $query->where('status', $filters['status']);
         }
 
-        if ($criteria->isActive !== null) {
-            $query->where('is_active', $criteria->isActive);
+        if (isset($filters['currency_id'])) {
+            $query->where('currency_id', $filters['currency_id']);
         }
-        
-        return $query->orderBy('bank_name')->paginate($criteria->perPage);
-    }
-    
-    public function isUsedInOperations(string $id): bool
-    {
-        // Check if bank account is linked to payments or other operational tables
-        $usedInPayments = DB::table('payments')->where('bank_account_id', $id)->exists();
-        
-        // Check journal entries (though usually mapped via COA, bank_account_id could be stored as reference)
-        // For V1, payments table is the direct usage
-        return $usedInPayments;
+
+        return $query->get();
     }
 
-    public function removeDefaultForCurrency(string $businessId, string $currencyId): void
+    public function loadAggregate(string $id): ?BankAccount
     {
-        BankAccount::where('business_id', $businessId)
-            ->where('currency_id', $currencyId)
-            ->where('is_default', true)
-            ->update(['is_default' => false]);
+        return BankAccount::with(['transactions', 'currency', 'creator', 'updater'])->find($id);
+    }
+
+    public function addTransaction(string $accountId, array $transactionData): BankTransaction
+    {
+        $account = BankAccount::findOrFail($accountId);
+        return $account->transactions()->create($transactionData);
     }
 }

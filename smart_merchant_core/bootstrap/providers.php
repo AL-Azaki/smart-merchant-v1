@@ -6,6 +6,7 @@ use App\Providers\FinanceServiceProvider;
 use App\Providers\SalesServiceProvider;
 use App\Providers\InventoryServiceProvider;
 use App\Providers\PurchasingServiceProvider;
+use App\Providers\CatalogServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -14,4 +15,5 @@ return [
     SalesServiceProvider::class,
     InventoryServiceProvider::class,
     PurchasingServiceProvider::class,
+    CatalogServiceProvider::class,
 ];

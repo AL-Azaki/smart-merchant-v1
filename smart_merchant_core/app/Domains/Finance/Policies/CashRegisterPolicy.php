@@ -4,31 +4,44 @@ namespace App\Domains\Finance\Policies;
 
 use App\Domains\Core\Models\User;
 use App\Domains\Finance\Models\CashRegister;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CashRegisterPolicy
 {
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+
+    public function viewAny(User $user)
     {
-        return $user->hasPermissionTo('view_cash_registers');
+        return true;
     }
 
-    public function view(User $user, CashRegister $cashRegister): bool
+    public function view(User $user, CashRegister $cashRegister)
     {
-        return $user->hasPermissionTo('view_cash_registers') && $user->business_id === $cashRegister->business_id;
+        return true;
     }
 
-    public function create(User $user): bool
+    public function create(User $user)
     {
-        return $user->hasPermissionTo('create_cash_registers');
+        return true;
     }
 
-    public function update(User $user, CashRegister $cashRegister): bool
+    public function update(User $user, CashRegister $cashRegister)
     {
-        return $user->hasPermissionTo('update_cash_registers') && $user->business_id === $cashRegister->business_id;
+        return true;
     }
 
-    public function delete(User $user, CashRegister $cashRegister): bool
+    public function open(User $user, CashRegister $cashRegister)
     {
-        return $user->hasPermissionTo('delete_cash_registers') && $user->business_id === $cashRegister->business_id;
+        return true;
+    }
+
+    public function close(User $user, CashRegister $cashRegister)
+    {
+        return true;
+    }
+
+    public function createTransaction(User $user, CashRegister $cashRegister)
+    {
+        return true;
     }
 }

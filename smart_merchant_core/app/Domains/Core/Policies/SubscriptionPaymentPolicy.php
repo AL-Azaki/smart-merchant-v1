@@ -3,8 +3,8 @@
 namespace App\Domains\Core\Policies;
 
 use App\Domains\Core\Models\User;
-use App\Models\Core\SubscriptionPayment;
-use App\Models\Core\Subscription;
+use App\Domains\Core\Models\SubscriptionPayment;
+use App\Domains\Core\Models\Subscription;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class SubscriptionPaymentPolicy

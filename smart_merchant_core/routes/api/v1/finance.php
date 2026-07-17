@@ -8,9 +8,8 @@ use App\Http\Controllers\Api\V1\Finance\FiscalPeriodController;
 use App\Http\Controllers\Api\V1\Finance\ExchangeRateController;
 use App\Http\Controllers\Api\V1\Finance\TaxController;
 use App\Http\Controllers\Api\V1\Finance\PaymentTermController;
-use App\Http\Controllers\Api\V1\Finance\CashRegisterController;
-use App\Http\Controllers\Api\V1\Finance\BankAccountController;
-use App\Domains\Finance\Controllers\ManualJournalController;
+use App\Domains\Finance\Http\Controllers\CashRegisterController;
+use App\Domains\Finance\Http\Controllers\BankAccountController;
 use App\Domains\Finance\Controllers\ManualJournalController;
 use App\Domains\Finance\Controllers\AccountMappingController;
 use App\Domains\Finance\Controllers\Api\V1\PaymentController;
@@ -94,26 +93,24 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Cash Registers Routes
     Route::prefix('cash-registers')->group(function () {
-        Route::get('/search', [CashRegisterController::class, 'search'])->name('cash-registers.search');
         Route::get('/', [CashRegisterController::class, 'index'])->name('cash-registers.index');
         Route::post('/', [CashRegisterController::class, 'store'])->name('cash-registers.store');
-        Route::get('/{id}', [CashRegisterController::class, 'show'])->name('cash-registers.show');
-        Route::put('/{id}', [CashRegisterController::class, 'update'])->name('cash-registers.update');
-        Route::post('/{id}/activate', [CashRegisterController::class, 'activate'])->name('cash-registers.activate');
-        Route::post('/{id}/deactivate', [CashRegisterController::class, 'deactivate'])->name('cash-registers.deactivate');
-        Route::delete('/{id}', [CashRegisterController::class, 'destroy'])->name('cash-registers.destroy');
+        Route::get('/{cashRegister}', [CashRegisterController::class, 'show'])->name('cash-registers.show');
+        Route::put('/{cashRegister}', [CashRegisterController::class, 'update'])->name('cash-registers.update');
+        Route::post('/{cashRegister}/open', [CashRegisterController::class, 'open'])->name('cash-registers.open');
+        Route::post('/{cashRegister}/close', [CashRegisterController::class, 'close'])->name('cash-registers.close');
+        Route::post('/{cashRegister}/transactions', [CashRegisterController::class, 'addTransaction'])->name('cash-registers.transactions.add');
     });
 
     // Bank Accounts Routes
     Route::prefix('bank-accounts')->group(function () {
-        Route::get('/search', [BankAccountController::class, 'search'])->name('bank-accounts.search');
         Route::get('/', [BankAccountController::class, 'index'])->name('bank-accounts.index');
         Route::post('/', [BankAccountController::class, 'store'])->name('bank-accounts.store');
-        Route::get('/{id}', [BankAccountController::class, 'show'])->name('bank-accounts.show');
-        Route::put('/{id}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
-        Route::post('/{id}/activate', [BankAccountController::class, 'activate'])->name('bank-accounts.activate');
-        Route::post('/{id}/deactivate', [BankAccountController::class, 'deactivate'])->name('bank-accounts.deactivate');
-        Route::delete('/{id}', [BankAccountController::class, 'destroy'])->name('bank-accounts.destroy');
+        Route::get('/{bankAccount}', [BankAccountController::class, 'show'])->name('bank-accounts.show');
+        Route::put('/{bankAccount}', [BankAccountController::class, 'update'])->name('bank-accounts.update');
+        Route::post('/{bankAccount}/freeze', [BankAccountController::class, 'freeze'])->name('bank-accounts.freeze');
+        Route::post('/{bankAccount}/close', [BankAccountController::class, 'close'])->name('bank-accounts.close');
+        Route::post('/{bankAccount}/transactions', [BankAccountController::class, 'addTransaction'])->name('bank-accounts.transactions.add');
     });
 
     // Manual Journals Routes

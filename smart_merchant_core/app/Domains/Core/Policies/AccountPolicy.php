@@ -3,7 +3,7 @@
 namespace App\Domains\Core\Policies;
 
 use App\Domains\Core\Models\User;
-use App\Models\Core\Account;
+use App\Domains\Core\Models\Account;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class AccountPolicy

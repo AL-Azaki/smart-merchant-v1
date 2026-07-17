@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Domains\Core\Resources\CurrencyResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use App\Domains\Core\Models\Currency;
 
 // Requests
 use App\Domains\Core\Requests\StoreCurrencyRequest;
@@ -38,14 +40,18 @@ use App\Domains\Core\Actions\Currency\SetDefaultCurrencyAction;
 
 class CurrencyController extends Controller
 {
+    use AuthorizesRequests;
+
     public function index(ListCurrenciesRequest $request, ListCurrenciesAction $action): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Currency::class);
         $criteria = CurrencyListCriteriaDTO::fromRequest($request->validated());
         return CurrencyResource::collection($action->handle($criteria));
     }
 
     public function search(SearchCurrenciesRequest $request, SearchCurrenciesAction $action): AnonymousResourceCollection
     {
+        $this->authorize('viewAny', Currency::class);
         $criteria = CurrencySearchCriteriaDTO::fromRequest($request->validated());
         return CurrencyResource::collection($action->handle($criteria));
     }
@@ -54,44 +60,66 @@ class CurrencyController extends Controller
     {
         $dto = ViewCurrencyDTO::fromRequest($request->validated(), $id);
         $currency = $action->handle($dto);
+        $this->authorize('view', $currency);
         return response()->json(new CurrencyResource($currency));
     }
 
     public function store(StoreCurrencyRequest $request, CreateCurrencyAction $action): JsonResponse
     {
+        $this->authorize('create', Currency::class);
         $dto = CreateCurrencyDTO::fromRequest($request->validated());
         $currency = $action->handle($dto);
         return response()->json(new CurrencyResource($currency), 201);
     }
 
-    public function update(string $id, UpdateCurrencyRequest $request, UpdateCurrencyAction $action): JsonResponse
+    public function update(string $id, UpdateCurrencyRequest $request, UpdateCurrencyAction $action, ViewCurrencyAction $viewAction): JsonResponse
     {
+        $viewDto = ViewCurrencyDTO::fromRequest([], $id);
+        $currency = $viewAction->handle($viewDto);
+        $this->authorize('update', $currency);
+
         $dto = UpdateCurrencyDTO::fromRequest($request->validated());
-        $currency = $action->handle($id, $dto);
-        return response()->json(new CurrencyResource($currency));
+        $updatedCurrency = $action->handle($currency, $dto);
+        return response()->json(new CurrencyResource($updatedCurrency));
     }
 
-    public function destroy(string $id, DeleteCurrencyRequest $request, DeleteCurrencyAction $action): JsonResponse
+    public function destroy(string $id, DeleteCurrencyRequest $request, DeleteCurrencyAction $action, ViewCurrencyAction $viewAction): JsonResponse
     {
-        $action->handle($id);
+        $viewDto = ViewCurrencyDTO::fromRequest([], $id);
+        $currency = $viewAction->handle($viewDto);
+        $this->authorize('delete', $currency);
+
+        $action->handle($currency);
         return response()->json(null, 204);
     }
 
-    public function activate(string $id, ActivateCurrencyRequest $request, ActivateCurrencyAction $action): JsonResponse
+    public function activate(string $id, ActivateCurrencyRequest $request, ActivateCurrencyAction $action, ViewCurrencyAction $viewAction): JsonResponse
     {
-        $currency = $action->handle($id);
-        return response()->json(new CurrencyResource($currency));
+        $viewDto = ViewCurrencyDTO::fromRequest([], $id);
+        $currency = $viewAction->handle($viewDto);
+        $this->authorize('update', $currency);
+
+        $activatedCurrency = $action->handle($currency);
+        return response()->json(new CurrencyResource($activatedCurrency));
     }
 
-    public function deactivate(string $id, DeactivateCurrencyRequest $request, DeactivateCurrencyAction $action): JsonResponse
+    public function deactivate(string $id, DeactivateCurrencyRequest $request, DeactivateCurrencyAction $action, ViewCurrencyAction $viewAction): JsonResponse
     {
-        $currency = $action->handle($id);
-        return response()->json(new CurrencyResource($currency));
+        $viewDto = ViewCurrencyDTO::fromRequest([], $id);
+        $currency = $viewAction->handle($viewDto);
+        $this->authorize('update', $currency);
+
+        $deactivatedCurrency = $action->handle($currency);
+        return response()->json(new CurrencyResource($deactivatedCurrency));
     }
 
-    public function setDefault(string $id, SetDefaultCurrencyRequest $request, SetDefaultCurrencyAction $action): JsonResponse
+    public function setDefault(string $id, SetDefaultCurrencyRequest $request, SetDefaultCurrencyAction $action, ViewCurrencyAction $viewAction): JsonResponse
     {
-        $currency = $action->handle($id);
-        return response()->json(new CurrencyResource($currency));
+        $viewDto = ViewCurrencyDTO::fromRequest([], $id);
+        $currency = $viewAction->handle($viewDto);
+        $this->authorize('update', $currency);
+
+        $updatedCurrency = $action->handle($currency);
+        return response()->json(new CurrencyResource($updatedCurrency));
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\Account;
+use App\Domains\Core\Models\Account;
 
 interface AccountRepositoryInterface
 {

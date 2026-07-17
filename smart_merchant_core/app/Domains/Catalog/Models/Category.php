@@ -3,37 +3,30 @@
 namespace App\Domains\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Domains\Core\Models\Business;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Category extends Model
 {
-    use HasFactory, HasUuids;
+    use HasUuids, SoftDeletes;
+
+    protected $table = 'categories';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'business_id',
         'parent_id',
         'category_name',
+        'category_code',
         'description',
         'image_path',
+        'sort_order',
         'is_active',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-    ];
-
-    /**
-     * Relationships
-     */
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
-    }
-
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Category::class, 'parent_id');

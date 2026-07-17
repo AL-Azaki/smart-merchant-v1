@@ -10,12 +10,18 @@ class InitializeChartOfAccountsAction
 
     public function handle(string $businessId): array
     {
+        $assetType = \App\Domains\Finance\Models\AccountType::where('slug', 'assets')->first();
+        $liabilityType = \App\Domains\Finance\Models\AccountType::where('slug', 'liabilities')->first();
+        $equityType = \App\Domains\Finance\Models\AccountType::where('slug', 'equity')->first();
+        $revenueType = \App\Domains\Finance\Models\AccountType::where('slug', 'revenue')->first();
+        $expenseType = \App\Domains\Finance\Models\AccountType::where('slug', 'expenses')->first();
+
         $defaultAccounts = [
-            ['business_id' => $businessId, 'account_code' => '1000', 'account_name_ar' => 'الأصول', 'account_name_en' => 'Assets', 'account_type' => 'Asset', 'is_active' => true],
-            ['business_id' => $businessId, 'account_code' => '2000', 'account_name_ar' => 'الخصوم', 'account_name_en' => 'Liabilities', 'account_type' => 'Liability', 'is_active' => true],
-            ['business_id' => $businessId, 'account_code' => '3000', 'account_name_ar' => 'حقوق الملكية', 'account_name_en' => 'Equity', 'account_type' => 'Equity', 'is_active' => true],
-            ['business_id' => $businessId, 'account_code' => '4000', 'account_name_ar' => 'الإيرادات', 'account_name_en' => 'Revenue', 'account_type' => 'Revenue', 'is_active' => true],
-            ['business_id' => $businessId, 'account_code' => '5000', 'account_name_ar' => 'المصروفات', 'account_name_en' => 'Expenses', 'account_type' => 'Expense', 'is_active' => true],
+            ['business_id' => $businessId, 'account_code' => '1000', 'account_name' => 'Assets', 'account_type_id' => $assetType->id, 'normal_balance' => 'Debit', 'is_active' => true],
+            ['business_id' => $businessId, 'account_code' => '2000', 'account_name' => 'Liabilities', 'account_type_id' => $liabilityType->id, 'normal_balance' => 'Credit', 'is_active' => true],
+            ['business_id' => $businessId, 'account_code' => '3000', 'account_name' => 'Equity', 'account_type_id' => $equityType->id, 'normal_balance' => 'Credit', 'is_active' => true],
+            ['business_id' => $businessId, 'account_code' => '4000', 'account_name' => 'Revenue', 'account_type_id' => $revenueType->id, 'normal_balance' => 'Credit', 'is_active' => true],
+            ['business_id' => $businessId, 'account_code' => '5000', 'account_name' => 'Expenses', 'account_type_id' => $expenseType->id, 'normal_balance' => 'Debit', 'is_active' => true],
         ];
 
         return $this->repository->createMany($defaultAccounts);

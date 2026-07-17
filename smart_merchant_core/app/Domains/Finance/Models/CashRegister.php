@@ -6,8 +6,10 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Domains\Core\Models\Business;
 use App\Domains\Core\Models\Branch;
+use App\Domains\Core\Models\User;
 
 class CashRegister extends Model
 {
@@ -16,12 +18,17 @@ class CashRegister extends Model
     protected $fillable = [
         'business_id',
         'branch_id',
+        'currency_id',
         'register_name',
-        'is_active',
+        'status',
+        'current_balance',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'current_balance' => 'decimal:4',
+        'status' => 'string',
     ];
 
     /**
@@ -35,5 +42,25 @@ class CashRegister extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function currency(): BelongsTo
+    {
+        return $this->belongsTo(Currency::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(CashTransaction::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
     }
 }

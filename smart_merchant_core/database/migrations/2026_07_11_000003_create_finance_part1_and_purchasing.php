@@ -119,14 +119,40 @@ return new class extends Migration
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
             $table->uuid('branch_id');
+            $table->foreignUuid('currency_id')->constrained('currencies')->restrictOnDelete();
             $table->string('register_name', 100);
-            $table->boolean('is_active')->default(true);
+            $table->string('status', 20)->default('Closed');
+            $table->decimal('current_balance', 15, 4)->default(0);
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             
             $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'register_name']);
             $table->foreign(['business_id', 'branch_id'])->references(['business_id', 'id'])->on('branches')->restrictOnDelete();
         });
+        DB::statement("ALTER TABLE cash_registers ADD CONSTRAINT chk_cr_status CHECK (status IN ('Open', 'Closed'))");
+
+        Schema::create('cash_transactions', function (Blueprint $table) {
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
+            $table->foreignUuid('cash_register_id')->constrained('cash_registers')->cascadeOnDelete();
+            $table->string('transaction_type', 30);
+            $table->decimal('amount', 15, 4);
+            $table->string('document_type', 100)->nullable();
+            $table->uuid('document_id')->nullable();
+            $table->text('notes')->nullable();
+            $table->uuid('reference_id')->nullable();
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamp('created_at')->useCurrent();
+            
+            $table->unique(['business_id', 'id']);
+        });
+        Schema::table('cash_transactions', function (Blueprint $table) {
+            $table->foreign('reference_id')->references('id')->on('cash_transactions')->nullOnDelete();
+        });
+        DB::statement("ALTER TABLE cash_transactions ADD CONSTRAINT chk_ct_type CHECK (transaction_type IN ('Deposit', 'Withdrawal', 'Transfer In', 'Transfer Out', 'Adjustment', 'Payment', 'Receipt'))");
+        DB::statement("ALTER TABLE cash_transactions ADD CONSTRAINT chk_ct_amount CHECK (amount > 0)");
 
         Schema::create('bank_accounts', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
@@ -138,8 +164,18 @@ return new class extends Migration
             $table->string('bank_name', 100);
             $table->string('display_name', 100)->nullable();
             $table->text('description')->nullable();
-            $table->boolean('is_active')->default(true);
+            $table->string('status', 20)->default('Active'); // Active, Frozen, Closed
             $table->boolean('is_default')->default(false);
+            
+            $table->decimal('opening_balance', 18, 4)->default(0.0000);
+            $table->date('opening_balance_date')->nullable();
+            $table->decimal('current_balance', 18, 4)->default(0.0000);
+            $table->decimal('last_reconciled_balance', 18, 4)->nullable();
+            $table->timestamp('last_reconciled_at')->nullable();
+            
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('updated_by')->nullable()->constrained('users')->nullOnDelete();
+
             $table->timestamps();
             
             $table->unique(['business_id', 'id']);
@@ -147,6 +183,44 @@ return new class extends Migration
             $table->unique(['business_id', 'iban']);
             $table->foreign(['business_id', 'branch_id'])->references(['business_id', 'id'])->on('branches')->restrictOnDelete();
         });
+
+        DB::statement("ALTER TABLE bank_accounts ADD CONSTRAINT chk_ba_status CHECK (status IN ('Active', 'Frozen', 'Closed'))");
+
+        Schema::create('bank_transactions', function (Blueprint $table) {
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->uuid('business_id');
+            $table->uuid('bank_account_id');
+            
+            $table->string('transaction_type', 50); // Deposit, Withdrawal, Transfer In, Transfer Out, Adjustment, Bank Fee, Interest, Opening Balance
+            $table->string('direction', 10); // Credit, Debit
+            $table->decimal('amount', 18, 4); // Must be > 0
+            
+            $table->decimal('foreign_currency_amount', 18, 4)->nullable();
+            $table->string('foreign_currency_code', 3)->nullable();
+            $table->decimal('exchange_rate', 18, 6)->nullable();
+            
+            // Financial Document Policy
+            $table->string('document_type')->nullable();
+            $table->uuid('document_id')->nullable();
+            
+            $table->uuid('bank_transfer_id')->nullable();
+            $table->string('reconciliation_status', 30)->default('Unreconciled'); // Unreconciled, Reconciled
+            $table->text('notes')->nullable();
+            
+            $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps(); // includes created_at, updated_at
+            
+            // Relationships & Constraints
+            $table->unique(['business_id', 'id']);
+            $table->foreign('business_id')->references('id')->on('businesses')->cascadeOnDelete();
+            $table->foreign(['business_id', 'bank_account_id'])->references(['business_id', 'id'])->on('bank_accounts')->cascadeOnDelete();
+            
+            $table->index(['document_type', 'document_id']);
+        });
+
+        DB::statement("ALTER TABLE bank_transactions ADD CONSTRAINT chk_bt_type CHECK (transaction_type IN ('Deposit', 'Withdrawal', 'Transfer In', 'Transfer Out', 'Adjustment', 'Bank Fee', 'Interest', 'Opening Balance'))");
+        DB::statement("ALTER TABLE bank_transactions ADD CONSTRAINT chk_bt_direction CHECK (direction IN ('Credit', 'Debit'))");
+        DB::statement("ALTER TABLE bank_transactions ADD CONSTRAINT chk_bt_amount CHECK (amount > 0)");
 
         // ==========================================
         // DOMAIN 6 - PURCHASING
@@ -237,7 +311,7 @@ return new class extends Migration
             $table->foreign(['business_id', 'purchase_invoice_id'])->references(['business_id', 'id'])->on('purchase_invoices')->cascadeOnDelete();
             $table->foreign(['business_id', 'product_unit_id'])->references(['business_id', 'id'])->on('product_units')->restrictOnDelete();
             $table->foreign(['business_id', 'warehouse_id'])->references(['business_id', 'id'])->on('warehouses')->restrictOnDelete();
-            $table->foreign(['business_id', 'tax_id'])->references(['business_id', 'id'])->on('taxes')->restrictOnDelete();
+            // $table->foreign(['business_id', 'tax_id'])->references(['business_id', 'id'])->on('taxes')->restrictOnDelete(); // Moved to a later migration to avoid circular dependencies
         });
         DB::statement("ALTER TABLE purchase_invoice_items ADD CONSTRAINT chk_pi_item_quantity CHECK (quantity > 0)");
         DB::statement("ALTER TABLE purchase_invoice_items ADD CONSTRAINT chk_pi_item_price CHECK (unit_price >= 0)");
@@ -294,7 +368,9 @@ return new class extends Migration
         Schema::dropIfExists('purchase_invoices');
         Schema::dropIfExists('suppliers');
         
+        Schema::dropIfExists('bank_transactions');
         Schema::dropIfExists('bank_accounts');
+        Schema::dropIfExists('cash_transactions');
         Schema::dropIfExists('cash_registers');
         Schema::dropIfExists('payment_methods');
         Schema::dropIfExists('payment_terms');

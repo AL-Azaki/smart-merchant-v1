@@ -106,4 +106,15 @@ class FiscalYearEloquentRepository implements FiscalYearRepositoryInterface
         
         return $year->periods()->where('status', 'Open')->count();
     }
+
+    public function createPeriods(string $fiscalYearId, string $businessId, array $periodsData): void
+    {
+        $year = FiscalYear::find($fiscalYearId);
+        if ($year) {
+            foreach ($periodsData as $periodData) {
+                $periodData['business_id'] = $businessId;
+                $year->periods()->create($periodData);
+            }
+        }
+    }
 }

@@ -81,6 +81,11 @@ class FinanceServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\Event::subscribe(
+            \App\Domains\Finance\Listeners\Payment\PaymentEventSubscriber::class
+        );
+        \Illuminate\Support\Facades\Event::subscribe(
+            \App\Domains\Finance\Listeners\CashManagement\CashManagementEventSubscriber::class
+        );
     }
 }

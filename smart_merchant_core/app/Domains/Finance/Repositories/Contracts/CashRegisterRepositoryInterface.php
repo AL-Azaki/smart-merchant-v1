@@ -3,25 +3,21 @@
 namespace App\Domains\Finance\Repositories\Contracts;
 
 use App\Domains\Finance\Models\CashRegister;
-use App\Domains\Finance\DTOs\CashRegisterListCriteriaDTO;
-use App\Domains\Finance\DTOs\CashRegisterSearchCriteriaDTO;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 interface CashRegisterRepositoryInterface
 {
     public function create(array $data): CashRegister;
     
-    public function update(CashRegister $cashRegister, array $data): CashRegister;
-    
-    public function delete(CashRegister $cashRegister): bool;
+    public function update(string $id, array $data): CashRegister;
     
     public function findById(string $id): ?CashRegister;
     
-    public function findByName(string $businessId, string $registerName): ?CashRegister;
+    public function findByCode(string $businessId, string $code): ?CashRegister;
     
-    public function paginate(CashRegisterListCriteriaDTO $criteria): LengthAwarePaginator;
+    public function list(array $filters = []): Collection;
     
-    public function search(CashRegisterSearchCriteriaDTO $criteria): LengthAwarePaginator;
+    public function loadAggregate(string $id): ?CashRegister;
     
-    public function isUsedInOperations(string $id): bool;
+    public function addTransaction(string $registerId, array $transactionData): \App\Domains\Finance\Models\CashTransaction;
 }

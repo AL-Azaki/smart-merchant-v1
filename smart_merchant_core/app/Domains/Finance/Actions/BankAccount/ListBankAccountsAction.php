@@ -2,16 +2,20 @@
 
 namespace App\Domains\Finance\Actions\BankAccount;
 
-use App\Domains\Finance\DTOs\BankAccountListCriteriaDTO;
 use App\Domains\Finance\Repositories\Contracts\BankAccountRepositoryInterface;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ListBankAccountsAction
 {
-    public function __construct(private readonly BankAccountRepositoryInterface $repository) {}
+    private BankAccountRepositoryInterface $repository;
 
-    public function handle(BankAccountListCriteriaDTO $criteria): LengthAwarePaginator
+    public function __construct(BankAccountRepositoryInterface $repository)
     {
-        return $this->repository->paginate($criteria);
+        $this->repository = $repository;
+    }
+
+    public function execute(array $filters = []): Collection
+    {
+        return $this->repository->list($filters);
     }
 }

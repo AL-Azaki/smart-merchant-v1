@@ -19,4 +19,16 @@ class BusinessController extends Controller
         
         return response()->json(new BusinessResource($business), 201);
     }
+    public function show(string $id, \App\Domains\Core\Actions\Business\ViewBusinessAction $action): JsonResponse
+    {
+        $business = $action->handle($id);
+        return response()->json(new BusinessResource($business));
+    }
+
+    public function update(string $id, \Illuminate\Http\Request $request, \App\Domains\Core\Actions\Business\ViewBusinessAction $viewAction, \App\Domains\Core\Actions\Business\UpdateBusinessAction $updateAction): JsonResponse
+    {
+        $business = $viewAction->handle($id);
+        $updatedBusiness = $updateAction->handle($business, $request->all());
+        return response()->json(new BusinessResource($updatedBusiness));
+    }
 }

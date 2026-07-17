@@ -84,4 +84,20 @@ class UserEloquentRepository implements UserRepositoryInterface
     {
         $user->branches()->sync($branchIds);
     }
+
+    public function assignToBranch(string $userId, string $branchId): void
+    {
+        $user = User::find($userId);
+        if ($user) {
+            $user->branches()->syncWithoutDetaching([$branchId]);
+        }
+    }
+
+    public function setDefaultBranch(string $userId, string $branchId): void
+    {
+        $user = User::find($userId);
+        if ($user) {
+            $user->update(['default_branch_id' => $branchId]);
+        }
+    }
 }

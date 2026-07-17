@@ -2,8 +2,8 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Currency;
-use App\Models\Core\Business;
+use App\Domains\Core\Models\Currency;
+use App\Domains\Core\Models\Business;
 use App\Domains\Core\Repositories\Contracts\CurrencyRepositoryInterface;
 use App\Domains\Core\DTOs\CurrencyListCriteriaDTO;
 use App\Domains\Core\DTOs\CurrencySearchCriteriaDTO;

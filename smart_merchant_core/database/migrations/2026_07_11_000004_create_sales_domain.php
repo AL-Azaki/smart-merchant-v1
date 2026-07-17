@@ -155,7 +155,7 @@ return new class extends Migration
             $table->foreign(['business_id', 'sales_invoice_id'])->references(['business_id', 'id'])->on('sales_invoices')->cascadeOnDelete();
             $table->foreign(['business_id', 'product_unit_id'])->references(['business_id', 'id'])->on('product_units')->restrictOnDelete();
             $table->foreign(['business_id', 'warehouse_id'])->references(['business_id', 'id'])->on('warehouses')->restrictOnDelete();
-            $table->foreign(['business_id', 'tax_id'])->references(['business_id', 'id'])->on('taxes')->restrictOnDelete();
+            // $table->foreign(['business_id', 'tax_id'])->references(['business_id', 'id'])->on('taxes')->restrictOnDelete();
         });
         DB::statement("ALTER TABLE sales_invoice_items ADD CONSTRAINT chk_sii_quantity CHECK (quantity > 0)");
         DB::statement("ALTER TABLE sales_invoice_items ADD CONSTRAINT chk_sii_price CHECK (unit_price >= 0)");

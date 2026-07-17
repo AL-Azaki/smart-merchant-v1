@@ -17,12 +17,16 @@ return new class extends Migration
             $table->foreignUuid('business_id')->constrained('businesses')->restrictOnDelete();
             $table->uuid('parent_id')->nullable();
             $table->string('category_name', 100);
+            $table->string('category_code', 50)->nullable();
             $table->text('description')->nullable();
             $table->string('image_path', 500)->nullable();
+            $table->integer('sort_order')->default(0);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
             $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'category_name']);
+            $table->unique(['business_id', 'category_code']);
             // Composite FK for parent
             $table->foreign(['business_id', 'parent_id'])->references(['business_id', 'id'])->on('categories')->restrictOnDelete();
         });
@@ -41,10 +45,16 @@ return new class extends Migration
 
         Schema::create('units', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
-            $table->string('unit_name', 100)->unique();
-            $table->string('unit_symbol', 10)->unique();
+            $table->foreignUuid('business_id')->constrained('businesses')->restrictOnDelete();
+            $table->string('unit_name', 100);
+            $table->string('unit_symbol', 10);
             $table->text('unit_description')->nullable();
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['business_id', 'id']);
+            $table->unique(['business_id', 'unit_name']);
+            $table->unique(['business_id', 'unit_symbol']);
         });
 
         Schema::create('products', function (Blueprint $table) {
@@ -52,6 +62,8 @@ return new class extends Migration
             $table->foreignUuid('business_id')->constrained('businesses')->restrictOnDelete();
             $table->uuid('category_id')->nullable();
             $table->uuid('brand_id')->nullable();
+            $table->uuid('tax_id')->nullable();
+            $table->string('product_type', 50)->default('standard');
             $table->string('product_code', 100);
             $table->string('product_name', 255);
             $table->text('description')->nullable();
@@ -78,6 +90,7 @@ return new class extends Migration
             $table->boolean('is_base_unit')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
             $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'barcode']);
             $table->unique(['business_id', 'sku']);
@@ -126,6 +139,7 @@ return new class extends Migration
             $table->boolean('is_default')->default(false);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+            $table->softDeletes();
             $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'warehouse_code']);
             $table->foreign(['business_id', 'branch_id'])->references(['business_id', 'id'])->on('branches')->restrictOnDelete();
@@ -134,21 +148,25 @@ return new class extends Migration
 
         Schema::create('inventories', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->foreignUuid('business_id')->constrained('businesses')->restrictOnDelete();
             $table->foreignUuid('warehouse_id')->constrained('warehouses')->restrictOnDelete();
             $table->foreignUuid('product_unit_id')->constrained('product_units')->restrictOnDelete();
             $table->decimal('quantity', 18, 3)->default(0.000);
             $table->decimal('average_cost', 18, 2)->default(0.00);
             $table->decimal('alert_quantity', 18, 3)->default(0.000);
-            $table->timestamp('updated_at')->useCurrent();
-            $table->unique(['warehouse_id', 'product_unit_id']);
+            $table->timestamps();
+            $table->softDeletes();
+            $table->unique(['business_id', 'warehouse_id', 'product_unit_id']);
         });
         DB::statement('ALTER TABLE inventories ADD CONSTRAINT chk_inventories_values CHECK (quantity >= 0 AND average_cost >= 0 AND alert_quantity >= 0)');
 
         Schema::create('inventory_transactions', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->uuid('business_id');
+            $table->uuid('branch_id');
             $table->uuid('warehouse_id');
             $table->string('transaction_type', 20);
+            $table->string('movement_direction', 3);
             $table->string('status', 20)->default('Draft');
             $table->string('reference_type', 50)->nullable();
             $table->uuid('reference_id')->nullable();
@@ -162,13 +180,15 @@ return new class extends Migration
             $table->timestamps();
             
             $table->unique(['business_id', 'id']);
+            $table->foreign(['business_id', 'branch_id'])->references(['business_id', 'id'])->on('branches')->restrictOnDelete();
             $table->foreign(['business_id', 'warehouse_id'])->references(['business_id', 'id'])->on('warehouses')->restrictOnDelete();
             $table->foreign('posted_by')->references('id')->on('users')->restrictOnDelete();
             $table->foreign('reversed_by')->references('id')->on('users')->restrictOnDelete();
         });
         
         DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT chk_inv_tx_status CHECK (status IN ('Draft','Posted','Reversed'))");
-        DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT chk_inv_tx_type CHECK (transaction_type IN ('Receipt','Dispatch','Adjustment In','Adjustment Out'))");
+        DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT chk_inv_tx_type CHECK (transaction_type IN ('Receipt','Dispatch','Adjustment In','Adjustment Out','Opening Balance'))");
+        DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT chk_inv_tx_movement CHECK (movement_direction IN ('IN','OUT'))");
         DB::statement("ALTER TABLE inventory_transactions ADD CONSTRAINT chk_inv_tx_ref CHECK (reference_type IN ('SalesInvoice','SalesReturn','PurchaseInvoice','PurchaseReturn','Transfer','Adjustment') OR reference_type IS NULL)");
         DB::statement('CREATE INDEX idx_inv_tx_reference ON inventory_transactions (reference_type, reference_id)');
 

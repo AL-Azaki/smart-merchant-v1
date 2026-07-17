@@ -27,7 +27,6 @@ class InventoryTransactionLine extends Model
     protected $casts = [
         'quantity' => 'decimal:3',
         'unit_cost' => 'decimal:2',
-        'line_number' => 'integer',
     ];
 
     public function business(): BelongsTo

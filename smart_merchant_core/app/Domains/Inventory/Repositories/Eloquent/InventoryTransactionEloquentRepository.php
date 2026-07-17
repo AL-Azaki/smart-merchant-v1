@@ -3,72 +3,96 @@
 namespace App\Domains\Inventory\Repositories\Eloquent;
 
 use App\Domains\Inventory\Models\InventoryTransaction;
+use App\Domains\Inventory\Models\InventoryTransactionLine;
 use App\Domains\Inventory\Repositories\Contracts\InventoryTransactionRepositoryInterface;
-use Illuminate\Support\Collection;
+use App\Domains\Inventory\DTOs\InventoryTransaction\TransactionCriteriaDTO;
+use App\Domains\Inventory\DTOs\InventoryTransaction\UpdateTransactionDTO;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class InventoryTransactionEloquentRepository implements InventoryTransactionRepositoryInterface
 {
     public function create(array $data): InventoryTransaction
     {
-        return DB::transaction(function () use ($data) {
-            $lines = $data['lines'] ?? [];
-            unset($data['lines']);
-
-            $transaction = InventoryTransaction::create($data);
-
-            if (!empty($lines)) {
-                $transaction->lines()->createMany($lines);
-            }
-
-            return $transaction->load('lines');
-        });
+        return InventoryTransaction::create($data);
     }
 
-    public function update(InventoryTransaction $transaction, array $data): InventoryTransaction
+    public function findById(string $id, array $with = []): ?InventoryTransaction
     {
-        return DB::transaction(function () use ($transaction, $data) {
-            $lines = $data['lines'] ?? null;
-            unset($data['lines']);
+        return InventoryTransaction::with($with)->find($id);
+    }
 
-            $transaction->update($data);
+    public function search(TransactionCriteriaDTO $criteria): LengthAwarePaginator
+    {
+        $query = InventoryTransaction::with(['warehouse', 'creator', 'lines.productUnit'])
+            ->where('business_id', $criteria->businessId);
 
-            if ($lines !== null) {
-                $transaction->lines()->delete();
-                $transaction->lines()->createMany($lines);
-            }
+        if ($criteria->warehouseId !== null) {
+            $query->where('warehouse_id', $criteria->warehouseId);
+        }
 
-            return $transaction->load('lines');
-        });
+        if ($criteria->status !== null) {
+            $query->where('status', $criteria->status);
+        }
+
+        if ($criteria->transactionType !== null) {
+            $query->where('transaction_type', $criteria->transactionType);
+        }
+
+        return $query->orderBy($criteria->sortField, $criteria->sortDir)
+                      ->paginate($criteria->perPage);
+    }
+
+    public function update(InventoryTransaction $transaction, UpdateTransactionDTO $dto): InventoryTransaction
+    {
+        $transaction->update($dto->toArray());
+        return $transaction;
     }
 
     public function delete(InventoryTransaction $transaction): bool
     {
-        return DB::transaction(function () use ($transaction) {
-            $transaction->lines()->delete();
-            return $transaction->delete();
-        });
+        return (bool) $transaction->delete();
     }
 
-    public function findById(string $businessId, string $id): ?InventoryTransaction
+    public function addLine(InventoryTransaction $transaction, array $data): InventoryTransactionLine
     {
-        return InventoryTransaction::where('business_id', $businessId)
-            ->where('id', $id)
-            ->with('lines')
-            ->first();
+        $maxLine = $transaction->lines()->max('line_number') ?? 0;
+        $data['line_number'] = $maxLine + 1;
+        $data['inventory_transaction_id'] = $transaction->id;
+        $data['business_id'] = $transaction->business_id;
+
+        return InventoryTransactionLine::create($data);
     }
 
-    public function getAll(string $businessId): Collection
+    public function updateLine(InventoryTransactionLine $line, array $data): InventoryTransactionLine
     {
-        return InventoryTransaction::where('business_id', $businessId)
-            ->with('lines')
-            ->get();
+        $line->update($data);
+        return $line;
     }
 
-    public function exists(string $businessId, string $id): bool
+    public function removeLine(InventoryTransactionLine $line): bool
     {
-        return InventoryTransaction::where('business_id', $businessId)
-            ->where('id', $id)
-            ->exists();
+        return (bool) $line->delete();
+    }
+
+    public function findLineById(string $id): ?InventoryTransactionLine
+    {
+        return InventoryTransactionLine::find($id);
+    }
+
+    public function changeStatus(InventoryTransaction $transaction, string $status, ?string $userId = null): InventoryTransaction
+    {
+        $updateData = ['status' => $status];
+
+        if ($status === 'Posted') {
+            $updateData['posted_by'] = $userId;
+            $updateData['posted_at'] = now();
+        } elseif ($status === 'Reversed') {
+            $updateData['reversed_by'] = $userId;
+            $updateData['reversed_at'] = now();
+        }
+
+        $transaction->update($updateData);
+        return $transaction;
     }
 }

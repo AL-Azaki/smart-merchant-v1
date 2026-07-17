@@ -3,7 +3,6 @@
 namespace App\Domains\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,12 +12,18 @@ use App\Domains\Core\Models\Business;
 
 class Product extends Model
 {
-    use HasFactory, HasUuids, SoftDeletes;
+    use HasUuids, SoftDeletes;
+
+    protected $table = 'products';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'business_id',
         'category_id',
         'brand_id',
+        'tax_id',
+        'product_type',
         'product_code',
         'product_name',
         'description',
@@ -29,9 +34,6 @@ class Product extends Model
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Relationships
-     */
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
@@ -39,31 +41,36 @@ class Product extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(Category::class);
+        return $this->belongsTo(Category::class, 'category_id');
     }
 
     public function brand(): BelongsTo
     {
-        return $this->belongsTo(Brand::class);
+        return $this->belongsTo(Brand::class, 'brand_id');
+    }
+
+    public function tax(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domains\Finance\Models\Tax::class, 'tax_id');
     }
 
     public function productUnits(): HasMany
     {
-        return $this->hasMany(ProductUnit::class);
+        return $this->hasMany(ProductUnit::class, 'product_id');
     }
 
     public function baseUnit(): HasOne
     {
-        return $this->hasOne(ProductUnit::class)->where('is_base_unit', true);
+        return $this->hasOne(ProductUnit::class, 'product_id')->where('is_base_unit', true);
     }
 
     public function images(): HasMany
     {
-        return $this->hasMany(ProductImage::class);
+        return $this->hasMany(ProductImage::class, 'product_id');
     }
 
     public function primaryImage(): HasOne
     {
-        return $this->hasOne(ProductImage::class)->where('is_primary', true);
+        return $this->hasOne(ProductImage::class, 'product_id')->where('is_primary', true);
     }
 }

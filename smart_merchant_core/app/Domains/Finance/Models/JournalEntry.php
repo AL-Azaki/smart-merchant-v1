@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Domains\Core\Models\Business;
+use App\Domains\Core\Models\Branch;
 use App\Domains\Core\Models\Currency;
 use App\Domains\Core\Models\User;
 
@@ -64,22 +65,27 @@ class JournalEntry extends Model
         return $this->belongsTo(FiscalPeriod::class);
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
     }
 
-    public function createdBy(): BelongsTo
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function postedBy(): BelongsTo
+    public function poster(): BelongsTo
     {
         return $this->belongsTo(User::class, 'posted_by');
     }
 
-    public function reversedBy(): BelongsTo
+    public function reverser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reversed_by');
     }

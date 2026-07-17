@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Plan;
 
-use App\Models\Core\Plan;
+use App\Domains\Core\Models\Plan;
 use App\Domains\Core\DTOs\CreatePlanDTO;
 use App\Domains\Core\Repositories\Contracts\PlanRepositoryInterface;
 

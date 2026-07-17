@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Currency;
 
-use App\Models\Core\Currency;
+use App\Domains\Core\Models\Currency;
 use App\Domains\Core\DTOs\ViewCurrencyDTO;
 use App\Domains\Core\Repositories\Contracts\CurrencyRepositoryInterface;
 use App\Domains\Core\Exceptions\CoreDomainException;

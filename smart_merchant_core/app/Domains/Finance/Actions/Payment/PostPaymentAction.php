@@ -9,6 +9,7 @@ use App\Domains\Finance\Services\Payment\PaymentPostingBuilder;
 use App\Domains\Finance\Contracts\Integration\SalesSettlementInterface;
 use App\Domains\Finance\Contracts\Integration\PurchasingSettlementInterface;
 use App\Domains\Finance\Services\Payment\InvoiceSettlementBuilder;
+use App\Domains\Finance\Events\Payment\PaymentPosted;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use InvalidArgumentException;
@@ -41,7 +42,7 @@ class PostPaymentAction
     public function execute(string $id, string $userId): Payment
     {
         try {
-            return DB::transaction(function () use ($id, $userId) {
+            $payment = DB::transaction(function () use ($id, $userId) {
                 $payment = $this->repository->loadAggregate($id);
 
                 if (!$payment) {
@@ -83,6 +84,10 @@ class PostPaymentAction
 
                 return $payment;
             });
+
+            event(new PaymentPosted($payment));
+
+            return $payment;
         } catch (Exception $e) {
             throw $e;
         }

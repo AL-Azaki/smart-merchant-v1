@@ -1,0 +1,21 @@
+<?php
+
+namespace App\Domains\FinancialClosing\Actions;
+
+use App\Domains\FinancialClosing\Models\AccountingPeriod;
+use App\Domains\FinancialClosing\Repositories\Contracts\AccountingPeriodRepositoryInterface;
+
+class GetAccountingPeriodAction
+{
+    private AccountingPeriodRepositoryInterface $repository;
+
+    public function __construct(AccountingPeriodRepositoryInterface $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    public function execute(string $id): ?AccountingPeriod
+    {
+        return $this->repository->findById($id);
+    }
+}

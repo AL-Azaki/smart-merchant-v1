@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Subscription;
+use App\Domains\Core\Models\Subscription;
 use App\Domains\Core\Repositories\Contracts\SubscriptionRepositoryInterface;
 use App\Domains\Core\DTOs\SubscriptionListCriteriaDTO;
 use App\Domains\Core\DTOs\SubscriptionSearchCriteriaDTO;
@@ -74,5 +74,12 @@ class SubscriptionEloquentRepository implements SubscriptionRepositoryInterface
         return Subscription::where('account_id', $accountId)
                            ->where('status', 'Active')
                            ->exists();
+    }
+
+    public function findActiveByAccount(string $accountId): ?Subscription
+    {
+        return Subscription::where('account_id', $accountId)
+                           ->where('status', 'Active')
+                           ->first();
     }
 }

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Subscription;
 
-use App\Models\Core\Subscription;
+use App\Domains\Core\Models\Subscription;
 use App\Domains\Core\DTOs\ViewSubscriptionDTO;
 use App\Domains\Core\Repositories\Contracts\SubscriptionRepositoryInterface;
 use App\Domains\Core\Exceptions\CoreDomainException;

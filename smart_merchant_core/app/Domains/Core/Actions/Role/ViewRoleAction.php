@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Role;
 
-use App\Models\Core\Role;
+use App\Domains\Core\Models\Role;
 use App\Domains\Core\DTOs\ViewRoleDTO;
 use App\Domains\Core\Repositories\Contracts\RoleRepositoryInterface;
 use App\Domains\Core\Exceptions\CoreDomainException;

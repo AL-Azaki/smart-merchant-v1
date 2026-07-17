@@ -3,7 +3,7 @@
 namespace App\Domains\Core\Policies;
 
 use App\Domains\Core\Models\User;
-use App\Models\Core\Currency;
+use App\Domains\Core\Models\Currency;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class CurrencyPolicy

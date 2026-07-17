@@ -5,16 +5,17 @@ namespace App\Domains\Inventory\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Domains\Catalog\Models\ProductUnit;
+use App\Domains\Core\Models\Business;
 
 class Inventory extends Model
 {
-    use HasFactory, HasUuids;
-
-    const CREATED_AT = null; // inventories table only has updated_at
+    use HasFactory, HasUuids, SoftDeletes;
 
     protected $fillable = [
+        'business_id',
         'warehouse_id',
         'product_unit_id',
         'quantity',
@@ -31,6 +32,11 @@ class Inventory extends Model
     /**
      * Relationships
      */
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);

@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('document_type', 50);
             $table->uuid('document_id')->nullable();
             $table->string('document_number', 50)->nullable();
-            $table->foreignUuid('original_journal_id')->nullable()->constrained('journal_entries')->restrictOnDelete();
+            $table->uuid('original_journal_id')->nullable();
             $table->foreignUuid('currency_id')->constrained('currencies')->restrictOnDelete();
             $table->decimal('exchange_rate', 18, 8)->default(1.00000000);
             $table->text('description')->nullable();
@@ -39,7 +39,9 @@ return new class extends Migration
             $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'journal_number']);
             $table->foreign(['business_id', 'fiscal_year_id'])->references(['business_id', 'id'])->on('fiscal_years')->restrictOnDelete();
-            $table->foreign(['business_id', 'fiscal_period_id'])->references(['business_id', 'id'])->on('fiscal_periods')->restrictOnDelete();
+        });
+        Schema::table('journal_entries', function (Blueprint $table) {
+            $table->foreign('original_journal_id')->references('id')->on('journal_entries')->restrictOnDelete();
         });
         DB::statement("ALTER TABLE journal_entries ADD CONSTRAINT chk_je_jnl_type CHECK (journal_type IN ('Manual','SalesInvoice','PurchaseInvoice','Payment','InventoryAdjustment','Reverse'))");
         DB::statement("ALTER TABLE journal_entries ADD CONSTRAINT chk_je_doc_type CHECK (document_type IN ('Manual','SalesInvoice','PurchaseInvoice','Payment','InventoryAdjustment','Reverse'))");
@@ -58,6 +60,8 @@ return new class extends Migration
             $table->string('type', 10);
             $table->decimal('foreign_amount', 18, 2)->default(0.00);
             $table->decimal('base_amount', 18, 2)->default(0.00);
+            $table->string('document_type', 50)->nullable();
+            $table->uuid('document_id')->nullable();
             
             $table->unique(['journal_entry_id', 'line_number']);
             $table->foreign(['business_id', 'journal_entry_id'])->references(['business_id', 'id'])->on('journal_entries')->cascadeOnDelete();

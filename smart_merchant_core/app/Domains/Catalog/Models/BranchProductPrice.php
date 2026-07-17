@@ -3,15 +3,17 @@
 namespace App\Domains\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Domains\Core\Models\Business;
 use App\Domains\Core\Models\Branch;
 
 class BranchProductPrice extends Model
 {
-    use HasFactory, HasUuids;
+    use HasUuids;
+
+    protected $table = 'branch_product_prices';
+    public $incrementing = false;
+    protected $keyType = 'string';
 
     protected $fillable = [
         'business_id',
@@ -24,27 +26,19 @@ class BranchProductPrice extends Model
     ];
 
     protected $casts = [
+        'is_active' => 'boolean',
         'purchase_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'minimum_price' => 'decimal:2',
-        'is_active' => 'boolean',
     ];
-
-    /**
-     * Relationships
-     */
-    public function business(): BelongsTo
-    {
-        return $this->belongsTo(Business::class);
-    }
 
     public function branch(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
+        return $this->belongsTo(Branch::class, 'branch_id');
     }
 
     public function productUnit(): BelongsTo
     {
-        return $this->belongsTo(ProductUnit::class);
+        return $this->belongsTo(ProductUnit::class, 'product_unit_id');
     }
 }

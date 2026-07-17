@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Permission;
 
-use App\Models\Core\Permission;
+use App\Domains\Core\Models\Permission;
 use App\Domains\Core\DTOs\ViewPermissionDTO;
 use App\Domains\Core\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Domains\Core\Exceptions\CoreDomainException;

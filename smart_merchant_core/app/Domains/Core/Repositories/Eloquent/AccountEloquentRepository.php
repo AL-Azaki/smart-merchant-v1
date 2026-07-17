@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Account;
+use App\Domains\Core\Models\Account;
 use App\Domains\Core\Repositories\Contracts\AccountRepositoryInterface;
 use App\Domains\Core\DTOs\AccountListCriteriaDTO;
 use App\Domains\Core\DTOs\AccountSearchCriteriaDTO;

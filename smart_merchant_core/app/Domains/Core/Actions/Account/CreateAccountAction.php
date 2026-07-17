@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Actions\Account;
 
-use App\Models\Core\Account;
+use App\Domains\Core\Models\Account;
 use App\Domains\Core\DTOs\CreateAccountDTO;
 use App\Domains\Core\Repositories\Contracts\AccountRepositoryInterface;
 use App\Domains\Core\Exceptions\CoreDomainException;

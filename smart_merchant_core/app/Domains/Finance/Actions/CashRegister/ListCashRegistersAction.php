@@ -2,16 +2,20 @@
 
 namespace App\Domains\Finance\Actions\CashRegister;
 
-use App\Domains\Finance\DTOs\CashRegisterListCriteriaDTO;
 use App\Domains\Finance\Repositories\Contracts\CashRegisterRepositoryInterface;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 
 class ListCashRegistersAction
 {
-    public function __construct(private readonly CashRegisterRepositoryInterface $repository) {}
+    private CashRegisterRepositoryInterface $repository;
 
-    public function handle(CashRegisterListCriteriaDTO $criteria): LengthAwarePaginator
+    public function __construct(CashRegisterRepositoryInterface $repository)
     {
-        return $this->repository->paginate($criteria);
+        $this->repository = $repository;
+    }
+
+    public function execute(array $filters = []): Collection
+    {
+        return $this->repository->list($filters);
     }
 }

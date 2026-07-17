@@ -3,16 +3,17 @@
 namespace App\Domains\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductImage extends Model
 {
-    use HasFactory, HasUuids;
+    use HasUuids;
 
-    // This table only has created_at
-    const UPDATED_AT = null;
+    protected $table = 'product_images';
+    public $incrementing = false;
+    protected $keyType = 'string';
+    public const UPDATED_AT = null;
 
     protected $fillable = [
         'product_id',
@@ -24,11 +25,8 @@ class ProductImage extends Model
         'is_primary' => 'boolean',
     ];
 
-    /**
-     * Relationships
-     */
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

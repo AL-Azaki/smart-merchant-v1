@@ -9,6 +9,7 @@ use App\Domains\Finance\DTOs\PostingEngine\ReverseRequestDTO;
 use App\Domains\Finance\Contracts\Integration\SalesSettlementInterface;
 use App\Domains\Finance\Contracts\Integration\PurchasingSettlementInterface;
 use App\Domains\Finance\Services\Payment\InvoiceSettlementBuilder;
+use App\Domains\Finance\Events\Payment\PaymentReversed;
 use Illuminate\Support\Facades\DB;
 use Exception;
 use InvalidArgumentException;
@@ -38,7 +39,7 @@ class ReversePaymentAction
     public function execute(string $id, string $userId, string $reason): Payment
     {
         try {
-            return DB::transaction(function () use ($id, $userId, $reason) {
+            $payment = DB::transaction(function () use ($id, $userId, $reason) {
                 $payment = $this->repository->loadAggregate($id);
 
                 if (!$payment) {
@@ -88,6 +89,10 @@ class ReversePaymentAction
 
                 return $payment;
             });
+
+            event(new PaymentReversed($payment));
+
+            return $payment;
         } catch (Exception $e) {
             throw $e;
         }

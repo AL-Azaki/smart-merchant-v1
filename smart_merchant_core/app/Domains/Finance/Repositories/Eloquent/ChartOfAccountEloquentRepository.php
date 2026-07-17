@@ -15,6 +15,15 @@ class ChartOfAccountEloquentRepository implements ChartOfAccountRepositoryInterf
     {
         return ChartOfAccount::create($data);
     }
+
+    public function createMany(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = ChartOfAccount::create($item);
+        }
+        return $records;
+    }
     
     public function update(ChartOfAccount $account, array $data): ChartOfAccount
     {

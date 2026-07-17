@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\Permission;
+use App\Domains\Core\Models\Permission;
 use App\Domains\Core\Repositories\Contracts\PermissionRepositoryInterface;
 use App\Domains\Core\DTOs\PermissionListCriteriaDTO;
 use App\Domains\Core\DTOs\PermissionSearchCriteriaDTO;

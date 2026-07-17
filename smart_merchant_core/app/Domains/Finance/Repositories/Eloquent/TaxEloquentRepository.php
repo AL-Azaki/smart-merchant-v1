@@ -15,6 +15,15 @@ class TaxEloquentRepository implements TaxRepositoryInterface
     {
         return Tax::create($data);
     }
+
+    public function createMany(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = Tax::create($item);
+        }
+        return $records;
+    }
     
     public function update(Tax $tax, array $data): Tax
     {

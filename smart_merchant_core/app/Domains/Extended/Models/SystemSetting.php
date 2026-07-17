@@ -14,16 +14,16 @@ class SystemSetting extends Model
 
     protected $fillable = [
         'business_id',
+        'scope_business_id',
+        'setting_group',
         'setting_key',
         'setting_value',
-        'is_active',
+        'description',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        // Note: setting_value is not cast to 'array' globally because it can hold
-        // simple strings, integers, or JSON depending on the setting_key.
-        // It is recommended to handle the parsing dynamically or via an Accessor.
+        'setting_value' => 'json',
     ];
 
     /**

@@ -73,6 +73,20 @@ return new class extends Migration
             $table->unique(['scope_business_id', 'setting_key']);
         });
 
+        Schema::create('print_settings', function (Blueprint $table) {
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
+            $table->foreignUuid('branch_id')->nullable()->constrained('branches')->cascadeOnDelete();
+            $table->string('printer_name', 100)->nullable();
+            $table->string('paper_size', 50)->nullable();
+            $table->text('receipt_header')->nullable();
+            $table->text('receipt_footer')->nullable();
+            $table->string('print_format', 50)->nullable();
+            $table->timestamps();
+            
+            $table->unique(['business_id', 'branch_id']);
+        });
+
         Schema::create('sequences', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->foreignUuid('business_id')->nullable()->constrained('businesses')->cascadeOnDelete();
@@ -241,29 +255,56 @@ return new class extends Migration
         Schema::create('fixed_assets', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
             $table->foreignUuid('business_id')->constrained('businesses')->restrictOnDelete();
-            $table->uuid('branch_id');
-            $table->uuid('asset_account_id');
-            $table->uuid('depreciation_account_id');
-            $table->string('asset_name', 255);
-            $table->string('asset_code', 50);
-            $table->date('purchase_date');
+            $table->uuid('branch_id')->nullable();
+            $table->uuid('asset_category_id')->nullable();
             $table->foreignUuid('currency_id')->constrained('currencies')->restrictOnDelete();
-            $table->decimal('exchange_rate', 18, 8)->default(1.00000000);
-            $table->decimal('purchase_price', 18, 2);
-            $table->decimal('base_purchase_price', 18, 2);
-            $table->decimal('current_value', 18, 2);
-            $table->decimal('base_current_value', 18, 2);
-            $table->decimal('depreciation_rate', 5, 2);
-            $table->string('status', 20)->default('Active');
+            $table->string('asset_code', 50);
+            $table->string('asset_name', 255);
+            $table->date('acquisition_date');
+            $table->decimal('acquisition_cost', 18, 2);
+            $table->decimal('base_acquisition_cost', 18, 2);
+            $table->integer('useful_life');
+            $table->decimal('residual_value', 18, 2)->default(0.00);
+            $table->decimal('base_residual_value', 18, 2)->default(0.00);
+            $table->string('depreciation_method', 50);
+            $table->date('depreciation_start_date');
+            $table->string('status', 30)->default('Draft');
+            $table->foreignUuid('responsible_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->foreignUuid('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignUuid('updated_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->softDeletes();
             
+            $table->unique(['business_id', 'id']);
             $table->unique(['business_id', 'asset_code']);
             $table->foreign(['business_id', 'branch_id'])->references(['business_id', 'id'])->on('branches')->restrictOnDelete();
-            $table->foreign(['business_id', 'asset_account_id'])->references(['business_id', 'id'])->on('chart_of_accounts')->restrictOnDelete();
-            $table->foreign(['business_id', 'depreciation_account_id'])->references(['business_id', 'id'])->on('chart_of_accounts')->restrictOnDelete();
         });
-        DB::statement("ALTER TABLE fixed_assets ADD CONSTRAINT chk_fa_status CHECK (status IN ('Active','Disposed','Depreciated'))");
+        DB::statement("ALTER TABLE fixed_assets ADD CONSTRAINT chk_fa_status CHECK (status IN ('Draft','Active','Depreciating','Fully Depreciated','Disposed'))");
+        DB::statement("ALTER TABLE fixed_assets ADD CONSTRAINT chk_fa_cost CHECK (acquisition_cost >= 0 AND base_acquisition_cost >= 0)");
+        DB::statement("ALTER TABLE fixed_assets ADD CONSTRAINT chk_fa_life CHECK (useful_life > 0)");
+        DB::statement("ALTER TABLE fixed_assets ADD CONSTRAINT chk_fa_residual CHECK (residual_value >= 0 AND base_residual_value >= 0)");
+
+        Schema::create('depreciation_schedules', function (Blueprint $table) {
+            $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
+            $table->uuid('business_id');
+            $table->uuid('fixed_asset_id');
+            $table->integer('depreciation_period');
+            $table->date('scheduled_posting_date');
+            $table->decimal('depreciation_amount', 18, 2);
+            $table->decimal('base_depreciation_amount', 18, 2);
+            $table->decimal('accumulated_depreciation', 18, 2);
+            $table->decimal('base_accumulated_depreciation', 18, 2);
+            $table->decimal('remaining_book_value', 18, 2);
+            $table->decimal('base_remaining_book_value', 18, 2);
+            $table->string('status', 30)->default('Pending');
+            $table->foreignUuid('created_by')->constrained('users')->restrictOnDelete();
+            $table->foreignUuid('updated_by')->nullable()->constrained('users')->nullOnDelete();
+            $table->timestamps();
+            
+            $table->unique(['business_id', 'fixed_asset_id', 'depreciation_period'], 'uq_dep_schedule_period');
+            $table->foreign(['business_id', 'fixed_asset_id'])->references(['business_id', 'id'])->on('fixed_assets')->cascadeOnDelete();
+        });
+        DB::statement("ALTER TABLE depreciation_schedules ADD CONSTRAINT chk_ds_status CHECK (status IN ('Pending','Ready','Posted','Cancelled'))");
+        DB::statement("ALTER TABLE depreciation_schedules ADD CONSTRAINT chk_ds_amount CHECK (depreciation_amount >= 0 AND base_depreciation_amount >= 0)");
 
         Schema::create('bank_reconciliations', function (Blueprint $table) {
             $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));
@@ -299,6 +340,7 @@ return new class extends Migration
     {
         Schema::dropIfExists('bank_reconciliation_lines');
         Schema::dropIfExists('bank_reconciliations');
+        Schema::dropIfExists('depreciation_schedules');
         Schema::dropIfExists('fixed_assets');
         Schema::dropIfExists('activity_logs');
         Schema::dropIfExists('attachments');
@@ -314,6 +356,7 @@ return new class extends Migration
         Schema::dropIfExists('departments');
         
         Schema::dropIfExists('sequences');
+        Schema::dropIfExists('print_settings');
         Schema::dropIfExists('system_settings');
         
         Schema::dropIfExists('cart_items');

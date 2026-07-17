@@ -9,14 +9,8 @@ class DeleteCurrencyAction
 {
     public function __construct(private readonly CurrencyRepositoryInterface $repository) {}
 
-    public function handle(string $currencyId): void
+    public function handle(Currency $currency): void
     {
-        $currency = $this->repository->findById($currencyId);
-
-        if (!$currency) {
-            throw new CoreDomainException("The specified currency does not exist.");
-        }
-
         if ($currency->is_default) {
             throw new CoreDomainException("Cannot delete the default system currency.");
         }

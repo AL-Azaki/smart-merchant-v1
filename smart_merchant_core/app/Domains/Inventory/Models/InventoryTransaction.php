@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Domains\Core\Models\Business;
+use App\Domains\Core\Models\Branch;
 use App\Domains\Core\Models\User;
 
 class InventoryTransaction extends Model
@@ -16,13 +17,14 @@ class InventoryTransaction extends Model
 
     protected $fillable = [
         'business_id',
+        'branch_id',
         'warehouse_id',
         'transaction_type',
+        'movement_direction',
         'status',
         'reference_type',
         'reference_id',
         'transaction_date',
-        'notes',
         'created_by',
         'posted_by',
         'posted_at',
@@ -41,28 +43,33 @@ class InventoryTransaction extends Model
         return $this->belongsTo(Business::class);
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
     }
 
-    public function createdBy(): BelongsTo
+    public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function postedBy(): BelongsTo
+    public function poster(): BelongsTo
     {
         return $this->belongsTo(User::class, 'posted_by');
     }
 
-    public function reversedBy(): BelongsTo
+    public function reverser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reversed_by');
     }
 
     public function lines(): HasMany
     {
-        return $this->hasMany(InventoryTransactionLine::class, 'inventory_transaction_id');
+        return $this->hasMany(InventoryTransactionLine::class);
     }
 }

@@ -3,7 +3,7 @@
 namespace App\Domains\Core\Policies;
 
 use App\Domains\Core\Models\User;
-use App\Models\Core\Plan;
+use App\Domains\Core\Models\Plan;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PlanPolicy

@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Eloquent;
 
-use App\Models\Core\SubscriptionPayment;
+use App\Domains\Core\Models\SubscriptionPayment;
 use App\Domains\Core\Repositories\Contracts\SubscriptionPaymentRepositoryInterface;
 use App\Domains\Core\DTOs\PaymentListCriteriaDTO;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;

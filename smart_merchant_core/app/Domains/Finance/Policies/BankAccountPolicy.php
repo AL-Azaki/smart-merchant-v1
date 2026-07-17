@@ -4,31 +4,44 @@ namespace App\Domains\Finance\Policies;
 
 use App\Domains\Core\Models\User;
 use App\Domains\Finance\Models\BankAccount;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class BankAccountPolicy
 {
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+
+    public function viewAny(User $user)
     {
-        return $user->hasPermissionTo('view_bank_accounts');
+        return true;
     }
 
-    public function view(User $user, BankAccount $bankAccount): bool
+    public function view(User $user, BankAccount $bankAccount)
     {
-        return $user->hasPermissionTo('view_bank_accounts') && $user->business_id === $bankAccount->business_id;
+        return true;
     }
 
-    public function create(User $user): bool
+    public function create(User $user)
     {
-        return $user->hasPermissionTo('create_bank_accounts');
+        return true;
     }
 
-    public function update(User $user, BankAccount $bankAccount): bool
+    public function update(User $user, BankAccount $bankAccount)
     {
-        return $user->hasPermissionTo('update_bank_accounts') && $user->business_id === $bankAccount->business_id;
+        return true;
     }
 
-    public function delete(User $user, BankAccount $bankAccount): bool
+    public function freeze(User $user, BankAccount $bankAccount)
     {
-        return $user->hasPermissionTo('delete_bank_accounts') && $user->business_id === $bankAccount->business_id;
+        return true;
+    }
+
+    public function close(User $user, BankAccount $bankAccount)
+    {
+        return true;
+    }
+
+    public function createTransaction(User $user, BankAccount $bankAccount)
+    {
+        return true;
     }
 }

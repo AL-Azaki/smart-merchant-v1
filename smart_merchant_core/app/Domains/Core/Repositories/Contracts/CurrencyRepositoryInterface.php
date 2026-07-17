@@ -2,7 +2,7 @@
 
 namespace App\Domains\Core\Repositories\Contracts;
 
-use App\Models\Core\Currency;
+use App\Domains\Core\Models\Currency;
 
 interface CurrencyRepositoryInterface
 {
