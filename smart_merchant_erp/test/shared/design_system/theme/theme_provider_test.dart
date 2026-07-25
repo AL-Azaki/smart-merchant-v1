@@ -15,28 +15,31 @@ void main() {
     expect(theme, ThemeMode.light);
   });
 
-  test('ThemeProvider should load saved theme from SharedPreferences', () async {
-    SharedPreferences.setMockInitialValues({'app_theme_mode': 'dark'});
-    final prefs = await SharedPreferences.getInstance();
-    
-    final container = ProviderContainer();
-    final notifier = container.read(themeNotifierProvider.notifier);
-    
-    await notifier.initialize(prefs);
-    
-    final theme = container.read(themeNotifierProvider);
-    expect(theme, ThemeMode.dark);
-  });
+  test(
+    'ThemeProvider should load saved theme from SharedPreferences',
+    () async {
+      SharedPreferences.setMockInitialValues({'app_theme_mode': 'dark'});
+      final prefs = await SharedPreferences.getInstance();
+
+      final container = ProviderContainer();
+      final notifier = container.read(themeNotifierProvider.notifier);
+
+      await notifier.initialize(prefs);
+
+      final theme = container.read(themeNotifierProvider);
+      expect(theme, ThemeMode.dark);
+    },
+  );
 
   test('ThemeProvider should toggle between light and dark mode', () async {
     final container = ProviderContainer();
     final notifier = container.read(themeNotifierProvider.notifier);
-    
+
     expect(container.read(themeNotifierProvider), ThemeMode.light);
-    
+
     await notifier.toggleTheme();
     expect(container.read(themeNotifierProvider), ThemeMode.dark);
-    
+
     await notifier.toggleTheme();
     expect(container.read(themeNotifierProvider), ThemeMode.light);
   });

@@ -30,9 +30,5 @@ Future<void> bootstrap(Widget Function() builder) async {
   configureDependencies();
 
   // 4. Run the app wrapped in Riverpod's ProviderScope
-  runApp(
-    ProviderScope(
-      child: builder(),
-    ),
-  );
+  runApp(ProviderScope(child: builder()));
 }

@@ -9,13 +9,14 @@ class ComingSoonView extends StatelessWidget {
   const ComingSoonView({
     super.key,
     required this.title,
-    this.description = 'هذه الوحدة قيد التطوير وسيتم إطلاقها قريباً لتجربة متكاملة.',
+    this.description =
+        'هذه الوحدة قيد التطوير وسيتم إطلاقها قريباً لتجربة متكاملة.',
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Scaffold(
       backgroundColor: Colors.transparent, // Let MainLayout handle background
       body: Center(
@@ -52,7 +53,9 @@ class ComingSoonView extends StatelessWidget {
                 description,
                 style: TextStyle(
                   fontSize: 16,
-                  color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                  color: isDark
+                      ? AppColors.textSecondaryDark
+                      : AppColors.textSecondaryLight,
                 ),
                 textAlign: TextAlign.center,
               ),

@@ -10,7 +10,7 @@ class WhatsAppShare {
     required List<Map<String, dynamic>> items,
   }) async {
     final buffer = StringBuffer();
-    
+
     // ترويسة الرسالة
     buffer.writeln('🏢 *مؤسسة التاجر الذكي*');
     buffer.writeln('------------------------');
@@ -19,13 +19,15 @@ class WhatsAppShare {
     buffer.writeln('التاريخ: $date');
     buffer.writeln('العميل: $customerName');
     buffer.writeln('------------------------');
-    
+
     // قائمة المشتريات
     for (var item in items) {
       buffer.writeln('▪ ${item['name']}');
-      buffer.writeln('  الكمية: ${item['qty']}  |  الإجمالي: ${item['total'].toStringAsFixed(2)} ﷼');
+      buffer.writeln(
+        '  الكمية: ${item['qty']}  |  الإجمالي: ${item['total'].toStringAsFixed(2)} ﷼',
+      );
     }
-    
+
     // الذيل والإجماليات
     buffer.writeln('------------------------');
     buffer.writeln('💰 *الإجمالي النهائي: ${total.toStringAsFixed(2)} ﷼*');
@@ -36,7 +38,7 @@ class WhatsAppShare {
     // تشفير النص ليكون متوافقاً مع روابط الويب URL
     final encodedMessage = Uri.encodeComponent(buffer.toString());
     final url = Uri.parse('https://wa.me/?text=$encodedMessage');
-    
+
     // محاولة فتح تطبيق الواتساب أو المتصفح
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);

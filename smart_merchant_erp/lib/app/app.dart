@@ -23,7 +23,7 @@ class App extends ConsumerWidget {
       // but we use onGenerateTitle instead if needed. For now, a generic English/Arabic string.
       title: 'Smart Merchant - التاجر الذكي',
       debugShowCheckedModeBanner: false,
-      
+
       // Localization Support
       locale: locale,
       localizationsDelegates: const [
@@ -33,10 +33,10 @@ class App extends ConsumerWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      
+
       // Routing integration
       routerConfig: router,
-      
+
       // Centralized Premium Design System
       themeMode: themeMode,
       theme: AppTheme.lightTheme,

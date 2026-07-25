@@ -23,7 +23,9 @@ class LocaleNotifier extends _$LocaleNotifier {
 
   Future<void> toggleLocale() async {
     final prefs = await SharedPreferences.getInstance();
-    final newLocale = state.languageCode == 'ar' ? const Locale('en') : const Locale('ar');
+    final newLocale = state.languageCode == 'ar'
+        ? const Locale('en')
+        : const Locale('ar');
     await prefs.setString(_localeKey, newLocale.languageCode);
     state = newLocale;
   }

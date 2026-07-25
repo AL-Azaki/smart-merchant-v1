@@ -1,67 +1,221 @@
-import 'package:drift/drift.dart';
+import 'package:injectable/injectable.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
+import '../../../../kernel/error/repository_exceptions.dart';
+import '../../../../database/daos/auth_dao.dart';
+import '../data_sources/auth_local_data_source.dart';
 
+@LazySingleton(as: AuthRepository)
 class AuthRepositoryImpl implements AuthRepository {
-  final AppDatabase _db;
-  
-  AuthRepositoryImpl(this._db);
+  final AuthLocalDataSource _localDataSource;
+  final AuthDao _authDao;
+  AuthRepositoryImpl(dynamic source)
+    : _localDataSource = source is AuthLocalDataSource
+          ? source
+          : (source is AppDatabase
+                ? AuthLocalDataSourceImpl(source)
+                : (source is AuthDao
+                      ? AuthLocalDataSourceImpl(source.attachedDatabase)
+                      : throw ArgumentError(
+                          'Expected AuthLocalDataSource, AppDatabase or AuthDao',
+                        ))),
+      _authDao = source is AuthLocalDataSource
+          ? source.authDao
+          : (source is AppDatabase
+                ? AuthDao(source)
+                : (source is AuthDao
+                      ? source
+                      : throw ArgumentError('Expected valid data source')));
+
+  @factoryMethod
+  factory AuthRepositoryImpl.injectable(
+    AuthLocalDataSource local,
+  ) => AuthRepositoryImpl(local);
 
   @override
   Future<bool> login(String email, String password) async {
-    // 1. In a real system, you'd hash the password and compare.
-    // 2. Here we verify against local DB or dummy credentials
-    if (email == 'admin@smartmerchant.com' && password == 'admin123') {
-      return true;
-    }
-
-    final query = _db.select(_db.usersTable)..where((u) => u.email.equals(email));
-    final user = await query.getSingleOrNull();
-    
-    if (user != null && user.passwordHash == password) { // Dummy plain text comparison for offline dev
-      return true;
-    }
-    return false;
-  }
-
-  @override
-  Future<void> register(String firstName, String lastName, String email, String password) async {
-    await _db.into(_db.usersTable).insert(
-      UsersTableCompanion.insert(
-        email: email,
-        passwordHash: password, // Raw for now, hash in production
-        firstName: firstName,
-        lastName: lastName,
-      )
+    return RepositoryErrorGuard.run(
+      () => _localDataSource.login(email, password),
     );
   }
 
   @override
-  Future<void> completeBusinessSetup(String businessName, String businessType) async {
-    // Usually links to the currently registered user
-    final users = await _db.select(_db.usersTable).get();
-    if (users.isEmpty) return;
+  Future<void> register(
+    String firstName,
+    String lastName,
+    String email,
+    String password,
+  ) async {
+    return RepositoryErrorGuard.run(
+      () => _localDataSource.register(firstName, lastName, email, password),
+    );
+  }
 
-    final userId = users.last.id;
-    
-    await _db.into(_db.accountsTable).insert(
-      AccountsTableCompanion.insert(
-        ownerId: userId,
-        businessName: businessName,
-        businessType: businessType,
-        defaultCurrency: 'YER',
-      )
+  @override
+  Future<void> completeBusinessSetup(
+    String businessName,
+    String businessType,
+  ) async {
+    return RepositoryErrorGuard.run(
+      () => _localDataSource.completeBusinessSetup(businessName, businessType),
     );
   }
 
   @override
   Future<bool> checkAuthStatus() async {
-    // Check if there's an active token or local session
-    return false;
+    return RepositoryErrorGuard.run(() => _localDataSource.checkAuthStatus());
   }
 
   @override
   Future<void> logout() async {
-    // Clear session
+    return RepositoryErrorGuard.run(() => _localDataSource.logout());
+  }
+
+  // Users
+  @override
+  Future<UserAccount?> getUserById(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.getUserById(id));
+  }
+
+  @override
+  Future<UserAccount?> getUserByEmail(String email) {
+    return RepositoryErrorGuard.run(() => _authDao.getUserByEmail(email));
+  }
+
+  @override
+  Future<List<UserAccount>> listUsers({bool? isActive}) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.listUsers(isActive: isActive),
+    );
+  }
+
+  @override
+  Stream<UserAccount?> watchUserById(String id) {
+    return RepositoryErrorGuard.guardStream(_authDao.watchUserById(id));
+  }
+
+  @override
+  Future<int> insertUser(UsersTableCompanion user) {
+    return RepositoryErrorGuard.run(() => _authDao.insertUser(user));
+  }
+
+  @override
+  Future<bool> updateUser(UsersTableCompanion user) {
+    return RepositoryErrorGuard.run(() => _authDao.updateUser(user));
+  }
+
+  @override
+  Future<int> deleteUser(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.deleteUser(id));
+  }
+
+  // Accounts
+  @override
+  Future<BusinessAccount?> getAccountById(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.getAccountById(id));
+  }
+
+  @override
+  Future<List<BusinessAccount>> listAccountsByOwnerId(String ownerId) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.listAccountsByOwnerId(ownerId),
+    );
+  }
+
+  @override
+  Stream<BusinessAccount?> watchAccountById(String id) {
+    return RepositoryErrorGuard.guardStream(_authDao.watchAccountById(id));
+  }
+
+  @override
+  Stream<List<BusinessAccount>> watchAccountsByOwnerId(String ownerId) {
+    return RepositoryErrorGuard.guardStream(
+      _authDao.watchAccountsByOwnerId(ownerId),
+    );
+  }
+
+  @override
+  Future<int> insertAccount(AccountsTableCompanion account) {
+    return RepositoryErrorGuard.run(() => _authDao.insertAccount(account));
+  }
+
+  @override
+  Future<bool> updateAccount(AccountsTableCompanion account) {
+    return RepositoryErrorGuard.run(() => _authDao.updateAccount(account));
+  }
+
+  @override
+  Future<int> deleteAccount(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.deleteAccount(id));
+  }
+
+  // Subscriptions
+  @override
+  Future<SubscriptionData?> getSubscriptionById(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.getSubscriptionById(id));
+  }
+
+  @override
+  Future<List<SubscriptionData>> listSubscriptionsByAccountId(
+    String accountId,
+  ) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.listSubscriptionsByAccountId(accountId),
+    );
+  }
+
+  @override
+  Future<SubscriptionData?> getActiveSubscriptionByAccountId(String accountId) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.getActiveSubscriptionByAccountId(accountId),
+    );
+  }
+
+  @override
+  Stream<SubscriptionData?> watchActiveSubscriptionByAccountId(
+    String accountId,
+  ) {
+    return RepositoryErrorGuard.guardStream(
+      _authDao.watchActiveSubscriptionByAccountId(accountId),
+    );
+  }
+
+  @override
+  Stream<List<SubscriptionData>> watchSubscriptionsByAccountId(
+    String accountId,
+  ) {
+    return RepositoryErrorGuard.guardStream(
+      _authDao.watchSubscriptionsByAccountId(accountId),
+    );
+  }
+
+  @override
+  Future<int> insertSubscription(SubscriptionsTableCompanion subscription) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.insertSubscription(subscription),
+    );
+  }
+
+  @override
+  Future<bool> updateSubscription(SubscriptionsTableCompanion subscription) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.updateSubscription(subscription),
+    );
+  }
+
+  @override
+  Future<int> deleteSubscription(String id) {
+    return RepositoryErrorGuard.run(() => _authDao.deleteSubscription(id));
+  }
+
+  // Transactional
+  @override
+  Future<void> createAccountWithSubscription(
+    AccountsTableCompanion account,
+    SubscriptionsTableCompanion subscription,
+  ) {
+    return RepositoryErrorGuard.run(
+      () => _authDao.createAccountWithSubscription(account, subscription),
+    );
   }
 }

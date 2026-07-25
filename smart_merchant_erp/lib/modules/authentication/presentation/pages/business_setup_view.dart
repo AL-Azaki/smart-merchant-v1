@@ -12,9 +12,13 @@ class BusinessSetupView extends ConsumerStatefulWidget {
 
 class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
   String _selectedBusinessType = 'retail';
-  
+
   final List<Map<String, dynamic>> _businessTypes = [
-    {'id': 'grocery', 'label': 'بقالة/تموينات', 'icon': Icons.shopping_cart_rounded},
+    {
+      'id': 'grocery',
+      'label': 'بقالة/تموينات',
+      'icon': Icons.shopping_cart_rounded,
+    },
     {'id': 'retail', 'label': 'تجزئة', 'icon': Icons.storefront_rounded},
     {'id': 'wholesale', 'label': 'جملة', 'icon': Icons.inventory_2_rounded},
     {'id': 'restaurant', 'label': 'مطعم', 'icon': Icons.restaurant_rounded},
@@ -28,7 +32,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D9488), 
+      backgroundColor: const Color(0xFF0D9488),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -43,14 +47,17 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
                 child: Column(
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // We hide the back button since this is a required step after registration
-                        const SizedBox(width: 40), 
+                        const SizedBox(width: 40),
                         // Step Indicators
                         Row(
                           children: [
@@ -61,134 +68,231 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                             _buildStepDot(false, false),
                           ],
                         ),
-                        const SizedBox(width: 40), 
+                        const SizedBox(width: 40),
                       ],
                     ),
                     const SizedBox(height: 32),
-                    const Text('إعداد النشاط التجاري', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                    const Text(
+                      'إعداد النشاط التجاري',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 8),
-                    Text('أدخل بيانات نشاطك التجاري ليتم تخصيص النظام لك', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+                    Text(
+                      'أدخل بيانات نشاطك التجاري ليتم تخصيص النظام لك',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.8),
+                        fontSize: 14,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
-            
+
             // Form Area
             Expanded(
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
                   color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.only(topLeft: Radius.circular(32), topRight: Radius.circular(32)),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
+                  ),
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('نوع النشاط التجاري *', style: TextStyle(color: AppColors.textSecondaryLight, fontSize: 12, fontWeight: FontWeight.bold)),
+                      const Text(
+                        'نوع النشاط التجاري *',
+                        style: TextStyle(
+                          color: AppColors.textSecondaryLight,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       GridView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                          childAspectRatio: 1.1,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              crossAxisSpacing: 8,
+                              mainAxisSpacing: 8,
+                              childAspectRatio: 1.1,
+                            ),
                         itemCount: _businessTypes.length,
                         itemBuilder: (context, index) {
                           final type = _businessTypes[index];
-                          final isSelected = _selectedBusinessType == type['id'];
-                          
+                          final isSelected =
+                              _selectedBusinessType == type['id'];
+
                           return InkWell(
-                            onTap: () => setState(() => _selectedBusinessType = type['id']),
+                            onTap: () => setState(
+                              () => _selectedBusinessType = type['id'],
+                            ),
                             borderRadius: BorderRadius.circular(12),
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 200),
                               decoration: BoxDecoration(
-                                color: isSelected ? const Color(0xFF0D9488).withOpacity(0.1) : AppColors.backgroundLight,
-                                border: Border.all(color: isSelected ? const Color(0xFF0D9488) : AppColors.borderLight, width: isSelected ? 1.5 : 1),
+                                color: isSelected
+                                    ? const Color(0xFF0D9488).withOpacity(0.1)
+                                    : AppColors.backgroundLight,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? const Color(0xFF0D9488)
+                                      : AppColors.borderLight,
+                                  width: isSelected ? 1.5 : 1,
+                                ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(type['icon'], color: isSelected ? const Color(0xFF0D9488) : AppColors.textSecondaryLight, size: 24),
+                                  Icon(
+                                    type['icon'],
+                                    color: isSelected
+                                        ? const Color(0xFF0D9488)
+                                        : AppColors.textSecondaryLight,
+                                    size: 24,
+                                  ),
                                   const SizedBox(height: 6),
-                                  Text(type['label'], style: TextStyle(color: isSelected ? const Color(0xFF0D9488) : AppColors.textSecondaryLight, fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                                  Text(
+                                    type['label'],
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? const Color(0xFF0D9488)
+                                          : AppColors.textSecondaryLight,
+                                      fontSize: 11,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           );
                         },
                       ),
-                      
+
                       const SizedBox(height: 24),
-                      
-                      _buildTextField('اسم النشاط التجاري *', 'مثال: متجر النور'),
-                      const SizedBox(height: 16),
-                      
-                      Row(
-                        children: [
-                          Expanded(child: _buildTextField('رقم الهاتف', '+967...', textDirection: TextDirection.ltr, keyboardType: TextInputType.phone)),
-                          const SizedBox(width: 12),
-                          Expanded(child: _buildTextField('البريد الإلكتروني', 'biz@...', textDirection: TextDirection.ltr, keyboardType: TextInputType.emailAddress)),
-                        ],
+
+                      _buildTextField(
+                        'اسم النشاط التجاري *',
+                        'مثال: متجر النور',
                       ),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           Expanded(
-                            child: _buildDropdownField('الدولة *', 'اليمن', ['اليمن', 'السعودية', 'مصر']),
+                            child: _buildTextField(
+                              'رقم الهاتف',
+                              '+967...',
+                              textDirection: TextDirection.ltr,
+                              keyboardType: TextInputType.phone,
+                            ),
                           ),
                           const SizedBox(width: 12),
-                          Expanded(child: _buildTextField('المدينة *', 'صنعاء')),
+                          Expanded(
+                            child: _buildTextField(
+                              'البريد الإلكتروني',
+                              'biz@...',
+                              textDirection: TextDirection.ltr,
+                              keyboardType: TextInputType.emailAddress,
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 16),
-                      
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildDropdownField('الدولة *', 'اليمن', [
+                              'اليمن',
+                              'السعودية',
+                              'مصر',
+                            ]),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildTextField('المدينة *', 'صنعاء'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
                       _buildTextField('العنوان التفصيلي', 'شارع، حي، مبنى...'),
                       const SizedBox(height: 16),
-                      
+
                       Row(
                         children: [
                           Expanded(
-                            child: _buildDropdownField('العملة الأساسية *', 'YER (الريال اليمني)', ['YER (الريال اليمني)', 'USD (الدولار الأمريكي)', 'SAR (الريال السعودي)']),
+                            child: _buildDropdownField(
+                              'العملة الأساسية *',
+                              'YER (الريال اليمني)',
+                              [
+                                'YER (الريال اليمني)',
+                                'USD (الدولار الأمريكي)',
+                                'SAR (الريال السعودي)',
+                              ],
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildDropdownField('بداية السنة المالية', 'يناير', ['يناير', 'فبراير', 'مارس']),
+                            child: _buildDropdownField(
+                              'بداية السنة المالية',
+                              'يناير',
+                              ['يناير', 'فبراير', 'مارس'],
+                            ),
                           ),
                         ],
                       ),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       // Submit Button
                       ElevatedButton(
                         onPressed: () {
                           // Trigger Trial State
-                          ref.read(authNotifierProvider.notifier).completeSetup();
+                          ref
+                              .read(authNotifierProvider.notifier)
+                              .completeSetup();
                         },
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 56),
                           backgroundColor: const Color(0xFF0D9488),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
                           elevation: 8,
                           shadowColor: const Color(0xFF0D9488).withOpacity(0.4),
                         ),
-                        child: const Text('إنشاء النشاط والمتابعة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'إنشاء النشاط والمتابعة',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
                     ],
                   ),
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),
@@ -200,17 +304,31 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
       width: isActive ? 24 : 8,
       height: 6,
       decoration: BoxDecoration(
-        color: isCompleted ? Colors.white : (isActive ? Colors.white : Colors.white.withOpacity(0.3)),
+        color: isCompleted
+            ? Colors.white
+            : (isActive ? Colors.white : Colors.white.withOpacity(0.3)),
         borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 
-  Widget _buildTextField(String label, String hint, {TextDirection? textDirection, TextInputType? keyboardType}) {
+  Widget _buildTextField(
+    String label,
+    String hint, {
+    TextDirection? textDirection,
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondaryLight,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 6),
         TextField(
           textDirection: textDirection,
@@ -219,9 +337,21 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
             hintText: hint,
             filled: true,
             fillColor: AppColors.backgroundLight,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.borderLight)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF0D9488), width: 1.5)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Color(0xFF0D9488),
+                width: 1.5,
+              ),
+            ),
           ),
         ),
       ],
@@ -232,7 +362,14 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: AppColors.textSecondaryLight, fontSize: 12, fontWeight: FontWeight.bold)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: AppColors.textSecondaryLight,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -245,11 +382,20 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
             child: DropdownButton<String>(
               value: value,
               isExpanded: true,
-              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondaryLight),
+              icon: const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: AppColors.textSecondaryLight,
+              ),
               items: items.map((String item) {
                 return DropdownMenuItem<String>(
                   value: item,
-                  child: Text(item, style: const TextStyle(fontSize: 13, color: AppColors.textPrimaryLight)),
+                  child: Text(
+                    item,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimaryLight,
+                    ),
+                  ),
                 );
               }).toList(),
               onChanged: (val) {},

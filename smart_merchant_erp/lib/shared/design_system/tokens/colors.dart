@@ -15,7 +15,7 @@ class AppColors {
   // Backgrounds (Clean, clinical look for ERP)
   static const Color backgroundLight = Color(0xFFF9FAFB);
   static const Color surfaceLight = Colors.white;
-  
+
   static const Color backgroundDark = Color(0xFF111827);
   static const Color surfaceDark = Color(0xFF1F2937);
 
@@ -25,7 +25,7 @@ class AppColors {
 
   static const Color textPrimaryDark = Color(0xFFF9FAFB); // Gray 50
   static const Color textSecondaryDark = Color(0xFF9CA3AF); // Gray 400
-  
+
   // Borders
   static const Color borderLight = Color(0xFFE5E7EB);
   static const Color borderDark = Color(0xFF374151);

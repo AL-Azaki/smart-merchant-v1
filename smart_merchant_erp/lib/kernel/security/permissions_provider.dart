@@ -32,11 +32,7 @@ class ModulesNotifier extends _$ModulesNotifier {
   Set<ErpModule> build() {
     // For demonstration, let's say the current plan only allows Sales, Inventory, and Settings.
     // The Accounting module is EXCLUDED.
-    return {
-      ErpModule.sales,
-      ErpModule.inventory,
-      ErpModule.settings,
-    };
+    return {ErpModule.sales, ErpModule.inventory, ErpModule.settings};
   }
 
   void loadModulesForPlan(String planId) {
@@ -45,10 +41,10 @@ class ModulesNotifier extends _$ModulesNotifier {
     } else if (planId == 'pro') {
       state = {ErpModule.sales, ErpModule.inventory, ErpModule.settings};
     } else if (planId == 'enterprise') {
-      state = ErpModule.values.toSet(); 
+      state = ErpModule.values.toSet();
     }
   }
-  
+
   bool hasModule(ErpModule module) {
     return state.contains(module);
   }
@@ -59,10 +55,7 @@ class ModulesNotifier extends _$ModulesNotifier {
 class PermissionsNotifier extends _$PermissionsNotifier {
   @override
   Set<ErpPermission> build() {
-    return {
-      ErpPermission.viewSales,
-      ErpPermission.createInvoice,
-    };
+    return {ErpPermission.viewSales, ErpPermission.createInvoice};
   }
 
   bool hasPermission(ErpPermission permission) {

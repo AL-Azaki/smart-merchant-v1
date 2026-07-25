@@ -19,12 +19,24 @@ class ReturnsModal extends StatelessWidget {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.assignment_return_rounded, color: AppColors.error),
+                    Icon(
+                      Icons.assignment_return_rounded,
+                      color: AppColors.error,
+                    ),
                     SizedBox(width: 12),
-                    Text('مرتجعات المبيعات', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+                    Text(
+                      'مرتجعات المبيعات',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
             const Divider(),
@@ -33,20 +45,35 @@ class ReturnsModal extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.receipt_long_rounded, size: 64, color: AppColors.textSecondaryLight.withOpacity(0.5)),
+                    Icon(
+                      Icons.receipt_long_rounded,
+                      size: 64,
+                      color: AppColors.textSecondaryLight.withOpacity(0.5),
+                    ),
                     const SizedBox(height: 16),
-                    const Text('لا توجد فواتير مرتجعة اليوم', style: TextStyle(fontSize: 16, color: AppColors.textSecondaryLight)),
+                    const Text(
+                      'لا توجد فواتير مرتجعة اليوم',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppColors.textSecondaryLight,
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     ElevatedButton.icon(
                       onPressed: () {},
                       icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text('مرتجع جديد', style: TextStyle(color: Colors.white)),
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-                    )
+                      label: const Text(
+                        'مرتجع جديد',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                      ),
+                    ),
                   ],
                 ),
               ),
-            )
+            ),
           ],
         ),
       ),

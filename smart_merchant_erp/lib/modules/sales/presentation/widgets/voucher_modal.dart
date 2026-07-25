@@ -25,8 +25,14 @@ class _VoucherModalState extends State<VoucherModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('إضافة سند جديد', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-                IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                const Text(
+                  'إضافة سند جديد',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ],
             ),
             const SizedBox(height: 16),
@@ -45,11 +51,21 @@ class _VoucherModalState extends State<VoucherModal> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: isIncome ? AppColors.success : Colors.transparent,
+                          color: isIncome
+                              ? AppColors.success
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
-                        child: Text('سند قبض', style: TextStyle(color: isIncome ? Colors.white : AppColors.textSecondaryLight, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'سند قبض',
+                          style: TextStyle(
+                            color: isIncome
+                                ? Colors.white
+                                : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -59,11 +75,21 @@ class _VoucherModalState extends State<VoucherModal> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         decoration: BoxDecoration(
-                          color: !isIncome ? AppColors.error : Colors.transparent,
+                          color: !isIncome
+                              ? AppColors.error
+                              : Colors.transparent,
                           borderRadius: BorderRadius.circular(8),
                         ),
                         alignment: Alignment.center,
-                        child: Text('سند صرف', style: TextStyle(color: !isIncome ? Colors.white : AppColors.textSecondaryLight, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          'سند صرف',
+                          style: TextStyle(
+                            color: !isIncome
+                                ? Colors.white
+                                : AppColors.textSecondaryLight,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -74,7 +100,9 @@ class _VoucherModalState extends State<VoucherModal> {
             TextField(
               decoration: InputDecoration(
                 labelText: 'المبلغ',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.attach_money),
               ),
               keyboardType: TextInputType.number,
@@ -83,7 +111,9 @@ class _VoucherModalState extends State<VoucherModal> {
             TextField(
               decoration: InputDecoration(
                 labelText: 'البيان (سبب السند)',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 prefixIcon: const Icon(Icons.description_rounded),
               ),
             ),
@@ -93,10 +123,18 @@ class _VoucherModalState extends State<VoucherModal> {
               style: ElevatedButton.styleFrom(
                 minimumSize: const Size(double.infinity, 50),
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('حفظ السند', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
+              child: const Text(
+                'حفظ السند',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
       ),

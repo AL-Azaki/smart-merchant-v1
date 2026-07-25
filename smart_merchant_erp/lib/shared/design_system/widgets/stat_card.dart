@@ -36,13 +36,18 @@ class StatCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Title
-                Text(
-                  title,
-                  style: AppTypography.textTheme.bodyMedium?.copyWith(
-                    color: AppColors.textSecondaryLight,
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.textTheme.bodyMedium?.copyWith(
+                      color: AppColors.textSecondaryLight,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
+                const SizedBox(width: AppSpacing.xs),
                 // Icon Container (Premium look with background color)
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.xs),
@@ -70,19 +75,23 @@ class StatCard extends StatelessWidget {
                   Icon(
                     isTrendPositive ? Icons.trending_up : Icons.trending_down,
                     size: 16,
-                    color: isTrendPositive ? AppColors.success : AppColors.error,
+                    color: isTrendPositive
+                        ? AppColors.success
+                        : AppColors.error,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
                     trendText!,
                     style: AppTypography.textTheme.labelSmall?.copyWith(
-                      color: isTrendPositive ? AppColors.success : AppColors.error,
+                      color: isTrendPositive
+                          ? AppColors.success
+                          : AppColors.error,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],
               ),
-            ]
+            ],
           ],
         ),
       ),
