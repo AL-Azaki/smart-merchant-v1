@@ -75,54 +75,49 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
+        preferredSize: const Size.fromHeight(56),
         child: Container(
-          color: surfaceColor,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.xs,
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            border: Border(
+              bottom: BorderSide(color: borderColor, width: 1.5),
+            ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'المخزون والمنتجات',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: isDark ? Colors.white : AppColors.textPrimaryLight,
+          child: TabBar(
+            controller: _tabController,
+            isScrollable: MediaQuery.of(context).size.width < 600,
+            tabAlignment: MediaQuery.of(context).size.width < 600
+                ? TabAlignment.start
+                : TabAlignment.fill,
+            indicatorColor: AppColors.primary,
+            indicatorWeight: 4,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: isDark
+                ? AppColors.textSecondaryDark
+                : AppColors.textSecondaryLight,
+            labelStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              fontFamily: 'Cairo',
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontFamily: 'Cairo',
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 0),
+            tabs: _tabs.map((tab) {
+              return Tab(
+                iconMargin: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  children: [
+                    Icon(tab['icon'] as IconData, size: 20),
+                    const SizedBox(width: 8),
+                    Text(tab['label'] as String),
+                  ],
                 ),
-              ),
-              const Spacer(),
-              TabBar(
-                controller: _tabController,
-                isScrollable: true,
-                labelColor: AppColors.primary,
-                unselectedLabelColor: isDark
-                    ? AppColors.textSecondaryDark
-                    : AppColors.textSecondaryLight,
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 3,
-                tabAlignment: TabAlignment.center,
-                tabs: _tabs.map((tab) {
-                  return Tab(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(tab['icon'] as IconData, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          tab['label'] as String,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
+              );
+            }).toList(),
           ),
         ),
       ),
