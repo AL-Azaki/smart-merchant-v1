@@ -15,6 +15,10 @@ class CustomerCommand {
   final String? email;
   final String? taxNumber;
   final String? address;
+  final double? creditLimit;
+  final double? openingBalance;
+  final String? openingBalanceType;
+  final DateTime? openingBalanceDate;
   final bool isActive;
 
   const CustomerCommand({
@@ -25,6 +29,10 @@ class CustomerCommand {
     this.email,
     this.taxNumber,
     this.address,
+    this.creditLimit,
+    this.openingBalance,
+    this.openingBalanceType,
+    this.openingBalanceDate,
     this.isActive = true,
   });
 }
@@ -54,6 +62,10 @@ class CustomerApplicationService {
         phone: drift.Value(command.phone),
         email: drift.Value(command.email),
         address: drift.Value(command.address),
+        creditLimit: command.creditLimit != null ? drift.Value(command.creditLimit!) : const drift.Value.absent(),
+        openingBalance: command.openingBalance != null ? drift.Value(command.openingBalance!) : const drift.Value.absent(),
+        openingBalanceType: drift.Value(command.openingBalanceType),
+        openingBalanceDate: drift.Value(command.openingBalanceDate),
         isActive: drift.Value(command.isActive),
         syncStatus: const drift.Value('pending'),
       );

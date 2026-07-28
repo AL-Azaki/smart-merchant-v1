@@ -189,6 +189,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                       _buildTextField(
                         'اسم النشاط التجاري *',
                         'مثال: متجر النور',
+                        controller: _businessNameController,
                       ),
                       const SizedBox(height: 16),
 
@@ -200,6 +201,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                               '+967...',
                               textDirection: TextDirection.ltr,
                               keyboardType: TextInputType.phone,
+                              controller: _phoneController,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -209,6 +211,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                               'biz@...',
                               textDirection: TextDirection.ltr,
                               keyboardType: TextInputType.emailAddress,
+                              controller: _emailController,
                             ),
                           ),
                         ],
@@ -226,13 +229,13 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildTextField('المدينة *', 'صنعاء'),
+                            child: _buildTextField('المدينة *', 'صنعاء', controller: _cityController),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      _buildTextField('العنوان التفصيلي', 'شارع، حي، مبنى...'),
+                      _buildTextField('العنوان التفصيلي', 'شارع، حي، مبنى...', controller: _addressController),
                       const SizedBox(height: 16),
 
                       Row(
@@ -267,7 +270,12 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                           // Trigger Trial State
                           ref
                               .read(authNotifierProvider.notifier)
-                              .completeSetup();
+                              .completeSetup({
+                            'business_type': _selectedBusinessType,
+                            'business_name': _businessNameController.text.isNotEmpty ? _businessNameController.text : 'My Setup Business',
+                            'primary_phone': _phoneController.text,
+                            'primary_email': _emailController.text,
+                          });
                         },
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 56),
@@ -312,11 +320,28 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
     );
   }
 
+  final _businessNameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _addressController = TextEditingController();
+
+  @override
+  void dispose() {
+    _businessNameController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _cityController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
   Widget _buildTextField(
     String label,
     String hint, {
     TextDirection? textDirection,
     TextInputType? keyboardType,
+    TextEditingController? controller,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -331,6 +356,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
         ),
         const SizedBox(height: 6),
         TextField(
+          controller: controller,
           textDirection: textDirection,
           keyboardType: keyboardType,
           decoration: InputDecoration(

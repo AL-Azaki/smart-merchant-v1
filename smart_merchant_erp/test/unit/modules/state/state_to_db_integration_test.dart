@@ -83,6 +83,7 @@ void main() {
       accountingService,
       context,
       transactionRunner,
+      db,
     );
 
     // Register UseCase in GetIt so getit_providers can resolve it

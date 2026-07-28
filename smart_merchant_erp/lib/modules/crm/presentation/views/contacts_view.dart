@@ -39,7 +39,7 @@ class _ContactsViewState extends ConsumerState<ContactsView>
           padding: const EdgeInsets.all(AppSpacing.md),
           child: Center(
             child: Container(
-              width: 400,
+              constraints: const BoxConstraints(maxWidth: 400),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(14),

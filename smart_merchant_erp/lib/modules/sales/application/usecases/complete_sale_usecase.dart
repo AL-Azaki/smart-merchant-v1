@@ -63,6 +63,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
   final AccountingApplicationService _accountingService;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
+  final AppDatabase _db;
   final Uuid _uuid = const Uuid();
 
   CompleteSaleUseCase(
@@ -72,6 +73,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
     this._accountingService,
     this._context,
     this._transactionRunner,
+    this._db,
   );
 
   @override
@@ -88,6 +90,36 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       return const Left(
         ValidationFailure('Cannot complete a sale with no items.'),
       );
+    }
+
+    // 0. Pre-Condition Guard: Validate Session Integrity Locally
+    final userCheck = await (_db.select(_db.usersTable)..where((t) => t.id.equals(userId))).getSingleOrNull();
+    if (userCheck == null) {
+      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (المستخدم غير موجود محلياً)'));
+    }
+
+    final businessCheck = await (_db.select(_db.businesses)..where((t) => t.id.equals(businessId))).getSingleOrNull();
+    if (businessCheck == null) {
+      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (النشاط التجاري غير موجود محلياً)'));
+    }
+
+    final branchCheck = await (_db.select(_db.branches)..where((t) => t.id.equals(branchId))).getSingleOrNull();
+    if (branchCheck == null) {
+      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (الفرع غير موجود محلياً)'));
+    }
+
+    // Validate Currency
+    final currencyCheck = await (_db.select(_db.currencies)..where((t) => t.id.equals(params.currencyId))).getSingleOrNull();
+    if (currencyCheck == null) {
+      return Left(ValidationFailure('العملة المحددة غير مسجلة في قاعدة البيانات المحلية: ${params.currencyId}'));
+    }
+
+    // Validate Customer if provided
+    if (params.customerId != null) {
+      final customerCheck = await (_db.select(_db.customers)..where((t) => t.id.equals(params.customerId!) & t.businessId.equals(businessId))).getSingleOrNull();
+      if (customerCheck == null) {
+        return Left(ValidationFailure('العميل المحدد غير مسجل في قاعدة البيانات المحلية (ID: ${params.customerId})'));
+      }
     }
 
     // 1. Resolve Accounting Mappings
@@ -178,7 +210,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       taxTotal += item.tax;
       totalCost += (item.quantity * itemCost);
 
-      itemsWithCost.add({'command': item, 'costPrice': itemCost});
+      itemsWithCost.add({'command': item, 'costPrice': itemCost, 'inventory': inventory});
     }
 
     final grandTotal = subTotal - discountTotal + taxTotal;
@@ -309,6 +341,18 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           lines: inventoryLineCompanions
               .cast<InventoryTransactionLinesCompanion>(),
         );
+
+        // Update actual stock quantities
+        for (final map in itemsWithCost) {
+          final item = map['command'] as CompleteSaleItemCommand;
+          final inventory = map['inventory'] as Inventory;
+          final newQuantity = inventory.quantity - item.quantity;
+          await _inventoryRepository.updateInventory(
+            inventory.toCompanion(false).copyWith(
+              quantity: drift.Value(newQuantity),
+            ),
+          );
+        }
 
         // Record Accounting (Debit Cash/AR, Debit COGS, Credit Sales, Credit Inventory)
         // Find Fiscal Period

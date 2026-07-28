@@ -80,12 +80,16 @@ import '../../modules/inventory/infrastructure/repositories/inventory_repository
     as _i434;
 import '../../modules/purchasing/application/services/supplier_application_service.dart'
     as _i851;
+import '../../modules/purchasing/application/usecases/record_purchase_return_usecase.dart'
+    as _i293;
 import '../../modules/purchasing/application/usecases/record_purchase_usecase.dart'
     as _i948;
 import '../../modules/purchasing/domain/repositories/purchasing_repository.dart'
     as _i746;
 import '../../modules/purchasing/infrastructure/repositories/purchasing_repository_impl.dart'
     as _i558;
+import '../../modules/purchasing/presentation/mappers/purchase_invoice_document_mapper.dart'
+    as _i641;
 import '../../modules/sales/application/services/customer_application_service.dart'
     as _i764;
 import '../../modules/sales/application/services/online_order_service.dart'
@@ -95,6 +99,8 @@ import '../../modules/sales/application/usecases/complete_sale_usecase.dart'
 import '../../modules/sales/domain/repositories/sales_repository.dart' as _i345;
 import '../../modules/sales/infrastructure/repositories/sales_repository_impl.dart'
     as _i310;
+import '../../modules/sales/presentation/mappers/sales_invoice_document_mapper.dart'
+    as _i680;
 import '../../modules/system/application/services/document_application_service.dart'
     as _i1014;
 import '../../modules/system/domain/repositories/system_repository.dart'
@@ -189,6 +195,14 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i269.SecureStorageContract>(),
       ),
     );
+    gh.factory<_i641.PurchaseInvoiceDocumentMapper>(
+      () => _i641.PurchaseInvoiceDocumentMapper(
+        gh<_i896.PurchasingDao>(),
+        gh<_i90.CoreDao>(),
+        gh<_i964.CatalogDao>(),
+        gh<_i477.ApplicationContext>(),
+      ),
+    );
     gh.lazySingleton<_i540.AccountingRepository>(
       () => _i403.AccountingRepositoryImpl(gh<_i786.AccountingDao>()),
     );
@@ -215,6 +229,14 @@ extension GetItInjectableX on _i174.GetIt {
     );
     gh.lazySingleton<_i525.InventoryRepository>(
       () => _i434.InventoryRepositoryImpl(gh<_i828.InventoryDao>()),
+    );
+    gh.factory<_i680.SalesInvoiceDocumentMapper>(
+      () => _i680.SalesInvoiceDocumentMapper(
+        gh<_i789.SalesDao>(),
+        gh<_i90.CoreDao>(),
+        gh<_i964.CatalogDao>(),
+        gh<_i477.ApplicationContext>(),
+      ),
     );
     gh.lazySingleton<_i924.ApplicationTransactionRunner>(
       () => _i924.ApplicationTransactionRunnerImpl(gh<_i98.AppDatabase>()),
@@ -266,10 +288,32 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i1014.WarehouseContextService>(
       () => _i1014.WarehouseContextService(gh<_i525.InventoryRepository>()),
     );
+    gh.factory<_i948.RecordPurchaseUseCase>(
+      () => _i948.RecordPurchaseUseCase(
+        gh<_i746.PurchasingRepository>(),
+        gh<_i525.InventoryRepository>(),
+        gh<_i540.AccountingRepository>(),
+        gh<_i176.AccountingApplicationService>(),
+        gh<_i259.TreasuryRepository>(),
+        gh<_i477.ApplicationContext>(),
+        gh<_i924.ApplicationTransactionRunner>(),
+      ),
+    );
     gh.factory<_i904.EmployeeApplicationService>(
       () => _i904.EmployeeApplicationService(
         gh<_i553.HrRepository>(),
         gh<_i477.ApplicationContext>(),
+      ),
+    );
+    gh.factory<_i821.CompleteSaleUseCase>(
+      () => _i821.CompleteSaleUseCase(
+        gh<_i345.SalesRepository>(),
+        gh<_i525.InventoryRepository>(),
+        gh<_i540.AccountingRepository>(),
+        gh<_i176.AccountingApplicationService>(),
+        gh<_i477.ApplicationContext>(),
+        gh<_i924.ApplicationTransactionRunner>(),
+        gh<_i98.AppDatabase>(),
       ),
     );
     gh.lazySingleton<_i410.SyncCoordinator>(
@@ -282,19 +326,12 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i789.SalesDao>(),
       ),
     );
-    gh.factory<_i948.RecordPurchaseUseCase>(
-      () => _i948.RecordPurchaseUseCase(
+    gh.factory<_i293.RecordPurchaseReturnUseCase>(
+      () => _i293.RecordPurchaseReturnUseCase(
         gh<_i746.PurchasingRepository>(),
         gh<_i525.InventoryRepository>(),
         gh<_i540.AccountingRepository>(),
         gh<_i176.AccountingApplicationService>(),
-        gh<_i477.ApplicationContext>(),
-        gh<_i924.ApplicationTransactionRunner>(),
-      ),
-    );
-    gh.factory<_i912.ProcessWarehouseTransferUseCase>(
-      () => _i912.ProcessWarehouseTransferUseCase(
-        gh<_i525.InventoryRepository>(),
         gh<_i477.ApplicationContext>(),
         gh<_i924.ApplicationTransactionRunner>(),
       ),
@@ -306,19 +343,16 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i924.ApplicationTransactionRunner>(),
       ),
     );
-    gh.lazySingleton<_i457.AuthRepository>(
-      () =>
-          _i599.AuthRepositoryImpl.injectable(gh<_i370.AuthLocalDataSource>()),
-    );
-    gh.factory<_i821.CompleteSaleUseCase>(
-      () => _i821.CompleteSaleUseCase(
-        gh<_i345.SalesRepository>(),
+    gh.factory<_i912.ProcessWarehouseTransferUseCase>(
+      () => _i912.ProcessWarehouseTransferUseCase(
         gh<_i525.InventoryRepository>(),
-        gh<_i540.AccountingRepository>(),
-        gh<_i176.AccountingApplicationService>(),
         gh<_i477.ApplicationContext>(),
         gh<_i924.ApplicationTransactionRunner>(),
       ),
+    );
+    gh.lazySingleton<_i457.AuthRepository>(
+      () =>
+          _i599.AuthRepositoryImpl.injectable(gh<_i370.AuthLocalDataSource>()),
     );
     gh.factory<_i108.ReceivePaymentUseCase>(
       () => _i108.ReceivePaymentUseCase(

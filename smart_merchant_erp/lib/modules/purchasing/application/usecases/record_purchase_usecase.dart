@@ -1,5 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
+import '../../../treasury/domain/repositories/treasury_repository.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
@@ -45,6 +46,7 @@ class RecordPurchaseCommand {
   final List<PurchaseItemCommand> items;
   final String? notes;
   final bool isCreditPurchase;
+  final String? paymentMethodId;
   final String? supplierInvoiceNumber;
   final DateTime? dueDate;
 
@@ -55,6 +57,7 @@ class RecordPurchaseCommand {
     this.exchangeRate = 1.0,
     this.notes,
     this.isCreditPurchase = true,
+    this.paymentMethodId,
     this.supplierInvoiceNumber,
     this.dueDate,
   });
@@ -66,6 +69,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
   final InventoryRepository _inventoryRepository;
   final AccountingRepository _accountingRepository;
   final AccountingApplicationService _accountingService;
+  final TreasuryRepository _treasuryRepository;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
   final Uuid _uuid = const Uuid();
@@ -75,6 +79,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     this._inventoryRepository,
     this._accountingRepository,
     this._accountingService,
+    this._treasuryRepository,
     this._context,
     this._transactionRunner,
   );
@@ -84,6 +89,14 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     final businessId = _context.currentBusinessId;
     final branchId = _context.currentBranchId;
     final userId = _context.currentUserId;
+
+    print('--- RECORD PURCHASE COMMAND EXECUTING ---');
+    print('Supplier ID: ${params.supplierId}');
+    print('Is Credit: ${params.isCreditPurchase}');
+    print('Payment Method ID: ${params.paymentMethodId}');
+    print('Total Items: ${params.items.length}');
+    print('Due Date: ${params.dueDate}');
+    print('-----------------------------------------');
 
     if (branchId == null) {
       return const Left(
@@ -97,19 +110,31 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     }
 
     // 1. Resolve Accounting Mappings
-    final apIdResult = await _accountingService.resolveAccountMapping(
-      'accounts_payable',
-    );
-    if (apIdResult.isLeft())
-      return Left(apIdResult.fold((l) => l, (r) => throw Exception()));
-    final accountsPayableId = apIdResult.getOrElse(() => '');
+    String creditAccountId;
+    String? treasuryPaymentMethodId;
+    
+    if (params.isCreditPurchase) {
+      final apIdResult = await _accountingService.resolveAccountMapping('accounts_payable');
+      if (apIdResult.isLeft()) {
+        return Left(apIdResult.fold((l) => l, (r) => throw Exception()));
+      }
+      creditAccountId = apIdResult.getOrElse(() => '');
+    } else {
+      if (params.paymentMethodId == null) {
+        return const Left(ValidationFailure('Payment method is required for cash purchases.'));
+      }
+      final paymentMethod = await _treasuryRepository.getPaymentMethodById(params.paymentMethodId!, businessId);
+      if (paymentMethod == null || !paymentMethod.isActive) {
+        return const Left(ValidationFailure('Invalid or inactive payment method.'));
+      }
+      creditAccountId = paymentMethod.chartOfAccountId;
+      treasuryPaymentMethodId = paymentMethod.id;
+    }
 
-    final inventoryAssetIdResult = await _accountingService
-        .resolveAccountMapping('inventory_asset');
-    if (inventoryAssetIdResult.isLeft())
-      return Left(
-        inventoryAssetIdResult.fold((l) => l, (r) => throw Exception()),
-      );
+    final inventoryAssetIdResult = await _accountingService.resolveAccountMapping('inventory_asset');
+    if (inventoryAssetIdResult.isLeft()) {
+      return Left(inventoryAssetIdResult.fold((l) => l, (r) => throw Exception()));
+    }
     final inventoryAssetId = inventoryAssetIdResult.getOrElse(() => '');
 
     // 2. Calculate Totals
@@ -137,6 +162,11 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     final invoiceId = _uuid.v4();
     final invoiceNumber = 'PINV-${DateTime.now().millisecondsSinceEpoch}';
     final invoiceDate = DateTime.now();
+    
+    // Ensure dueDate is not before invoiceDate to satisfy CHECK constraint (due_date >= purchase_date)
+    final effectiveDueDate = (params.dueDate != null && params.dueDate!.isBefore(invoiceDate)) 
+        ? invoiceDate 
+        : params.dueDate;
 
     final invoiceCompanion = PurchaseInvoicesCompanion.insert(
       id: invoiceId,
@@ -146,7 +176,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       supplierId: params.supplierId,
       invoiceNumber: invoiceNumber,
       purchaseDate: drift.Value(invoiceDate),
-      dueDate: drift.Value(params.dueDate),
+      dueDate: drift.Value(effectiveDueDate),
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
       subTotal: drift.Value(subTotal),
@@ -190,13 +220,14 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         supplierId: params.supplierId,
         currencyId: params.currencyId,
         purchaseInvoiceId: invoiceId,
+        dueDate: drift.Value(effectiveDueDate),
         originalAmount: grandTotal,
         paidAmount: const drift.Value(0.0),
         remainingAmount: grandTotal,
         baseOriginalAmount: grandTotal * params.exchangeRate,
         basePaidAmount: const drift.Value(0.0),
         baseRemainingAmount: grandTotal * params.exchangeRate,
-        status: const drift.Value('Active'),
+        status: const drift.Value('Unpaid'),
       );
     }
 
@@ -232,6 +263,32 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         unitCost: drift.Value(actualUnitCost),
       );
     }).toList();
+
+    // Treasury Payment (If Cash Purchase)
+    PaymentsCompanion? paymentCompanion;
+    if (!params.isCreditPurchase && treasuryPaymentMethodId != null) {
+      paymentCompanion = PaymentsCompanion.insert(
+        id: _uuid.v4(),
+        businessId: businessId,
+        branchId: branchId,
+        paymentNumber: 'PAY-${DateTime.now().millisecondsSinceEpoch}',
+        paymentDate: drift.Value(invoiceDate),
+        paymentMethodId: treasuryPaymentMethodId,
+        chartOfAccountId: creditAccountId,
+        currencyId: params.currencyId,
+        exchangeRate: drift.Value(params.exchangeRate),
+        amount: grandTotal,
+        baseAmount: grandTotal * params.exchangeRate,
+        paymentType: 'Payment',
+        contactType: const drift.Value('Supplier'),
+        contactId: drift.Value(params.supplierId),
+        status: const drift.Value('Posted'),
+        notes: drift.Value(params.notes ?? 'Cash Purchase: $invoiceNumber'),
+        createdBy: userId,
+        postedBy: drift.Value(userId),
+        postedAt: drift.Value(invoiceDate),
+      );
+    }
 
     // 5. Prepare Journal Entry
     final periods = await _accountingRepository.listFiscalPeriods(
@@ -290,13 +347,13 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         id: _uuid.v4(),
         businessId: businessId,
         journalEntryId: journalId,
-        chartOfAccountId: accountsPayableId,
+        chartOfAccountId: creditAccountId,
         currencyId: params.currencyId,
         lineNumber: lineSequence++,
         type: 'Credit',
         foreignAmount: drift.Value(grandTotal),
         baseAmount: drift.Value(grandTotal * params.exchangeRate),
-        description: const drift.Value('Purchase Liability'),
+        description: drift.Value(params.isCreditPurchase ? 'Purchase Liability' : 'Cash Payment'),
       ),
     ];
 
@@ -316,6 +373,11 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
           lines: inventoryLineCompanions
               .cast<InventoryTransactionLinesCompanion>(),
         );
+
+        // Record Treasury Payment if applicable
+        if (paymentCompanion != null) {
+          await _treasuryRepository.insertPayment(paymentCompanion);
+        }
 
         // Post Accounting Journal
         await _accountingRepository.postJournalEntryWithLines(

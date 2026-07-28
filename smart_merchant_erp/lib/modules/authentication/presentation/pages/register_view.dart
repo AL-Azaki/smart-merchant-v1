@@ -171,6 +171,7 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+
                         Row(
                           children: [
                             Expanded(

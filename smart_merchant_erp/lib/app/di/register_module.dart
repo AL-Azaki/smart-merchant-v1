@@ -42,7 +42,7 @@ abstract class RegisterModule {
   // ── Networking / API ────────────────────────────────────
 
   @lazySingleton
-  AppEnvironment get appEnvironment => AppEnvironment.development();
+  AppEnvironment get appEnvironment => AppEnvironment.current;
 
   @lazySingleton
   ApiClient getApiClient(AppEnvironment env, SecureStorageContract storage) =>

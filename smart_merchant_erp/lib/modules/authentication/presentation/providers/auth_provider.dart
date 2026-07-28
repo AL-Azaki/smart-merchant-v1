@@ -1,12 +1,16 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/config/api_client.dart';
+import '../../../../app/config/app_environment.dart';
 import '../../../../app/di/injection.dart';
 import '../../../../kernel/storage/secure_storage/secure_storage_contract.dart';
 import '../../infrastructure/api/auth_remote_api_client.dart';
 import '../../infrastructure/dto/auth_dtos.dart';
 import 'session_provider.dart';
+import '../../../../kernel/storage/app_database.dart';
+import 'package:drift/drift.dart' as drift;
 
 part 'auth_provider.g.dart';
 
@@ -36,10 +40,27 @@ class AuthNotifier extends _$AuthNotifier {
   Future<void> _initialize() async {
     // Wait for a brief moment to ensure DI is fully ready and to show splash screen naturally
     await Future.delayed(const Duration(milliseconds: 500));
+    
+    if (AppEnvironment.isQaBypassEnabled) {
+      _bootstrapQaSession();
+      return;
+    }
+
     final restored = await tryRestoreSession();
     if (!restored) {
       state = AuthStatus.unauthenticated;
     }
+  }
+
+  void _bootstrapQaSession() {
+    debugPrint('QA ACCESS MODE: BYPASSING AUTHENTICATION');
+    final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
+    sessionNotifier.setSession(
+      businessId: 'qa-business-id',
+      branchId: 'qa-branch-id',
+      userId: 'qa-user-id',
+    );
+    state = AuthStatus.authenticated;
   }
 
   /// Full login flow: authenticate → store token → bootstrap → register device.
@@ -59,81 +80,7 @@ class AuthNotifier extends _$AuthNotifier {
         ),
       );
 
-      // 2. Securely persist token
-      await _secureStorage.write(StorageKeys.authToken, loginResponse.token);
-
-      // 3. Ensure stable device UUID
-      String? deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
-      if (deviceUuid == null || deviceUuid.isEmpty) {
-        deviceUuid = const Uuid().v4();
-        await _secureStorage.write(StorageKeys.deviceUuid, deviceUuid);
-      }
-
-      // 4. Bootstrap session
-      final bootstrapResponse = await _authApi.bootstrap(
-        BootstrapRequestDto(deviceUuid: deviceUuid),
-      );
-
-      // 5. Update SessionHolder with real IDs
-      final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
-      sessionNotifier.setSession(
-        businessId: bootstrapResponse.activeBusiness.id,
-        branchId: bootstrapResponse.activeBranch?.id,
-        userId: bootstrapResponse.user.id,
-      );
-
-      // Cache for offline support
-      await _secureStorage.write(
-        StorageKeys.lastSessionBusinessId,
-        bootstrapResponse.activeBusiness.id,
-      );
-      await _secureStorage.write(
-        StorageKeys.lastSessionUserId,
-        bootstrapResponse.user.id,
-      );
-      if (bootstrapResponse.activeBranch?.id != null) {
-        await _secureStorage.write(
-          StorageKeys.lastSessionBranchId,
-          bootstrapResponse.activeBranch!.id,
-        );
-      } else {
-        await _secureStorage.delete(StorageKeys.lastSessionBranchId);
-      }
-
-      // 6. Register device
-      try {
-        await _authApi.registerDevice(
-          RegisterDeviceRequestDto(
-            businessId: bootstrapResponse.activeBusiness.id,
-            deviceUuid: deviceUuid,
-            deviceName: _getDeviceName(),
-            platform: Platform.operatingSystem,
-            appVersion: '1.0.0',
-          ),
-        );
-      } on ApiException catch (e) {
-        if (e.type == ApiExceptionType.deviceRevoked) {
-          state = AuthStatus.deviceRevoked;
-          return LoginResult.deviceRevoked(e.message);
-        }
-        // Non-fatal: device registration failure doesn't block login
-      }
-
-      // 7. Determine subscription state
-      if (bootstrapResponse.subscription != null) {
-        final subStatus = bootstrapResponse.subscription!.status;
-        if (subStatus == 'Active') {
-          state = AuthStatus.authenticated;
-        } else if (subStatus == 'Expired') {
-          state = AuthStatus.subscriptionExpired;
-        } else {
-          state = AuthStatus.subscriptionPending;
-        }
-      } else {
-        state = AuthStatus.authenticated;
-      }
-
-      return LoginResult.success(bootstrapResponse);
+      return await _completeAuthenticatedSession(loginResponse.token);
     } on ApiException catch (e) {
       state = AuthStatus.unauthenticated;
       if (e.type == ApiExceptionType.validation) {
@@ -165,6 +112,8 @@ class AuthNotifier extends _$AuthNotifier {
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
       );
+      
+      await _hydrateLocalSessionData(bootstrapResponse);
 
       // Cache for offline support
       await _secureStorage.write(
@@ -184,8 +133,10 @@ class AuthNotifier extends _$AuthNotifier {
         await _secureStorage.delete(StorageKeys.lastSessionBranchId);
       }
 
-      // Update subscription state
-      if (bootstrapResponse.subscription != null) {
+      // Update setup/subscription state
+      if (bootstrapResponse.activeBusiness.businessType == null) {
+        state = AuthStatus.setupRequired;
+      } else if (bootstrapResponse.subscription != null) {
         final subStatus = bootstrapResponse.subscription!.status;
         if (subStatus == 'Active') {
           state = AuthStatus.authenticated;
@@ -254,7 +205,12 @@ class AuthNotifier extends _$AuthNotifier {
     sessionNotifier.clearSession();
 
     // Do NOT delete SQLite operational data
-    state = AuthStatus.unauthenticated;
+    if (AppEnvironment.isQaBypassEnabled) {
+      // In QA mode, logout just re-bootstraps the QA session to prevent loops
+      _bootstrapQaSession();
+    } else {
+      state = AuthStatus.unauthenticated;
+    }
   }
 
   Future<LoginResult> register({
@@ -268,6 +224,7 @@ class AuthNotifier extends _$AuthNotifier {
     state = AuthStatus.authenticating;
 
     try {
+      debugPrint('REGISTER_HTTP_START');
       // 1. Authenticate with Laravel Sanctum via Register
       final registerResponse = await _authApi.register(
         RegisterRequestDto(
@@ -280,9 +237,28 @@ class AuthNotifier extends _$AuthNotifier {
           deviceName: _getDeviceName(),
         ),
       );
+      debugPrint('REGISTER_HTTP_STATUS=201');
+      debugPrint('REGISTER_TOKEN_RECEIVED=true');
 
+      return await _completeAuthenticatedSession(registerResponse.token);
+    } on ApiException catch (e) {
+      debugPrint('REGISTER_API_EXCEPTION: ${e.message}');
+      state = AuthStatus.unauthenticated;
+      if (e.type == ApiExceptionType.validation) {
+        return LoginResult.failure(e.validationErrors?.values.first.first ?? e.message);
+      }
+      return LoginResult.failure(e.message);
+    } catch (e) {
+      debugPrint('REGISTER_UNKNOWN_EXCEPTION: $e');
+      state = AuthStatus.unauthenticated;
+      return LoginResult.failure(e.toString());
+    }
+  }
+
+  Future<LoginResult> _completeAuthenticatedSession(String token) async {
+    try {
       // 2. Securely persist token
-      await _secureStorage.write(StorageKeys.authToken, registerResponse.token);
+      await _secureStorage.write(StorageKeys.authToken, token);
 
       // 3. Ensure stable device UUID
       String? deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
@@ -303,6 +279,8 @@ class AuthNotifier extends _$AuthNotifier {
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
       );
+      
+      await _hydrateLocalSessionData(bootstrapResponse);
 
       // Cache for offline support
       await _secureStorage.write(StorageKeys.lastSessionBusinessId, bootstrapResponse.activeBusiness.id);
@@ -331,8 +309,10 @@ class AuthNotifier extends _$AuthNotifier {
         }
       }
 
-      // 7. Determine subscription state
-      if (bootstrapResponse.subscription != null) {
+      // 7. Determine setup/subscription state
+      if (bootstrapResponse.activeBusiness.businessType == null) {
+        state = AuthStatus.setupRequired;
+      } else if (bootstrapResponse.subscription != null) {
         final subStatus = bootstrapResponse.subscription!.status;
         if (subStatus == 'Active') {
           state = AuthStatus.authenticated;
@@ -346,19 +326,50 @@ class AuthNotifier extends _$AuthNotifier {
       }
 
       return LoginResult.success(bootstrapResponse);
-    } on ApiException catch (e) {
-      state = AuthStatus.unauthenticated;
-      if (e.type == ApiExceptionType.validation) {
-        return LoginResult.failure(e.validationErrors?.values.first.first ?? e.message);
-      }
-      return LoginResult.failure(e.message);
     } catch (e) {
       state = AuthStatus.unauthenticated;
       return LoginResult.failure(e.toString());
     }
   }
 
-  Future<void> completeSetup() async {}
+  Future<void> completeSetup(Map<String, dynamic> setupData) async {
+    try {
+      state = AuthStatus.authenticating;
+      await _authApi.setupBusiness(setupData);
+      
+      // Refresh bootstrap to get updated business context
+      final deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
+      final bootstrapResponse = await _authApi.bootstrap(
+        BootstrapRequestDto(deviceUuid: deviceUuid),
+      );
+      
+      final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
+      sessionNotifier.setSession(
+        businessId: bootstrapResponse.activeBusiness.id,
+        branchId: bootstrapResponse.activeBranch?.id,
+        userId: bootstrapResponse.user.id,
+      );
+      
+      await _hydrateLocalSessionData(bootstrapResponse);
+      
+      // Update state
+      if (bootstrapResponse.subscription != null) {
+        final subStatus = bootstrapResponse.subscription!.status;
+        if (subStatus == 'Active') {
+          state = AuthStatus.authenticated;
+        } else if (subStatus == 'Expired') {
+          state = AuthStatus.subscriptionExpired;
+        } else {
+          state = AuthStatus.subscriptionPending;
+        }
+      } else {
+        state = AuthStatus.authenticated;
+      }
+    } catch (e) {
+      debugPrint('SETUP_EXCEPTION: $e');
+      state = AuthStatus.setupRequired; // Revert if failed
+    }
+  }
 
   Future<void> requestSubscription() async {}
 
@@ -367,6 +378,76 @@ class AuthNotifier extends _$AuthNotifier {
       return '${Platform.operatingSystem}-${Platform.localHostname}';
     } catch (_) {
       return 'flutter-device';
+    }
+  }
+
+  Future<void> _hydrateLocalSessionData(BootstrapResponseDto bootstrap) async {
+    try {
+      final db = getIt<AppDatabase>();
+      await db.transaction(() async {
+        // Upsert User
+        await db.into(db.usersTable).insertOnConflictUpdate(
+          UsersTableCompanion.insert(
+            id: drift.Value(bootstrap.user.id),
+            email: bootstrap.user.email,
+            passwordHash: '',
+            firstName: bootstrap.user.fullName.split(' ').first,
+            lastName: bootstrap.user.fullName.split(' ').length > 1 ? bootstrap.user.fullName.split(' ').sublist(1).join(' ') : '',
+            isActive: drift.Value(bootstrap.user.isActive),
+          ),
+        );
+        
+        // Upsert Default Currency 'YER' (Required for Sales Invoices FK)
+        await db.into(db.currencies).insertOnConflictUpdate(
+          CurrenciesCompanion.insert(
+            id: 'YER',
+            currencyCode: 'YER',
+            currencyNameAr: 'ريال يمني',
+            currencyNameEn: 'Yemeni Rial',
+            currencySymbol: '﷼',
+            isBaseCurrency: const drift.Value(true),
+            isActive: const drift.Value(true),
+          ),
+        );
+
+        // Create a dummy account if needed for businesses
+        final dummyAccountId = 'system-account-${bootstrap.user.id}';
+        await db.into(db.accountsTable).insertOnConflictUpdate(
+          AccountsTableCompanion.insert(
+            id: drift.Value(dummyAccountId),
+            ownerId: bootstrap.user.id,
+            businessName: bootstrap.activeBusiness.businessName,
+            businessType: bootstrap.activeBusiness.businessType ?? 'Retail',
+            defaultCurrency: 'YER',
+          ),
+        );
+
+        // Upsert Business
+        await db.into(db.businesses).insertOnConflictUpdate(
+          BusinessesCompanion.insert(
+            id: bootstrap.activeBusiness.id,
+            accountId: dummyAccountId,
+            businessName: bootstrap.activeBusiness.businessName,
+            businessType: drift.Value(bootstrap.activeBusiness.businessType),
+            status: drift.Value(bootstrap.activeBusiness.status ?? 'Active'),
+          ),
+        );
+
+        // Upsert Branch
+        if (bootstrap.activeBranch != null) {
+          await db.into(db.branches).insertOnConflictUpdate(
+            BranchesCompanion.insert(
+              id: bootstrap.activeBranch!.id,
+              businessId: bootstrap.activeBusiness.id,
+              branchName: bootstrap.activeBranch!.branchName,
+              branchCode: bootstrap.activeBranch!.branchCode ?? 'MAIN',
+              isActive: drift.Value(bootstrap.activeBranch!.isActive),
+            ),
+          );
+        }
+      });
+    } catch (e) {
+      debugPrint('HYDRATION ERROR: $e');
     }
   }
 }

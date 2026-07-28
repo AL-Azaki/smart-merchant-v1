@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../core/services/printing/receipt_printer.dart';
-import '../../../../core/services/sharing/whatsapp_share.dart';
 import '../providers/pos_provider.dart';
-
+import 'customer_add_modal.dart';
+import '../mappers/sales_invoice_document_mapper.dart';
+import '../../../../app/di/injection.dart';
+import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
+import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
+import '../../../../shared/documents/printing/document_printer.dart';
+import '../../../../shared/documents/sharing/document_share.dart';
 class PaymentModal extends ConsumerStatefulWidget {
   const PaymentModal({super.key});
 
@@ -35,45 +39,35 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
     super.dispose();
   }
 
-  void _handlePrint(PosState state) {
-    ReceiptPrinter.printInvoice(
-      invoiceNumber: state.successInvoiceId ?? 'N/A',
-      date: DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-      customerName: state.customerName ?? 'عميل نقدي',
-      items: state.cart
-          .map(
-            (i) => {
-              'name': i.name,
-              'qty': i.quantity.toInt(),
-              'total': i.quantity * i.unitPrice,
-            },
-          )
-          .toList(),
-      total: state.totals.grandTotal,
-      tax: state.totals.taxTotal,
-      discount: state.totals.totalDiscount,
-    );
+  void _handlePrint(CommercialDocumentData doc) {
+    DocumentPrinter.printDocument(doc);
   }
 
-  void _handleShare(PosState state) {
-    WhatsAppShare.shareInvoice(
-      invoiceNumber: state.successInvoiceId ?? 'N/A',
-      date: DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now()),
-      customerName: state.customerName ?? 'عميل نقدي',
-      items: state.cart
-          .map(
-            (i) => {
-              'name': i.name,
-              'qty': i.quantity.toInt(),
-              'total': i.quantity * i.unitPrice,
-            },
-          )
-          .toList(),
-      total: state.totals.grandTotal,
-    );
+  void _handleShare(CommercialDocumentData doc) {
+    DocumentShare.shareDocument(doc);
   }
 
-  void _showSuccessDialog(PosState state) {
+  void _handleSaleSuccess(String invoiceId) async {
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final mapper = getIt<SalesInvoiceDocumentMapper>();
+      final docData = await mapper.mapToDocumentData(invoiceId);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // Close loading
+      _showSuccessDialog(docData);
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop(); // Close loading
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  void _showSuccessDialog(CommercialDocumentData docData) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -105,7 +99,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
               ),
               const SizedBox(height: 8),
               Text(
-                'رقم الفاتورة: ${state.successInvoiceId ?? "N/A"}',
+                'رقم الفاتورة: ${docData.documentNumber}',
                 style: const TextStyle(
                   color: AppColors.textSecondaryLight,
                   fontSize: 14,
@@ -116,7 +110,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () => _handlePrint(state),
+                      onPressed: () => _handlePrint(docData),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
@@ -133,30 +127,45 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _handleShare(state),
+                      onPressed: () => _handleShare(docData),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: const Color(
-                          0xFF25D366,
-                        ), // WhatsApp Green
+                        backgroundColor: const Color(0xFF25D366),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      icon: const Icon(
-                        Icons.share_rounded,
-                        color: Colors.white,
-                      ),
+                      icon: const Icon(Icons.share_rounded, color: Colors.white),
                       label: const Text(
                         'مشاركة',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(ctx).pop(); // Close dialog
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CommercialDocumentPreviewScreen(document: docData),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                icon: const Icon(Icons.receipt_long_rounded),
+                label: const Text(
+                  'عرض الفاتورة',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
@@ -172,17 +181,10 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                icon: const Icon(
-                  Icons.add_shopping_cart_rounded,
-                  color: Colors.white,
-                ),
+                icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
                 label: const Text(
-                  'فاتورة جديدة',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
+                  'بيع جديد',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
               ),
             ],
@@ -208,7 +210,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
         ref.read(posNotifierProvider.notifier).clearError();
       }
       if (previous?.successInvoiceId == null && next.successInvoiceId != null) {
-        _showSuccessDialog(next);
+        _handleSaleSuccess(next.successInvoiceId!);
       }
     });
 
@@ -601,7 +603,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                         const Padding(
                           padding: EdgeInsets.only(top: 4),
                           child: Text(
-                            'لا يمكن تسجيل آجل لعميل غير مسجل',
+                            'يجب اختيار عميل للبيع الآجل',
                             style: TextStyle(
                               color: AppColors.error,
                               fontSize: 13,
@@ -612,6 +614,29 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                     ],
                   ),
                 ),
+                if (posState.customerName == null)
+                  TextButton.icon(
+                    onPressed: () {
+                      // Navigate to Add Customer without closing Payment Modal
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => const CustomerAddModal(),
+                      );
+                    },
+                    icon: const Icon(Icons.person_add_rounded, size: 20),
+                    label: const Text(
+                      'إضافة عميل',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),

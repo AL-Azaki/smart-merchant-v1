@@ -18,6 +18,7 @@ class EmployeeCommand {
   final String? departmentId;
   final DateTime? hireDate;
   final bool isActive;
+  final double? salary;
 
   const EmployeeCommand({
     this.id,
@@ -30,6 +31,7 @@ class EmployeeCommand {
     this.departmentId,
     this.hireDate,
     this.isActive = true,
+    this.salary,
   });
 }
 
@@ -62,8 +64,9 @@ class EmployeeApplicationService {
         email: drift.Value(command.email),
         departmentId: drift.Value(command.departmentId),
         hireDate: drift.Value(command.hireDate ?? DateTime.now()),
-        currencyId: drift.Value('USD'), // Assuming a default for now if not provided
+        currencyId: drift.Value('YER'), // Using YER as default from ProjectUI
         status: drift.Value(command.isActive ? 'Active' : 'Terminated'),
+        salary: drift.Value(command.salary ?? 0.0),
         syncStatus: const drift.Value('pending'),
       );
 

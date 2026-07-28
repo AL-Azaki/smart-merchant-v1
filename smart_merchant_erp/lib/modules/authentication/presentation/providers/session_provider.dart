@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../kernel/core/application_context.dart';
+import '../../../../kernel/storage/app_database.dart';
 import '../../../../app/di/injection.dart';
+import '../../../../database/seeders/qa_data_seeder.dart';
 
 part 'session_provider.g.dart';
 
@@ -49,9 +52,9 @@ class SessionState {
 /// GetIt-resolved Use Cases always see the current context.
 ///
 /// Flow:
-///   AuthNotifier.login() → SessionNotifier.setSession()
-///   → SessionHolder.setSession() → RuntimeApplicationContext reads SessionHolder
-///   → Use Cases read ApplicationContext
+///   AuthNotifier.login() -> SessionNotifier.setSession()
+///   -> SessionHolder.setSession() -> RuntimeApplicationContext reads SessionHolder
+///   -> Use Cases read ApplicationContext
 @Riverpod(keepAlive: true)
 class SessionNotifier extends _$SessionNotifier {
   @override
@@ -79,6 +82,26 @@ class SessionNotifier extends _$SessionNotifier {
       branchId: branchId,
       userId: userId,
     );
+
+    if (kDebugMode) {
+      _seedQaData(businessId, branchId ?? 'default-branch', userId);
+    }
+  }
+
+  Future<void> _seedQaData(String businessId, String branchId, String userId) async {
+    try {
+      final db = getIt<AppDatabase>();
+      final seeder = QaDataSeeder(db);
+      await seeder.seedAll(
+        businessId: businessId,
+        branchId: branchId,
+        userId: userId,
+        accountId: 'qa-account-$businessId',
+      );
+      debugPrint('QA Data Seeded Successfully for Tenant: $businessId');
+    } catch (e) {
+      debugPrint('Failed to seed QA data: $e');
+    }
   }
 
   /// Switch branch within the same business. Immediately reflects in ApplicationContext.

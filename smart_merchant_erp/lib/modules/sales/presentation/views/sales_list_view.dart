@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/sales_provider.dart';
+import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
+import '../mappers/sales_invoice_document_mapper.dart';
+import '../../../../app/di/injection.dart';
 
 class SalesListView extends ConsumerWidget {
   const SalesListView({super.key});
@@ -40,6 +43,29 @@ class SalesListView extends ConsumerWidget {
                   fontSize: 16,
                 ),
               ),
+              onTap: () async {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                );
+                try {
+                  final mapper = getIt<SalesInvoiceDocumentMapper>();
+                  final docData = await mapper.mapToDocumentData(invoice.id);
+                  if (!context.mounted) return;
+                  Navigator.of(context, rootNavigator: true).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CommercialDocumentPreviewScreen(document: docData),
+                    ),
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  Navigator.of(context, rootNavigator: true).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              },
             );
           },
         );

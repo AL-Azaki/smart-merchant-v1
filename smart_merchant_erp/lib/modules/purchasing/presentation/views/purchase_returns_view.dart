@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 
+import '../providers/purchase_returns_provider.dart';
+import '../widgets/purchase_return_modal.dart';
+import 'package:intl/intl.dart';
+
 class PurchaseReturnsView extends ConsumerStatefulWidget {
   const PurchaseReturnsView({super.key});
 
@@ -66,7 +70,18 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(24),
+                      child: PurchaseReturnModal(
+                        onClose: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.add),
                 label: const Text('إرجاع جديد'),
                 style: ElevatedButton.styleFrom(
@@ -95,26 +110,45 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.assignment_return_outlined,
-                    size: 48,
-                    color: Colors.grey,
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'لا توجد فواتير مرتجعة',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'قم بإنشاء فاتورة مرتجع جديدة لإضافتها هنا.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
+            child: ref.watch(purchaseReturnsFutureProvider()).when(
+              data: (returns) {
+                if (returns.isEmpty) {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.assignment_return_outlined, size: 48, color: Colors.grey),
+                        SizedBox(height: 16),
+                        Text('لا توجد فواتير مرتجعة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('قم بإنشاء فاتورة مرتجع جديدة لإضافتها هنا.', style: TextStyle(color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+                
+                return ListView.separated(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: returns.length,
+                  separatorBuilder: (context, index) => Divider(color: borderColor),
+                  itemBuilder: (context, index) {
+                    final ret = returns[index];
+                    return ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.error.withOpacity(0.1),
+                        child: const Icon(Icons.keyboard_return, color: AppColors.error),
+                      ),
+                      title: Text(ret.returnNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(DateFormat('yyyy-MM-dd').format(ret.returnDate)),
+                      trailing: Text(
+                        '-${ret.totalAmount.toStringAsFixed(2)}', 
+                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    );
+                  },
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, s) => Center(child: Text('Error: \$e')),
             ),
           ),
         ),

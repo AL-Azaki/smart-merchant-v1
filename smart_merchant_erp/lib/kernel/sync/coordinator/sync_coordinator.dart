@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:uuid/uuid.dart';
 
 import '../../../app/config/api_client.dart';
+import '../../../app/config/app_environment.dart';
 import '../../storage/secure_storage/secure_storage_contract.dart';
 import '../api/sync_remote_api_client.dart';
 import '../dto/sync_dtos.dart';
@@ -124,6 +125,23 @@ class SyncCoordinator {
         status: SyncStatus.idle,
         timestamp: DateTime.now(),
       );
+    }
+
+    // QA SYNC SAFETY GUARD
+    if (AppEnvironment.isQaBypassEnabled) {
+      if (AppEnvironment.current.envName == 'production' || 
+          AppEnvironment.current.baseUrl.contains('api.smartmerchant.app')) {
+        return SyncCycleResult(
+          status: SyncStatus.offline, // Fake offline to prevent sync
+          failures: const [
+            SyncFailureInfo(
+              type: ApiExceptionType.unauthorized,
+              message: 'SYNC BLOCKED: Cannot sync QA data to production environment.',
+            )
+          ],
+          timestamp: DateTime.now(),
+        );
+      }
     }
 
     _setStatus(SyncStatus.syncing);

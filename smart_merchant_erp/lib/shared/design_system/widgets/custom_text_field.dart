@@ -17,6 +17,8 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final AppFieldType? fieldType;
   final bool isRequired;
+  final ValueChanged<String>? onChanged;
+  final TextStyle? style;
 
   const CustomTextField({
     super.key,
@@ -31,6 +33,8 @@ class CustomTextField extends StatelessWidget {
     this.inputFormatters,
     this.fieldType,
     this.isRequired = false,
+    this.onChanged,
+    this.style,
   });
 
   @override
@@ -83,7 +87,8 @@ class CustomTextField extends StatelessWidget {
           obscureText: obscureText,
           validator: effectiveValidator,
           inputFormatters: effectiveFormatters.isNotEmpty ? effectiveFormatters : null,
-          style: Theme.of(context).textTheme.bodyLarge,
+          onChanged: onChanged,
+          style: style ?? Theme.of(context).textTheme.bodyLarge,
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: Theme.of(context).textTheme.bodyLarge?.copyWith(

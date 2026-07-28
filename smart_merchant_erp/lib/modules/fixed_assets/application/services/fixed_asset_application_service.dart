@@ -56,7 +56,7 @@ class FixedAssetApplicationService {
   Future<Either<Failure, String>> saveFixedAsset(FixedAssetCommand command) async {
     final businessId = _context.currentBusinessId;
     final branchId = _context.currentBranchId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -70,7 +70,7 @@ class FixedAssetApplicationService {
         branchId: branchId != null ? drift.Value(branchId) : const drift.Value.absent(),
         assetCode: drift.Value(command.assetCode),
         assetName: drift.Value(command.assetName),
-        assetCategoryId: drift.Value(command.assetCategoryId),
+        assetCategoryId: drift.Value(command.assetCategoryId == 'أجهزة إلكترونية' || command.assetCategoryId == 'أثاث ومعدات' || command.assetCategoryId == 'مركبات ووسائل نقل' ? null : command.assetCategoryId),
         acquisitionDate: drift.Value(command.purchaseDate),
         acquisitionCost: drift.Value(command.purchasePrice),
         baseAcquisitionCost: drift.Value(command.purchasePrice), // assuming 1:1 for simplicity
@@ -80,8 +80,8 @@ class FixedAssetApplicationService {
         depreciationMethod: drift.Value(command.depreciationMethod),
         depreciationStartDate: drift.Value(command.capitalizationDate ?? command.purchaseDate),
         status: drift.Value(command.isActive ? 'Active' : 'Draft'),
-        currencyId: const drift.Value('USD'), // Assuming default
-        createdBy: drift.Value(_context.currentUserId ?? 'system'),
+        currencyId: const drift.Value('YER'), // Use QA default currency
+        createdBy: drift.Value(_context.currentUserId),
         syncStatus: const drift.Value('pending'),
       );
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../../shared/design_system/tokens/colors.dart';
 import '../../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../../../shared/design_system/widgets/custom_text_field.dart';
+import '../../../../../shared/forms/app_field_config.dart';
 
 class FixedAssetFormSheet extends StatefulWidget {
   final Map<String, dynamic>? asset;
@@ -32,14 +34,14 @@ class _FixedAssetFormSheetState extends State<FixedAssetFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.asset?['name'] ?? '');
-    _codeController = TextEditingController(text: widget.asset?['code'] ?? '');
+    _nameController = TextEditingController(text: widget.asset?['name']?.toString() ?? '');
+    _codeController = TextEditingController(text: widget.asset?['code']?.toString() ?? '');
     _costController = TextEditingController(text: (widget.asset?['cost'] ?? '').toString());
-    _dateController = TextEditingController(text: widget.asset?['purchase_date'] ?? DateTime.now().toIso8601String().split('T').first);
+    _dateController = TextEditingController(text: widget.asset?['purchase_date']?.toString() ?? DateTime.now().toIso8601String().split('T').first);
     
-    _category = widget.asset?['category'] ?? 'أجهزة إلكترونية';
-    _location = widget.asset?['location'] ?? 'المستودع الرئيسي';
-    _status = widget.asset?['status'] ?? 'excellent';
+    _category = widget.asset?['category']?.toString() ?? 'أجهزة إلكترونية';
+    _location = widget.asset?['location']?.toString() ?? 'المستودع الرئيسي';
+    _status = widget.asset?['status']?.toString() ?? 'excellent';
   }
 
   @override
@@ -113,42 +115,54 @@ class _FixedAssetFormSheetState extends State<FixedAssetFormSheet> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    TextFormField(
+                    CustomTextField(
                       controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الأصل *',
-                        border: OutlineInputBorder(),
-                        hintText: 'طابعة، مكيف، سيارة...',
-                      ),
+                      label: 'اسم الأصل *',
+                      hint: 'طابعة، مكيف، سيارة...',
+                      fieldType: AppFieldType.generalText,
+                      isRequired: true,
                       validator: (v) => v!.isEmpty ? 'يرجى إدخال اسم الأصل' : null,
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: CustomTextField(
                             controller: _codeController,
-                            decoration: const InputDecoration(
-                              labelText: 'الكود / الرقم التسلسلي *',
-                              border: OutlineInputBorder(),
-                            ),
+                            label: 'الكود / الرقم التسلسلي *',
+                            fieldType: AppFieldType.generalText,
+                            isRequired: true,
                             validator: (v) => v!.isEmpty ? 'يرجى إدخال كود الأصل' : null,
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _category,
-                            decoration: const InputDecoration(
-                              labelText: 'التصنيف',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'أجهزة إلكترونية', child: Text('أجهزة إلكترونية')),
-                              DropdownMenuItem(value: 'أثاث ومعدات', child: Text('أثاث ومعدات')),
-                              DropdownMenuItem(value: 'مركبات ووسائل نقل', child: Text('مركبات ووسائل نقل')),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'التصنيف',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _category,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'أجهزة إلكترونية', child: Text('أجهزة إلكترونية', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                  DropdownMenuItem(value: 'أثاث ومعدات', child: Text('أثاث ومعدات', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                  DropdownMenuItem(value: 'مركبات ووسائل نقل', child: Text('مركبات ووسائل نقل', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                ],
+                                onChanged: (v) => setState(() => _category = v!),
+                              ),
                             ],
-                            onChanged: (v) => setState(() => _category = v!),
                           ),
                         ),
                       ],
@@ -157,24 +171,18 @@ class _FixedAssetFormSheetState extends State<FixedAssetFormSheet> {
                     Row(
                       children: [
                         Expanded(
-                          child: TextFormField(
+                          child: CustomTextField(
                             controller: _costController,
-                            decoration: const InputDecoration(
-                              labelText: 'تكلفة الشراء (YER)',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
+                            label: 'تكلفة الشراء (YER)',
+                            fieldType: AppFieldType.decimal,
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: TextFormField(
+                          child: CustomTextField(
                             controller: _dateController,
-                            decoration: const InputDecoration(
-                              labelText: 'تاريخ الشراء',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.datetime,
+                            label: 'تاريخ الشراء',
+                            fieldType: AppFieldType.generalText,
                           ),
                         ),
                       ],
@@ -183,33 +191,61 @@ class _FixedAssetFormSheetState extends State<FixedAssetFormSheet> {
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _location,
-                            decoration: const InputDecoration(
-                              labelText: 'موقع الأصل / المستودع',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'المستودع الرئيسي', child: Text('المستودع الرئيسي')),
-                              DropdownMenuItem(value: 'مستودع الفروع', child: Text('مستودع الفروع')),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'موقع الأصل / المستودع',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _location,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'المستودع الرئيسي', child: Text('المستودع الرئيسي', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                  DropdownMenuItem(value: 'مستودع الفروع', child: Text('مستودع الفروع', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                ],
+                                onChanged: (v) => setState(() => _location = v!),
+                              ),
                             ],
-                            onChanged: (v) => setState(() => _location = v!),
                           ),
                         ),
                         const SizedBox(width: 16),
                         Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _status,
-                            decoration: const InputDecoration(
-                              labelText: 'حالة التشغيل',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'excellent', child: Text('يعمل بممتاز')),
-                              DropdownMenuItem(value: 'needs_maintenance', child: Text('يحتاج صيانة')),
-                              DropdownMenuItem(value: 'broken', child: Text('خارج الخدمة / تالف')),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'حالة التشغيل',
+                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: _status,
+                                isExpanded: true,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'excellent', child: Text('يعمل بممتاز', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                  DropdownMenuItem(value: 'needs_maintenance', child: Text('يحتاج صيانة', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                  DropdownMenuItem(value: 'broken', child: Text('خارج الخدمة / تالف', overflow: TextOverflow.ellipsis, maxLines: 1)),
+                                ],
+                                onChanged: (v) => setState(() => _status = v!),
+                              ),
                             ],
-                            onChanged: (v) => setState(() => _status = v!),
                           ),
                         ),
                       ],

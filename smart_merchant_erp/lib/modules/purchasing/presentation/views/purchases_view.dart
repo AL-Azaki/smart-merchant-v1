@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import 'purchase_list_view.dart';
-import 'new_purchase_view.dart';
 import 'purchase_returns_view.dart';
 
 class PurchasesView extends ConsumerStatefulWidget {
@@ -17,7 +16,6 @@ class PurchasesView extends ConsumerStatefulWidget {
 class _PurchasesViewState extends ConsumerState<PurchasesView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool _isCreatingNew = false;
 
   @override
   void initState() {
@@ -34,12 +32,6 @@ class _PurchasesViewState extends ConsumerState<PurchasesView>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    if (_isCreatingNew) {
-      return NewPurchaseView(
-        onBack: () => setState(() => _isCreatingNew = false),
-      );
-    }
 
     return Column(
       children: [
@@ -76,11 +68,9 @@ class _PurchasesViewState extends ConsumerState<PurchasesView>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: [
-              PurchaseListView(
-                onNewPurchase: () => setState(() => _isCreatingNew = true),
-              ),
-              const PurchaseReturnsView(),
+            children: const [
+              PurchaseListView(),
+              PurchaseReturnsView(),
             ],
           ),
         ),

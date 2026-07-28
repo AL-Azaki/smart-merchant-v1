@@ -1,29 +1,85 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../kernel/error/failures.dart';
+import '../../../../kernel/storage/app_database.dart' show Supplier, PurchaseInvoice, Warehouse, CurrencyEntity;
+import '../../../../database/daos/purchasing_dao.dart' show SupplierFilter, PurchaseInvoiceFilter;
+import '../../../../database/daos/inventory_dao.dart' show WarehouseFilter;
+import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/usecases/record_purchase_usecase.dart';
+import '../../../sales/presentation/providers/product_unit_provider.dart' show PosProductsNotifier, PosProductItem;
+import '../../../treasury/domain/repositories/treasury_repository.dart';
+import '../../../treasury/presentation/providers/treasury_provider.dart';
+import '../../../../kernel/storage/app_database.dart' show Supplier, PurchaseInvoice, Warehouse, CurrencyEntity, PaymentMethod;
+import '../../../../app/di/getit_providers.dart' show systemRepositoryProvider;
 
 part 'purchasing_provider.g.dart';
 
 class PurchaseItemState {
-  final String productUnitId;
+  final String id;
+  final String? productUnitId;
+  final String? productId;
+  final String barcode;
+  final String productName;
+  final String categoryId;
+  final String unitId;
   final double quantity;
-  final double unitPrice;
-  final double taxRate;
+  final double purchasePrice;
+  final double sellingPrice;
+  final String expiryDate;
 
   PurchaseItemState({
-    required this.productUnitId,
+    required this.id,
+    this.productUnitId,
+    this.productId,
+    required this.barcode,
+    required this.productName,
+    required this.categoryId,
+    required this.unitId,
     required this.quantity,
-    required this.unitPrice,
-    this.taxRate = 0.0,
+    required this.purchasePrice,
+    required this.sellingPrice,
+    required this.expiryDate,
   });
+
+  PurchaseItemState copyWith({
+    String? productUnitId,
+    String? productId,
+    String? barcode,
+    String? productName,
+    String? categoryId,
+    String? unitId,
+    double? quantity,
+    double? purchasePrice,
+    double? sellingPrice,
+    String? expiryDate,
+  }) {
+    return PurchaseItemState(
+      id: this.id,
+      productUnitId: productUnitId ?? this.productUnitId,
+      productId: productId ?? this.productId,
+      barcode: barcode ?? this.barcode,
+      productName: productName ?? this.productName,
+      categoryId: categoryId ?? this.categoryId,
+      unitId: unitId ?? this.unitId,
+      quantity: quantity ?? this.quantity,
+      purchasePrice: purchasePrice ?? this.purchasePrice,
+      sellingPrice: sellingPrice ?? this.sellingPrice,
+      expiryDate: expiryDate ?? this.expiryDate,
+    );
+  }
 }
 
 class PurchasingState {
   final List<PurchaseItemState> items;
-  final String? supplierId;
-  final String? warehouseId;
-
+  final String supplierId;
+  final String warehouseId;
+  final String currencyId;
+  final double exchangeRate;
+  final String invoiceRef;
+  
+  // Payment State
+  final Map<String, String> paymentAmounts;
+  
   // Mutation State
   final bool isSubmitting;
   final String? successInvoiceId;
@@ -31,19 +87,41 @@ class PurchasingState {
 
   PurchasingState({
     required this.items,
-    this.supplierId,
-    this.warehouseId,
+    this.supplierId = '',
+    this.warehouseId = '',
+    this.currencyId = '',
+    this.exchangeRate = 1.0,
+    this.invoiceRef = '',
+    this.paymentAmounts = const {},
     this.isSubmitting = false,
     this.successInvoiceId,
     this.error,
   });
 
-  factory PurchasingState.initial() => PurchasingState(items: []);
+  factory PurchasingState.initial() => PurchasingState(
+        items: [
+          PurchaseItemState(
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+            barcode: '',
+            productName: '',
+            categoryId: '',
+            unitId: '',
+            quantity: 1,
+            purchasePrice: 0,
+            sellingPrice: 0,
+            expiryDate: '',
+          )
+        ],
+      );
 
   PurchasingState copyWith({
     List<PurchaseItemState>? items,
     String? supplierId,
     String? warehouseId,
+    String? currencyId,
+    double? exchangeRate,
+    String? invoiceRef,
+    Map<String, String>? paymentAmounts,
     bool? isSubmitting,
     String? successInvoiceId,
     Failure? error,
@@ -54,10 +132,12 @@ class PurchasingState {
       items: items ?? this.items,
       supplierId: supplierId ?? this.supplierId,
       warehouseId: warehouseId ?? this.warehouseId,
+      currencyId: currencyId ?? this.currencyId,
+      exchangeRate: exchangeRate ?? this.exchangeRate,
+      invoiceRef: invoiceRef ?? this.invoiceRef,
+      paymentAmounts: paymentAmounts ?? this.paymentAmounts,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      successInvoiceId: clearSuccess
-          ? null
-          : (successInvoiceId ?? this.successInvoiceId),
+      successInvoiceId: clearSuccess ? null : (successInvoiceId ?? this.successInvoiceId),
       error: clearError ? null : (error ?? this.error),
     );
   }
@@ -70,54 +150,91 @@ class PurchasingNotifier extends _$PurchasingNotifier {
     return PurchasingState.initial();
   }
 
-  void addItem({
-    required String productUnitId,
-    required double quantity,
-    required double unitPrice,
-  }) {
-    if (state.isSubmitting) return;
+  void updateState(PurchasingState newState) {
+    state = newState;
+  }
 
+  Future<void> changeCurrency(String currencyId, double fallbackRate) async {
+    state = state.copyWith(currencyId: currencyId);
+    final session = ref.read(sessionNotifierProvider);
+    if (!session.isActive) return;
+    
+    final currencies = await ref.read(availableCurrenciesFutureProvider.future);
+    final baseCurrency = currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first);
+    
+    if (currencyId == baseCurrency.id) {
+      state = state.copyWith(exchangeRate: 1.0, error: null, clearError: true);
+      return;
+    }
+    
+    final systemRepo = ref.read(systemRepositoryProvider);
+    final latestRate = await systemRepo.getLatestExchangeRate(
+      businessId: session.businessId!, 
+      sourceCurrencyId: currencyId, 
+      targetCurrencyId: baseCurrency.id,
+    );
+    
+    if (latestRate != null) {
+      state = state.copyWith(exchangeRate: latestRate.rate, error: null, clearError: true);
+    } else {
+      // If ERP requires exchange rate and none exists
+      state = state.copyWith(
+        exchangeRate: fallbackRate,
+        error: const ValidationFailure('تعذر العثور على سعر صرف صالح لهذه العملة في النظام'),
+      );
+    }
+  }
+
+  void addRow() {
     final currentItems = List<PurchaseItemState>.from(state.items);
     currentItems.add(
       PurchaseItemState(
-        productUnitId: productUnitId,
-        quantity: quantity,
-        unitPrice: unitPrice,
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        barcode: '',
+        productName: '',
+        categoryId: '',
+        unitId: '',
+        quantity: 1,
+        purchasePrice: 0,
+        sellingPrice: 0,
+        expiryDate: '',
       ),
     );
+    state = state.copyWith(items: currentItems);
+  }
 
+  void removeRow(String id) {
+    if (state.items.length <= 1) return;
     state = state.copyWith(
-      items: currentItems,
-      clearError: true,
-      clearSuccess: true,
+      items: state.items.where((i) => i.id != id).toList(),
     );
   }
 
-  void setSupplier(String supplierId) {
-    if (state.isSubmitting) return;
-    state = state.copyWith(supplierId: supplierId);
-  }
-
-  void setWarehouse(String warehouseId) {
-    if (state.isSubmitting) return;
-    state = state.copyWith(warehouseId: warehouseId);
+  void updateRow(String id, PurchaseItemState updatedRow) {
+    final index = state.items.indexWhere((i) => i.id == id);
+    if (index >= 0) {
+      final newItems = List<PurchaseItemState>.from(state.items);
+      newItems[index] = updatedRow;
+      state = state.copyWith(items: newItems);
+    }
   }
 
   void clearForm() {
-    if (state.isSubmitting) return;
     state = PurchasingState.initial();
   }
 
-  Future<bool> submitPurchase({
-    required String referenceNumber,
-    required DateTime issueDate,
-  }) async {
+  Future<bool> submitPurchase() async {
     if (state.isSubmitting ||
         state.items.isEmpty ||
-        state.supplierId == null ||
-        state.warehouseId == null) {
+        state.supplierId.isEmpty ||
+        state.warehouseId.isEmpty ||
+        state.currencyId.isEmpty) {
       return false;
     }
+    
+    // Filter out empty rows
+    final validItems = state.items.where((r) => r.productName.isNotEmpty && r.quantity > 0).toList();
+    if (validItems.isEmpty) return false;
 
     state = state.copyWith(
       isSubmitting: true,
@@ -128,23 +245,55 @@ class PurchasingNotifier extends _$PurchasingNotifier {
     try {
       final useCase = ref.read(recordPurchaseUseCaseProvider);
 
-      final itemsCommand = state.items
+      for (var item in validItems) {
+        if (item.productUnitId == null) {
+          state = state.copyWith(isSubmitting: false, error: ValidationFailure('المنتج "${item.productName}" غير مسجل بقاعدة البيانات.'));
+          return false;
+        }
+      }
+
+      final itemsCommand = validItems
           .map(
             (e) => PurchaseItemCommand(
-              productUnitId: e.productUnitId,
+              productUnitId: e.productUnitId!,
               quantity: e.quantity,
-              unitCost: e.unitPrice,
-              warehouseId: state.warehouseId!,
+              unitCost: e.purchasePrice,
+              warehouseId: state.warehouseId,
             ),
           )
           .toList();
+          
+      // check payment
+      double totalPaid = 0;
+      String? activePaymentMethodId;
+      state.paymentAmounts.forEach((key, value) {
+        if (key != 'Other') {
+          totalPaid += double.tryParse(value) ?? 0;
+          activePaymentMethodId = key;
+        }
+      });
+      
+      double grandTotal = 0;
+      for (final item in validItems) {
+        grandTotal += item.quantity * item.purchasePrice;
+      }
+      
+      if (totalPaid > 0 && totalPaid < grandTotal) {
+        state = state.copyWith(isSubmitting: false, error: const ValidationFailure('CAPABILITY GAP: الدفع الجزئي غير مدعوم حالياً'));
+        return false;
+      }
+
+      bool isCredit = totalPaid < grandTotal;
 
       final command = RecordPurchaseCommand(
-        supplierId: state.supplierId!,
-        currencyId: 'USD', // Needs to come from somewhere, hardcoding for now as it wasn't there before
+        supplierId: state.supplierId,
+        currencyId: state.currencyId,
+        exchangeRate: state.exchangeRate,
         items: itemsCommand,
-        supplierInvoiceNumber: referenceNumber,
-        dueDate: issueDate,
+        supplierInvoiceNumber: state.invoiceRef.isEmpty ? null : state.invoiceRef,
+        dueDate: DateTime.now(),
+        isCreditPurchase: isCredit, 
+        paymentMethodId: isCredit ? null : activePaymentMethodId,
       );
 
       final result = await useCase(command);
@@ -164,4 +313,58 @@ class PurchasingNotifier extends _$PurchasingNotifier {
       return false;
     }
   }
+}
+
+@riverpod
+class SuppliersNotifier extends _$SuppliersNotifier {
+  @override
+  Stream<List<Supplier>> build() {
+    final session = ref.watch(sessionNotifierProvider);
+    if (!session.isActive) return const Stream.empty();
+
+    final repo = ref.watch(purchasingRepositoryProvider);
+
+    return repo.watchSuppliers(SupplierFilter(
+      businessId: session.businessId!,
+      isActive: true,
+    ));
+  }
+}
+
+@riverpod
+class PurchaseInvoicesNotifier extends _$PurchaseInvoicesNotifier {
+  @override
+  Stream<List<PurchaseInvoice>> build() {
+    final session = ref.watch(sessionNotifierProvider);
+    if (!session.isActive) return const Stream.empty();
+
+    final repo = ref.watch(purchasingRepositoryProvider);
+
+    return repo.watchInvoices(PurchaseInvoiceFilter(
+      businessId: session.businessId!,
+    ));
+  }
+}
+
+@riverpod
+Stream<List<Warehouse>> activeWarehousesStream(ActiveWarehousesStreamRef ref) {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive) return const Stream.empty();
+  
+  final repo = ref.watch(inventoryRepositoryProvider);
+  return repo.watchWarehouses(WarehouseFilter(businessId: session.businessId!, branchId: session.branchId));
+}
+
+@riverpod
+Future<List<CurrencyEntity>> availableCurrenciesFuture(AvailableCurrenciesFutureRef ref) async {
+  final coreRepo = ref.watch(coreRepositoryProvider);
+  return await coreRepo.listCurrencies(isActive: true);
+}
+
+@riverpod
+Future<List<PaymentMethod>> availablePaymentMethodsFuture(AvailablePaymentMethodsFutureRef ref) async {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive) return [];
+  final repo = ref.watch(treasuryRepositoryProvider);
+  return await repo.listPaymentMethods(session.businessId!, isActive: true);
 }

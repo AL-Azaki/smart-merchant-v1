@@ -8,10 +8,13 @@ import '../../modules/purchasing/domain/repositories/purchasing_repository.dart'
 import '../../modules/inventory/domain/repositories/inventory_repository.dart';
 import '../../modules/accounting/domain/repositories/accounting_repository.dart';
 import '../../modules/treasury/domain/repositories/treasury_repository.dart';
+import '../../modules/core/domain/repositories/core_repository.dart';
+import '../../modules/system/domain/repositories/system_repository.dart';
 
 // Use Cases
 import '../../modules/sales/application/usecases/complete_sale_usecase.dart';
 import '../../modules/purchasing/application/usecases/record_purchase_usecase.dart';
+import '../../modules/purchasing/application/usecases/record_purchase_return_usecase.dart';
 import '../../modules/inventory/application/usecases/process_warehouse_transfer_usecase.dart';
 import '../../modules/accounting/application/usecases/post_journal_entry_usecase.dart';
 import '../../modules/treasury/application/usecases/receive_payment_usecase.dart';
@@ -55,6 +58,16 @@ TreasuryRepository treasuryRepository(TreasuryRepositoryRef ref) {
   return getIt<TreasuryRepository>();
 }
 
+@Riverpod(keepAlive: true)
+CoreRepository coreRepository(CoreRepositoryRef ref) {
+  return getIt<CoreRepository>();
+}
+
+@Riverpod(keepAlive: true)
+SystemRepository systemRepository(SystemRepositoryRef ref) {
+  return getIt<SystemRepository>();
+}
+
 // ==========================================
 // USE CASES (Mutations)
 // ==========================================
@@ -67,6 +80,11 @@ CompleteSaleUseCase completeSaleUseCase(CompleteSaleUseCaseRef ref) {
 @Riverpod(keepAlive: true)
 RecordPurchaseUseCase recordPurchaseUseCase(RecordPurchaseUseCaseRef ref) {
   return getIt<RecordPurchaseUseCase>();
+}
+
+@Riverpod(keepAlive: true)
+RecordPurchaseReturnUseCase recordPurchaseReturnUseCase(RecordPurchaseReturnUseCaseRef ref) {
+  return getIt<RecordPurchaseReturnUseCase>();
 }
 
 @Riverpod(keepAlive: true)

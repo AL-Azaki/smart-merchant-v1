@@ -26,6 +26,18 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _nameController.addListener(() {
+      final value = _nameController.value;
+      print('ARABIC TEST [addListener] text: "${value.text}"');
+      print('ARABIC TEST [addListener] runes: ${value.text.runes.toList()}');
+      print('ARABIC TEST [addListener] selection: ${value.selection}');
+      print('ARABIC TEST [addListener] composing: ${value.composing}');
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
@@ -51,18 +63,22 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.person_add_rounded, color: AppColors.primary),
-                      SizedBox(width: 12),
-                      Text(
-                        'إضافة عميل جديد',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
+                  const Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_add_rounded, color: AppColors.primary),
+                        SizedBox(width: 12),
+                        Flexible(
+                          child: Text(
+                            'إضافة عميل جديد',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -77,6 +93,15 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
                 prefixIcon: const Icon(Icons.person_outline),
                 fieldType: AppFieldType.humanName,
                 isRequired: true,
+                style: const TextStyle(
+                  fontFamily: null,
+                  color: Colors.black,
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+                onChanged: (val) {
+                  print('ARABIC TEST [onChanged] val: "$val"');
+                },
               ),
               const SizedBox(height: 16),
               CustomTextField(

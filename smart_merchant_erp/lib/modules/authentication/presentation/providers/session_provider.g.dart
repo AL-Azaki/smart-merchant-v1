@@ -6,16 +6,16 @@ part of 'session_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$sessionNotifierHash() => r'25b2d1894a28d705a9fddc363b2bd5df8497b2c5';
+String _$sessionNotifierHash() => r'04c215c4647cf5b1d96411ce65ead913f8fefa35';
 
 /// The Riverpod session controller.
 /// Updates the authoritative [SessionHolder] singleton so that
 /// GetIt-resolved Use Cases always see the current context.
 ///
 /// Flow:
-///   AuthNotifier.login() → SessionNotifier.setSession()
-///   → SessionHolder.setSession() → RuntimeApplicationContext reads SessionHolder
-///   → Use Cases read ApplicationContext
+///   AuthNotifier.login() -> SessionNotifier.setSession()
+///   -> SessionHolder.setSession() -> RuntimeApplicationContext reads SessionHolder
+///   -> Use Cases read ApplicationContext
 ///
 /// Copied from [SessionNotifier].
 @ProviderFor(SessionNotifier)

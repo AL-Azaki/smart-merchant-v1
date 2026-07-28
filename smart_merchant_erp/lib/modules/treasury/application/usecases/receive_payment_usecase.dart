@@ -171,7 +171,7 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       final newRemainingAmount =
           receivable.remainingAmount - alloc.allocatedAmount;
 
-      final newStatus = newRemainingAmount <= 0.001 ? 'Closed' : 'Active';
+      final newStatus = newRemainingAmount <= 0.001 ? 'Paid' : (newPaidAmount > 0 ? 'Partial' : 'Unpaid');
 
       final entryCompanion = ReceivableEntriesCompanion.insert(
         id: _uuid.v4(),
@@ -189,11 +189,12 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
         'entryCompanion': entryCompanion,
         'newPaidAmount': newPaidAmount,
         'newRemainingAmount': newRemainingAmount,
+        'newBasePaidAmount': newPaidAmount * params.exchangeRate,
+        'newBaseRemainingAmount': newRemainingAmount * params.exchangeRate,
         'newStatus': newStatus,
         'id': receivable.id,
-        'paidAmount': receivable.paidAmount + params.amount,
-        'remainingAmount': receivable.remainingAmount - params.amount,
         'salesInvoiceId': receivable.salesInvoiceId,
+        'referenceId': receivable.salesInvoiceId,
       });
     }
 
@@ -295,7 +296,7 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
             );
             if (invoice != null) {
               final newPaymentStatus =
-                  (update['newStatus'] as String) == 'Closed'
+                  (update['newStatus'] as String) == 'Paid'
                   ? 'Paid'
                   : 'Partial';
               await _salesRepository.updateInvoicePaymentStatus(

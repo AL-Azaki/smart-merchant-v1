@@ -17,7 +17,9 @@ class MockProductsNotifier extends AutoDisposeStreamNotifier<List<Product>>
   Stream<List<Product>> build() => Stream.value(_mockProducts);
 
   @override
-  Future<void> saveProduct(Map<String, dynamic> data) async {}
+  Future<String?> saveProduct(Map<String, dynamic> data) async {
+    return null;
+  }
 
   @override
   Future<void> deleteProduct(String id) async {}

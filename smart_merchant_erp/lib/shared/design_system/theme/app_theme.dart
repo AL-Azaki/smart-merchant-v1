@@ -20,6 +20,7 @@ class AppTheme {
       textTheme: AppTypography.textTheme.apply(
         bodyColor: AppColors.textPrimaryLight,
         displayColor: AppColors.textPrimaryLight,
+        fontFamilyFallback: const ['sans-serif'],
       ),
 
       // AppBar Styling (Clean, no shadows)
@@ -106,6 +107,7 @@ class AppTheme {
       textTheme: AppTypography.textTheme.apply(
         bodyColor: AppColors.textPrimaryDark,
         displayColor: AppColors.textPrimaryDark,
+        fontFamilyFallback: const ['sans-serif'],
       ),
 
       // AppBar Styling

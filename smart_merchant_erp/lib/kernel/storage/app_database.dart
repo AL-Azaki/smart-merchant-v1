@@ -234,9 +234,92 @@ class AppDatabase extends _$AppDatabase {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         await m.createAll();
+        
+        // Seed default base currency 'YER' for offline-first usage
+        await into(currencies).insert(
+          CurrenciesCompanion.insert(
+            id: 'YER',
+            currencyCode: 'YER',
+            currencyNameAr: 'ريال يمني',
+            currencyNameEn: 'Yemeni Rial',
+            currencySymbol: '﷼',
+            isBaseCurrency: const Value(true),
+            isActive: const Value(true),
+          ),
+        );
+        
+        // Seed SAR
+        await into(currencies).insert(
+          CurrenciesCompanion.insert(
+            id: 'SAR',
+            currencyCode: 'SAR',
+            currencyNameAr: 'ريال سعودي',
+            currencyNameEn: 'Saudi Riyal',
+            currencySymbol: 'ر.س',
+            isBaseCurrency: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
+
+        // Seed USD
+        await into(currencies).insert(
+          CurrenciesCompanion.insert(
+            id: 'USD',
+            currencyCode: 'USD',
+            currencyNameAr: 'دولار أمريكي',
+            currencyNameEn: 'US Dollar',
+            currencySymbol: '\$',
+            isBaseCurrency: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON;');
+        
+        // Clean up legacy QA seeder data that incorrectly used 'YER-id' instead of 'YER'
+        // This prevents UNIQUE constraint failures on currencyCode when we auto-heal.
+        await customStatement("DELETE FROM currencies WHERE currency_code = 'YER' AND id != 'YER';");
+        
+        // Ensure default base currency 'YER' is ALWAYS present for offline-first usage.
+        // This is necessary if the DB was created before the onCreate seeder was added.
+        await into(currencies).insertOnConflictUpdate(
+          CurrenciesCompanion.insert(
+            id: 'YER',
+            currencyCode: 'YER',
+            currencyNameAr: 'ريال يمني',
+            currencyNameEn: 'Yemeni Rial',
+            currencySymbol: '﷼',
+            isBaseCurrency: const Value(true),
+            isActive: const Value(true),
+          ),
+        );
+
+        // Ensure SAR
+        await into(currencies).insertOnConflictUpdate(
+          CurrenciesCompanion.insert(
+            id: 'SAR',
+            currencyCode: 'SAR',
+            currencyNameAr: 'ريال سعودي',
+            currencyNameEn: 'Saudi Riyal',
+            currencySymbol: 'ر.س',
+            isBaseCurrency: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
+
+        // Ensure USD
+        await into(currencies).insertOnConflictUpdate(
+          CurrenciesCompanion.insert(
+            id: 'USD',
+            currencyCode: 'USD',
+            currencyNameAr: 'دولار أمريكي',
+            currencyNameEn: 'US Dollar',
+            currencySymbol: '\$',
+            isBaseCurrency: const Value(false),
+            isActive: const Value(true),
+          ),
+        );
       },
     );
   }

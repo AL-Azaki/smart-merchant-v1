@@ -112,6 +112,40 @@ final treasuryRepositoryProvider = Provider<TreasuryRepository>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef TreasuryRepositoryRef = ProviderRef<TreasuryRepository>;
+String _$coreRepositoryHash() => r'ad61e1cf26b1252158d9a07598fff5389adbdfc0';
+
+/// See also [coreRepository].
+@ProviderFor(coreRepository)
+final coreRepositoryProvider = Provider<CoreRepository>.internal(
+  coreRepository,
+  name: r'coreRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$coreRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef CoreRepositoryRef = ProviderRef<CoreRepository>;
+String _$systemRepositoryHash() => r'fd8dbac3a670b23cf8c6f50eb6c301244b2610ac';
+
+/// See also [systemRepository].
+@ProviderFor(systemRepository)
+final systemRepositoryProvider = Provider<SystemRepository>.internal(
+  systemRepository,
+  name: r'systemRepositoryProvider',
+  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+      ? null
+      : _$systemRepositoryHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef SystemRepositoryRef = ProviderRef<SystemRepository>;
 String _$completeSaleUseCaseHash() =>
     r'4180bc2a2a668bdcb54c7634631d7c6e21790a41';
 
@@ -148,6 +182,26 @@ final recordPurchaseUseCaseProvider = Provider<RecordPurchaseUseCase>.internal(
 @Deprecated('Will be removed in 3.0. Use Ref instead')
 // ignore: unused_element
 typedef RecordPurchaseUseCaseRef = ProviderRef<RecordPurchaseUseCase>;
+String _$recordPurchaseReturnUseCaseHash() =>
+    r'800c23c37ba549017d178be3f96231e52f3c92e6';
+
+/// See also [recordPurchaseReturnUseCase].
+@ProviderFor(recordPurchaseReturnUseCase)
+final recordPurchaseReturnUseCaseProvider =
+    Provider<RecordPurchaseReturnUseCase>.internal(
+      recordPurchaseReturnUseCase,
+      name: r'recordPurchaseReturnUseCaseProvider',
+      debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+          ? null
+          : _$recordPurchaseReturnUseCaseHash,
+      dependencies: null,
+      allTransitiveDependencies: null,
+    );
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+typedef RecordPurchaseReturnUseCaseRef =
+    ProviderRef<RecordPurchaseReturnUseCase>;
 String _$processWarehouseTransferUseCaseHash() =>
     r'2a38dea0358c8b5c3c38ce88fe696654e2e127e3';
 
