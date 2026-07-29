@@ -15,6 +15,8 @@ import '../../modules/authentication/presentation/pages/pending_subscription_vie
 import '../../modules/authentication/presentation/pages/splash_view.dart';
 import '../../kernel/security/permissions_provider.dart';
 import '../../modules/inventory/presentation/views/inventory_module_view.dart';
+import '../../modules/settings/presentation/views/settings_control_center_view.dart';
+import '../../modules/accounting/presentation/pages/financial_dashboard_view.dart';
 
 part 'app_router.g.dart';
 
@@ -135,14 +137,14 @@ GoRouter appRouter(AppRouterRef ref) {
         path: '/accounting',
         builder: (context, state) => const MainLayout(
           currentIndex: 3,
-          child: ComingSoonView(title: 'النظام المالي والمحاسبي'),
+          child: FinancialDashboardView(),
         ),
       ),
       GoRoute(
         path: '/settings',
         builder: (context, state) => const MainLayout(
           currentIndex: 4,
-          child: ComingSoonView(title: 'إعدادات النظام'),
+          child: SettingsControlCenterView(),
         ),
       ),
     ],

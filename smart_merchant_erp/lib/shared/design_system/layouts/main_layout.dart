@@ -74,10 +74,10 @@ class MainLayout extends ConsumerWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.3),
+                        color: AppColors.primary.withOpacity(0.3),
                         width: 2,
                       ),
                     ),
@@ -115,7 +115,7 @@ class MainLayout extends ConsumerWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.1),
+                              color: AppColors.primary.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: const Text(
@@ -171,7 +171,7 @@ class MainLayout extends ConsumerWidget {
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.success.withValues(alpha: 0.3),
+                                color: AppColors.success.withOpacity(0.3),
                                 spreadRadius: 2,
                               ),
                             ],
@@ -236,18 +236,18 @@ class MainLayout extends ConsumerWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? AppColors.surfaceDark.withValues(alpha: 0.8)
-                      : Colors.white.withValues(alpha: 0.9),
+                      ? AppColors.surfaceDark.withOpacity(0.8)
+                      : Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(24),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withValues(alpha: 0.05)
-                        : Colors.black.withValues(alpha: 0.05),
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.05),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDark ? 0.3 : 0.1,
+                      color: Colors.black.withOpacity(
+                        isDark ? 0.3 : 0.1,
                       ),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
@@ -288,7 +288,7 @@ class MainLayout extends ConsumerWidget {
                           _buildNavItem(
                             context,
                             3,
-                            Icons.account_balance_wallet_rounded,
+                            Icons.attach_money_rounded,
                             loc.accounting,
                             isDark,
                           ),
@@ -326,21 +326,24 @@ class MainLayout extends ConsumerWidget {
 
     return GestureDetector(
       onTap: () => _onNavigate(context, index),
-      behavior: HitTestBehavior.opaque, // Ensures the whole area is clickable
-      child: Container(
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
         padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 26),
-            const SizedBox(height: 4),
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 3),
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 10,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                 color: color,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

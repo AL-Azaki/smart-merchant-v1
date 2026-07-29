@@ -30,9 +30,12 @@ enum ErpPermission {
 class ModulesNotifier extends _$ModulesNotifier {
   @override
   Set<ErpModule> build() {
-    // For demonstration, let's say the current plan only allows Sales, Inventory, and Settings.
-    // The Accounting module is EXCLUDED.
-    return {ErpModule.sales, ErpModule.inventory, ErpModule.settings};
+    return {
+      ErpModule.sales,
+      ErpModule.inventory,
+      ErpModule.accounting,
+      ErpModule.settings,
+    };
   }
 
   void loadModulesForPlan(String planId) {

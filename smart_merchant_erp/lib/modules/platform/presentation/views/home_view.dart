@@ -114,7 +114,7 @@ class HomeView extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             mainAxisSpacing: AppSpacing.md,
             crossAxisSpacing: AppSpacing.md,
-            childAspectRatio: 1.15,
+            childAspectRatio: 1.0,
             children: [
               _buildQuickActionCard(
                 context,
@@ -212,7 +212,7 @@ class HomeView extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: iconColor, size: 32),
+                child: Icon(icon, color: iconColor, size: 28),
               ),
               const SizedBox(height: 12),
               Text(
@@ -228,6 +228,8 @@ class HomeView extends StatelessWidget {
                 subtitle,
                 style: TextStyle(color: subtitleColor, fontSize: 11),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
