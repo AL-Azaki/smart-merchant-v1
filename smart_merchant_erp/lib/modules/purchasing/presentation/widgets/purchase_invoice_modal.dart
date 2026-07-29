@@ -102,55 +102,102 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
           Navigator.of(context).pop();
         }
       },
-      child: SafeArea(
-        child: Dialog(
-          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          backgroundColor: surfaceColor,
-          clipBehavior: Clip.antiAlias,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxWidth: 1200,
-              maxHeight: MediaQuery.of(context).size.height * 0.95,
-            ),
-            child: Stack(
-              children: [
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildHeader(context, state, notifier, surfaceColor, borderColor, isDark),
-                    const Divider(height: 1),
-                    Expanded(
-                      child: Container(
-                        color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                        child: LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth < 800) {
-                              return _buildMobileBody(context, state, notifier, surfaceColor, borderColor);
-                            } else {
-                              return _buildDesktopBody(context, state, notifier, surfaceColor, borderColor);
-                            }
-                          },
+      child: Dialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: surfaceColor,
+        clipBehavior: Clip.antiAlias,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Stack(
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildTitleHeader(context, surfaceColor, borderColor, isDark),
+                  Flexible(
+                    child: Container(
+                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            _buildSettingsForm(context, state, notifier, surfaceColor, borderColor, isDark),
+                            const Divider(height: 1),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (MediaQuery.of(context).size.width < 800) {
+                                  return _buildMobileBody(context, state, notifier, surfaceColor, borderColor);
+                                } else {
+                                  return _buildDesktopBody(context, state, notifier, surfaceColor, borderColor);
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                    const Divider(height: 1),
-                    _buildFooter(context, state, notifier, surfaceColor, borderColor, textColor),
-                  ],
-                ),
-                if (_showPaymentModal)
-                  Positioned.fill(
-                    child: _buildPaymentModal(context, state, notifier, surfaceColor, borderColor, textColor),
                   ),
-              ],
-            ),
+                  _buildFooter(context, state, notifier, surfaceColor, borderColor, textColor),
+                ],
+              ),
+              if (_showPaymentModal)
+                Positioned.fill(
+                  child: _buildPaymentModal(context, state, notifier, surfaceColor, borderColor, textColor),
+                ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(BuildContext context, PurchasingState state, PurchasingNotifier notifier, Color surfaceColor, Color borderColor, bool isDark) {
+  Widget _buildTitleHeader(BuildContext context, Color surfaceColor, Color borderColor, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(border: Border(bottom: BorderSide(color: borderColor))),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Colors.blue, Colors.blueAccent]),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(Icons.shopping_cart, color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('فاتورة مشتريات جديدة', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                      const Text('إدخال سريع وسلس للفاتورة', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis, maxLines: 2),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            onPressed: () async {
+              if (await _onWillPop() && mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            icon: const Icon(Icons.close, color: Colors.red),
+            style: IconButton.styleFrom(backgroundColor: Colors.red.withValues(alpha: 0.1)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSettingsForm(BuildContext context, PurchasingState state, PurchasingNotifier notifier, Color surfaceColor, Color borderColor, bool isDark) {
     final suppliersAsync = ref.watch(suppliersNotifierProvider);
     final warehousesAsync = ref.watch(activeWarehousesStreamProvider);
     final currenciesAsync = ref.watch(availableCurrenciesFutureProvider);
@@ -158,158 +205,161 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       color: surfaceColor,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = MediaQuery.of(context).size.width < 600;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
-              const Icon(Icons.shopping_cart, color: AppColors.primary),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  'فاتورة مشتريات (إدخال سريع)',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  overflow: TextOverflow.ellipsis,
+              SizedBox(
+                width: isSmall ? constraints.maxWidth : 150,
+                child: currenciesAsync.when(
+                  data: (currencies) {
+                    if (currencies.isNotEmpty && state.currencyId.isEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          final cur = currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first);
+                          notifier.updateState(state.copyWith(currencyId: cur.id, exchangeRate: cur.exchangeRate));
+                        }
+                      });
+                    }
+                    return DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: state.currencyId.isEmpty ? (currencies.isNotEmpty ? currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first).id : null) : state.currencyId,
+                      decoration: _inputDeco(hint: 'العملة'),
+                      items: currencies.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.currencyNameAr} (${c.currencyCode})', overflow: TextOverflow.ellipsis))).toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          final cur = currencies.firstWhere((c) => c.id == val);
+                          notifier.changeCurrency(val, cur.exchangeRate);
+                        }
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const Text('خطأ'),
                 ),
               ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () async {
-                  if (await _onWillPop() && mounted) {
-                    Navigator.of(context).pop();
-                  }
+              currenciesAsync.when(
+                data: (currencies) {
+                  if (currencies.isEmpty || state.currencyId.isEmpty) return const SizedBox.shrink();
+                  final baseCurrency = currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first);
+                  if (state.currencyId == baseCurrency.id) return const SizedBox.shrink();
+                  
+                  final currentCurrency = currencies.firstWhere((c) => c.id == state.currencyId, orElse: () => baseCurrency);
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.currency_exchange, size: 16, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        Text(
+                          'سعر الصرف: 1 ${currentCurrency.currencySymbol} = ${state.exchangeRate.toStringAsFixed(2)} ${baseCurrency.currencySymbol}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.amber),
+                        ),
+                      ],
+                    ),
+                  );
                 },
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              SizedBox(
+                width: isSmall ? constraints.maxWidth : 250,
+                child: suppliersAsync.when(
+                  data: (suppliers) {
+                    final currentSupplier = suppliers.where((s) => s.id == state.supplierId).firstOrNull;
+                    return InkWell(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => _SupplierSelectionDialog(
+                            suppliers: suppliers,
+                            onSelected: (s) {
+                              notifier.updateState(state.copyWith(supplierId: s.id));
+                            },
+                            onAddNew: () {
+                              Navigator.pop(ctx);
+                              showDialog(
+                                context: context,
+                                barrierDismissible: false,
+                                builder: (formCtx) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                  child: ContactFormSheet(
+                                    isCustomer: false,
+                                    onClose: () => Navigator.pop(formCtx),
+                                    onSave: (data) async {
+                                      // Note: We need crmNotifierProvider to save
+                                      final successId = await ref.read(crmNotifierProvider.notifier).saveSupplier(data.cast<String, dynamic>());
+                                      if (successId != null && formCtx.mounted) {
+                                        Navigator.pop(formCtx);
+                                        // Select newly created supplier
+                                        notifier.updateState(state.copyWith(supplierId: successId));
+                                      }
+                                    },
+                                  ),
+                                ),
+                              );
+                            }
+                          )
+                        );
+                      },
+                      child: InputDecorator(
+                        decoration: _inputDeco(hint: 'المورد').copyWith(prefixIcon: const Icon(Icons.store)),
+                        child: Text(
+                          currentSupplier?.supplierName ?? 'اختر المورد',
+                          style: TextStyle(color: currentSupplier == null ? Colors.grey : null),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const Text('خطأ'),
+                ),
+              ),
+              SizedBox(
+                width: isSmall ? constraints.maxWidth : 200,
+                child: warehousesAsync.when(
+                  data: (warehouses) {
+                    if (warehouses.isNotEmpty && state.warehouseId.isEmpty) {
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) notifier.updateState(state.copyWith(warehouseId: warehouses.first.id));
+                      });
+                    }
+                    return DropdownButtonFormField<String>(
+                      isExpanded: true,
+                      value: state.warehouseId.isEmpty ? null : state.warehouseId,
+                      decoration: _inputDeco(hint: 'المخزن').copyWith(prefixIcon: const Icon(Icons.warehouse)),
+                      items: warehouses.map((w) => DropdownMenuItem(value: w.id, child: Text(w.warehouseName, overflow: TextOverflow.ellipsis))).toList(),
+                      onChanged: (val) {
+                        if (val != null) notifier.updateState(state.copyWith(warehouseId: val));
+                      },
+                    );
+                  },
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (_, __) => const Text('خطأ'),
+                ),
+              ),
+              SizedBox(
+                width: isSmall ? constraints.maxWidth : 200,
+                child: TextFormField(
+                  initialValue: state.invoiceRef,
+                  decoration: _inputDeco(hint: 'مرجع المورد'),
+                  onChanged: (val) => notifier.updateState(state.copyWith(invoiceRef: val)),
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 16),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isSmall = constraints.maxWidth < 600;
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  SizedBox(
-                    width: isSmall ? constraints.maxWidth : 150,
-                    child: currenciesAsync.when(
-                      data: (currencies) {
-                        if (currencies.isNotEmpty && state.currencyId.isEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) {
-                              final cur = currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first);
-                              notifier.updateState(state.copyWith(currencyId: cur.id, exchangeRate: cur.exchangeRate));
-                            }
-                          });
-                        }
-                        return DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          value: state.currencyId.isEmpty ? (currencies.isNotEmpty ? currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first).id : null) : state.currencyId,
-                          decoration: _inputDeco(hint: 'العملة'),
-                          items: currencies.map((c) => DropdownMenuItem(value: c.id, child: Text('${c.currencyNameAr} (${c.currencyCode})', overflow: TextOverflow.ellipsis))).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              final cur = currencies.firstWhere((c) => c.id == val);
-                              notifier.changeCurrency(val, cur.exchangeRate);
-                            }
-                          },
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text('خطأ'),
-                    ),
-                  ),
-                  SizedBox(
-                    width: isSmall ? constraints.maxWidth : 250,
-                    child: suppliersAsync.when(
-                      data: (suppliers) {
-                        final currentSupplier = suppliers.where((s) => s.id == state.supplierId).firstOrNull;
-                        return InkWell(
-                          onTap: () {
-                            showDialog(
-                              context: context,
-                              builder: (ctx) => _SupplierSelectionDialog(
-                                suppliers: suppliers,
-                                onSelected: (s) {
-                                  notifier.updateState(state.copyWith(supplierId: s.id));
-                                },
-                                onAddNew: () {
-                                  Navigator.pop(ctx);
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (formCtx) => Dialog(
-                                      backgroundColor: Colors.transparent,
-                                      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                                      child: ContactFormSheet(
-                                        isCustomer: false,
-                                        onClose: () => Navigator.pop(formCtx),
-                                        onSave: (data) async {
-                                          // Note: We need crmNotifierProvider to save
-                                          final successId = await ref.read(crmNotifierProvider.notifier).saveSupplier(data);
-                                          if (successId != null && formCtx.mounted) {
-                                            Navigator.pop(formCtx);
-                                            // Select newly created supplier
-                                            notifier.updateState(state.copyWith(supplierId: successId));
-                                          }
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                }
-                              )
-                            );
-                          },
-                          child: InputDecorator(
-                            decoration: _inputDeco(hint: 'المورد').copyWith(prefixIcon: const Icon(Icons.store)),
-                            child: Text(
-                              currentSupplier?.supplierName ?? 'اختر المورد',
-                              style: TextStyle(color: currentSupplier == null ? Colors.grey : null),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text('خطأ'),
-                    ),
-                  ),
-                  SizedBox(
-                    width: isSmall ? constraints.maxWidth : 200,
-                    child: warehousesAsync.when(
-                      data: (warehouses) {
-                        if (warehouses.isNotEmpty && state.warehouseId.isEmpty) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            if (mounted) notifier.updateState(state.copyWith(warehouseId: warehouses.first.id));
-                          });
-                        }
-                        return DropdownButtonFormField<String>(
-                          isExpanded: true,
-                          value: state.warehouseId.isEmpty ? null : state.warehouseId,
-                          decoration: _inputDeco(hint: 'المخزن').copyWith(prefixIcon: const Icon(Icons.warehouse)),
-                          items: warehouses.map((w) => DropdownMenuItem(value: w.id, child: Text(w.warehouseName, overflow: TextOverflow.ellipsis))).toList(),
-                          onChanged: (val) {
-                            if (val != null) notifier.updateState(state.copyWith(warehouseId: val));
-                          },
-                        );
-                      },
-                      loading: () => const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text('خطأ'),
-                    ),
-                  ),
-                  SizedBox(
-                    width: isSmall ? constraints.maxWidth : 200,
-                    child: TextFormField(
-                      initialValue: state.invoiceRef,
-                      decoration: _inputDeco(hint: 'مرجع المورد'),
-                      onChanged: (val) => notifier.updateState(state.copyWith(invoiceRef: val)),
-                    ),
-                  ),
-                ],
-              );
-            }
-          ),
-        ],
+          );
+        }
       ),
     );
   }
@@ -317,9 +367,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
   Widget _buildDesktopBody(BuildContext context, PurchasingState state, PurchasingNotifier notifier, Color surfaceColor, Color borderColor) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
     return SingleChildScrollView(
-      scrollDirection: Axis.vertical,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+      scrollDirection: Axis.horizontal,
         child: ConstrainedBox(
           constraints: BoxConstraints(minWidth: 1400),
           child: Column(
@@ -436,7 +484,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                         builder: (formCtx) => Dialog(
                                           backgroundColor: Colors.transparent,
                                           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                                          child: ProductFormSheet(
+                                          child: ProductFormSheet(hideOpeningStock: true,
                                             onClose: () => Navigator.pop(formCtx),
                                             onSave: (data) async {
                                               final successId = await ref.read(productsNotifierProvider.notifier).saveProduct(data);
@@ -444,7 +492,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                                 Navigator.pop(formCtx);
                                                 notifier.updateRow(row.id, row.copyWith(
                                                   productId: successId,
-                                                  productName: data['product_name'] ?? '',
+                                                  productName: data['product_name']?.toString() ?? '',
                                                 ));
                                               }
                                             },
@@ -526,13 +574,14 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
             ],
           ),
         ),
-      ),
     );
   }
 
   Widget _buildMobileBody(BuildContext context, PurchasingState state, PurchasingNotifier notifier, Color surfaceColor, Color borderColor) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
     return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
       itemCount: state.items.length + 1,
       itemBuilder: (context, index) {
@@ -634,7 +683,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                             builder: (formCtx) => Dialog(
                               backgroundColor: Colors.transparent,
                               insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                              child: ProductFormSheet(
+                              child: ProductFormSheet(hideOpeningStock: true,
                                 onClose: () => Navigator.pop(formCtx),
                                 onSave: (data) async {
                                   final successId = await ref.read(productsNotifierProvider.notifier).saveProduct(data);
@@ -642,7 +691,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                     Navigator.pop(formCtx);
                                     notifier.updateRow(row.id, row.copyWith(
                                       productId: successId,
-                                      productName: data['product_name'] ?? '',
+                                      productName: data['product_name']?.toString() ?? '',
                                     ));
                                   }
                                 },
@@ -737,13 +786,12 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5)),
         ],
       ),
-      child: SafeArea(
-        child: Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 16,
-          spacing: 16,
-          children: [
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        runSpacing: 16,
+        spacing: 16,
+        children: [
             Wrap(
               spacing: 24,
               runSpacing: 8,
@@ -793,7 +841,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -1349,7 +1396,7 @@ class _CategorySelectionWidget extends ConsumerWidget {
               context: context,
               builder: (ctx) => _CategorySelectionDialog(
                 categories: categories,
-                onSelected: (c) => onChanged(c.id),
+                onSelected: (c) => onChanged(c.id as String),
                 onAddNew: () {
                   Navigator.pop(ctx);
                   showDialog(
@@ -1361,7 +1408,7 @@ class _CategorySelectionWidget extends ConsumerWidget {
                       child: CategoryFormSheet(
                         onClose: () => Navigator.pop(formCtx),
                         onSave: (data) async {
-                          final successId = await ref.read(categoriesNotifierProvider.notifier).saveCategory(data);
+                          final successId = await ref.read(categoriesNotifierProvider.notifier).saveCategory(data.cast<String, dynamic>());
                           if (successId != null && formCtx.mounted) {
                             Navigator.pop(formCtx);
                             onChanged(successId);
@@ -1424,7 +1471,7 @@ class _CategorySelectionDialogState extends State<_CategorySelectionDialog> {
       _searchQuery = query;
       final q = query.toLowerCase();
       _filteredCategories = widget.categories.where((c) {
-        return c.categoryName.toLowerCase().contains(q);
+        return (c.categoryName as String).toLowerCase().contains(q);
       }).toList();
     });
   }
@@ -1464,7 +1511,7 @@ class _CategorySelectionDialogState extends State<_CategorySelectionDialog> {
                 itemBuilder: (context, index) {
                   final c = _filteredCategories[index];
                   return ListTile(
-                    title: Text(c.categoryName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text((c.categoryName as String?) ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                     onTap: () {
                       widget.onSelected(c);
                       Navigator.pop(context);

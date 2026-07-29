@@ -5,6 +5,7 @@ import '../enums/inventory_reference_type.dart';
 import '../enums/inventory_transaction_status.dart';
 import '../enums/inventory_transaction_type.dart';
 import '../enums/inventory_transfer_status.dart';
+import '../enums/stock_count_status.dart';
 import '../tables/catalog/products_table.dart';
 import '../tables/catalog/product_units_table.dart';
 import '../tables/catalog/product_variants_table.dart';
@@ -14,6 +15,8 @@ import '../tables/inventory/inventory_transaction_lines_table.dart';
 import '../tables/inventory/inventory_transactions_table.dart';
 import '../tables/inventory/inventory_transfer_items_table.dart';
 import '../tables/inventory/inventory_transfers_table.dart';
+import '../tables/inventory/stock_counts_table.dart';
+import '../tables/inventory/stock_count_items_table.dart';
 import '../tables/inventory/warehouses_table.dart';
 import 'dao_exceptions.dart';
 
@@ -161,6 +164,8 @@ class StockBalanceView {
     InventoryTransactionLines,
     InventoryTransfers,
     InventoryTransferItems,
+    StockCounts,
+    StockCountItems,
     Products,
     ProductVariants,
     ProductUnits,
@@ -1303,5 +1308,108 @@ class InventoryDao extends DatabaseAccessor<AppDatabase>
         .write(
           const InventoryTransferItemsCompanion(syncStatus: Value('synced')),
         );
+  }
+
+  // ============================================================================
+  // 6. STOCK COUNTS (Physical Inventory Sessions)
+  // ============================================================================
+
+  /// Creates a new Draft Stock Count along with its line items within a transaction.
+  Future<void> recordStockCountWithItems(
+    StockCountsCompanion header,
+    List<StockCountItemsCompanion> lines,
+  ) {
+    return transaction(() async {
+      await into(stockCounts).insert(header);
+      for (final line in lines) {
+        await into(stockCountItems).insert(line);
+      }
+    });
+  }
+
+  /// Retrieves a specific Stock Count by ID.
+  Future<StockCount?> getStockCountById(String id, String businessId) {
+    return (select(stockCounts)
+          ..where(
+            (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
+          ))
+        .getSingleOrNull();
+  }
+
+  /// Lists all stock counts for a specific warehouse (or all warehouses if null).
+  Future<List<StockCount>> listStockCounts(
+    String businessId, {
+    String? warehouseId,
+    int limit = 50,
+    int offset = 0,
+  }) {
+    final query = select(stockCounts)
+      ..where((tbl) => tbl.businessId.equals(businessId))
+      ..orderBy([
+        (tbl) => OrderingTerm(
+              expression: tbl.countDate,
+              mode: OrderingMode.desc,
+            ),
+      ])
+      ..limit(limit, offset: offset);
+
+    if (warehouseId != null) {
+      query.where((tbl) => tbl.warehouseId.equals(warehouseId));
+    }
+
+    return query.get();
+  }
+
+  /// Updates the status of a Stock Count (e.g. from Draft to Posted).
+  Future<int> updateStockCountStatus(
+    String id,
+    String businessId,
+    StockCountStatus status, {
+    String? postedBy,
+    DateTime? postedAt,
+  }) {
+    return (update(stockCounts)
+          ..where((tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId)))
+        .write(
+      StockCountsCompanion(
+        status: Value(status),
+        postedBy: postedBy != null ? Value(postedBy) : const Value.absent(),
+        postedAt: postedAt != null ? Value(postedAt) : const Value.absent(),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
+  }
+
+  /// Updates an entire Stock Count Draft (header + items).
+  Future<void> updateDraftStockCountWithItems(
+    String id,
+    String businessId,
+    StockCountsCompanion header,
+    List<StockCountItemsCompanion> lines,
+  ) {
+    return transaction(() async {
+      // Ensure it's in Draft state
+      final current = await getStockCountById(id, businessId);
+      if (current == null || current.status != StockCountStatus.draft) {
+        throw Exception('Cannot update stock count unless it is in Draft status.');
+      }
+
+      await (update(stockCounts)..where((tbl) => tbl.id.equals(id))).write(header);
+
+      // Delete existing lines
+      await (delete(stockCountItems)..where((tbl) => tbl.stockCountId.equals(id))).go();
+
+      // Insert new lines
+      for (final line in lines) {
+        await into(stockCountItems).insert(line);
+      }
+    });
+  }
+
+  /// Retrieves all items for a specific Stock Count.
+  Future<List<StockCountItem>> getStockCountItems(String stockCountId, String businessId) {
+    return (select(stockCountItems)
+          ..where((tbl) => tbl.stockCountId.equals(stockCountId) & tbl.businessId.equals(businessId)))
+        .get();
   }
 }

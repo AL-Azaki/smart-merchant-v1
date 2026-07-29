@@ -14,6 +14,8 @@ mixin _$InventoryDaoMixin on DatabaseAccessor<AppDatabase> {
       attachedDatabase.inventoryTransfers;
   $InventoryTransferItemsTable get inventoryTransferItems =>
       attachedDatabase.inventoryTransferItems;
+  $StockCountsTable get stockCounts => attachedDatabase.stockCounts;
+  $StockCountItemsTable get stockCountItems => attachedDatabase.stockCountItems;
   $ProductsTable get products => attachedDatabase.products;
   $ProductVariantsTable get productVariants => attachedDatabase.productVariants;
   $ProductUnitsTable get productUnits => attachedDatabase.productUnits;

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../../../../shared/design_system/tokens/colors.dart';
 import '../../../../../shared/design_system/tokens/spacing.dart';
-import '../../../../../shared/design_system/widgets/primary_button.dart';
-import '../../../../catalog/presentation/providers/catalog_provider.dart';
+
 import '../../providers/inventory_provider.dart';
 import 'widgets/stock_adjustment_form_sheet.dart';
 
@@ -25,6 +25,16 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
         ? AppColors.surfaceDark
         : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
+    final adjustmentsAsync = ref.watch(stockAdjustmentsListProvider);
+    final allAdjustments = adjustmentsAsync.valueOrNull ?? [];
+    
+    final adjustments = allAdjustments.where((adj) {
+      if (_searchQuery.isEmpty) return true;
+      final query = _searchQuery.toLowerCase();
+      final dateStr = DateFormat('yyyy-MM-dd').format(adj.transactionDate);
+      return adj.id.toLowerCase().contains(query) || dateStr.contains(query);
+    }).toList();
 
     return Column(
       children: [
@@ -60,7 +70,7 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                         ),
                       ),
                       Text(
-                        '0 تسوية',
+                        '${allAdjustments.length} تسوية',
                         style: TextStyle(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -71,30 +81,16 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                   ),
                 ],
               ),
-              PrimaryButton(
-                text: 'تسوية جديدة',
-                icon: Icons.add,
+              ElevatedButton.icon(
                 onPressed: () {
-                  // Fetch products from provider to pass to the form
-                  final productsAsync = ref.read(productsNotifierProvider);
-                  final products = productsAsync.valueOrNull ?? [];
-                  
                   showDialog(
                     context: context,
                     builder: (ctx) => Dialog(
                       backgroundColor: Colors.transparent,
                       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                       child: StockAdjustmentFormSheet(
-                        products: products,
                         onClose: () => Navigator.pop(ctx),
                         onSave: (data) async {
-                          // The form requires a warehouse id, let's inject a default one or get from context
-                          // For now, assume data contains warehouse_id or we provide a dummy to prevent errors
-                          if (data['warehouse_id'] == null) {
-                            // Fetch default warehouse if not provided, for this implementation mock it
-                            data['warehouse_id'] = 'wh-1'; 
-                          }
-                          
                           final success = await ref.read(stockAdjustmentNotifierProvider.notifier).submitAdjustment(data);
                           if (success) {
                             if (ctx.mounted) Navigator.pop(ctx);
@@ -109,6 +105,14 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                     ),
                   );
                 },
+                icon: const Icon(Icons.add),
+                label: const Text('تسوية جديدة'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
               ),
             ],
           ),
@@ -165,27 +169,89 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
-            child: const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.inventory_2_outlined,
-                    size: 48,
-                    color: Colors.grey,
+            child: adjustments.isEmpty
+                ? const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'لا توجد تسويات مخزنية',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'قم بإنشاء تسوية جديدة لعرضها هنا.',
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: adjustments.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final adj = adjustments[index];
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: surfaceColor,
+                          border: Border.all(color: borderColor),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(Icons.fact_check, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'تسوية ${adj.transactionType.name}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Text(
+                                          DateFormat('yyyy-MM-dd').format(adj.transactionDate),
+                                          style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    adj.status.name,
+                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    'لا توجد تسويات مخزنية',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'قم بإنشاء تسوية جديدة لعرضها هنا.',
-                    style: TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ),
           ),
         ),
       ],

@@ -88,4 +88,11 @@ abstract class SystemRepository {
   );
   Future<List<Expense>> getPendingSyncExpenses(String businessId);
   Future<bool> markExpenseAsSynced(String id, String businessId);
+
+  // Archive Documents
+  Future<int> insertArchiveDocument(ArchiveDocumentsCompanion companion);
+  Future<bool> updateArchiveDocument(ArchiveDocumentsCompanion companion);
+  Future<ArchiveDocument?> getArchiveDocumentById(String id, String businessId);
+  Stream<List<ArchiveDocument>> watchArchiveDocuments(ArchiveDocumentFilter filter);
+  Future<bool> deleteArchiveDocument(String id, String businessId);
 }

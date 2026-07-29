@@ -329,4 +329,30 @@ class SystemRepositoryImpl implements SystemRepository {
       () => _dao.markExpenseAsSynced(id, businessId),
     );
   }
+
+  // Archive Documents
+  @override
+  Future<int> insertArchiveDocument(ArchiveDocumentsCompanion companion) {
+    return RepositoryErrorGuard.run(() => _dao.insertArchiveDocument(companion));
+  }
+
+  @override
+  Future<bool> updateArchiveDocument(ArchiveDocumentsCompanion companion) {
+    return RepositoryErrorGuard.run(() => _dao.updateArchiveDocument(companion));
+  }
+
+  @override
+  Future<ArchiveDocument?> getArchiveDocumentById(String id, String businessId) {
+    return RepositoryErrorGuard.run(() => _dao.getArchiveDocumentById(id, businessId));
+  }
+
+  @override
+  Stream<List<ArchiveDocument>> watchArchiveDocuments(ArchiveDocumentFilter filter) {
+    return RepositoryErrorGuard.guardStream(_dao.watchArchiveDocuments(filter));
+  }
+
+  @override
+  Future<bool> deleteArchiveDocument(String id, String businessId) {
+    return RepositoryErrorGuard.run(() => _dao.deleteArchiveDocument(id, businessId));
+  }
 }

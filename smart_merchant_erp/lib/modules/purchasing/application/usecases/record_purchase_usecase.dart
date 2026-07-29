@@ -367,12 +367,51 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
           payable: payableCompanion,
         );
 
-        // Add Inventory
+        // Add Inventory Transaction Logs
         await _inventoryRepository.recordTransactionWithLines(
           transaction: inventoryTxCompanion,
           lines: inventoryLineCompanions
               .cast<InventoryTransactionLinesCompanion>(),
         );
+
+        // Update actual stock quantities and calculate new average cost
+        for (final item in params.items) {
+          final inventory = await _inventoryRepository.getInventoryByUnitAndWarehouse(
+            businessId,
+            params.warehouseId,
+            item.productUnitId,
+          );
+          if (inventory != null) {
+            final oldQty = inventory.quantity;
+            final oldAvgCost = inventory.averageCost;
+            final newQty = item.quantity;
+            final newCost = item.unitPrice;
+            
+            final updatedQty = oldQty + newQty;
+            double updatedAvgCost = oldAvgCost;
+            if (updatedQty > 0) {
+              updatedAvgCost = ((oldQty * oldAvgCost) + (newQty * newCost)) / updatedQty;
+            }
+            
+            await _inventoryRepository.updateInventory(
+              inventory.toCompanion(false).copyWith(
+                quantity: drift.Value(updatedQty),
+                averageCost: drift.Value(updatedAvgCost),
+              ),
+            );
+          } else {
+            await _inventoryRepository.insertInventory(
+              InventoriesCompanion.insert(
+                id: _uuid.v4(),
+                businessId: businessId,
+                warehouseId: params.warehouseId,
+                productUnitId: item.productUnitId,
+                quantity: drift.Value(item.quantity),
+                averageCost: drift.Value(item.unitPrice),
+              ),
+            );
+          }
+        }
 
         // Record Treasury Payment if applicable
         if (paymentCompanion != null) {

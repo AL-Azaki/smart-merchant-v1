@@ -2,6 +2,7 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/inventory_dao.dart';
 import '../../../../database/enums/inventory_transaction_status.dart';
 import '../../../../database/enums/inventory_transfer_status.dart';
+import '../../../../database/enums/stock_count_status.dart';
 
 /// Contract for Inventory domain data operations.
 /// Isolates application use cases from Drift ORM and SQLite specifics while
@@ -138,4 +139,31 @@ abstract class InventoryRepository {
     int limit = 500,
   });
   Future<int> markTransferItemsAsSynced(List<String> ids, String businessId);
+
+  // Stock Counts
+  Future<void> recordStockCountWithItems({
+    required StockCountsCompanion header,
+    required List<StockCountItemsCompanion> items,
+  });
+  Future<StockCount?> getStockCountById(String id, String businessId);
+  Future<List<StockCount>> listStockCounts(
+    String businessId, {
+    String? warehouseId,
+    int limit = 50,
+    int offset = 0,
+  });
+  Future<void> updateDraftStockCountWithItems({
+    required String id,
+    required String businessId,
+    required StockCountsCompanion header,
+    required List<StockCountItemsCompanion> items,
+  });
+  Future<int> updateStockCountStatus(
+    String id,
+    String businessId,
+    StockCountStatus status, {
+    String? postedBy,
+    DateTime? postedAt,
+  });
+  Future<List<StockCountItem>> getStockCountItems(String stockCountId, String businessId);
 }

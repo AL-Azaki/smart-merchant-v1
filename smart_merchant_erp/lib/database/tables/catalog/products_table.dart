@@ -31,6 +31,14 @@ class Products extends Table {
   /// Reference to default applied tax (`taxes.id`, nullable UUID string).
   TextColumn get taxId => text().named('tax_id').nullable()();
 
+  /// Foreign Key linking to default pricing currency (`currencies.id`, RESTRICT).
+  TextColumn get currencyId => text()
+      .named('currency_id')
+      .nullable()
+      .customConstraint(
+        'REFERENCES currencies(id) ON DELETE RESTRICT',
+      )();
+
   /// Product type classification (`standard`, `service`, `composite`).
   TextColumn get productType =>
       text().named('product_type').withDefault(const Constant('standard'))();
@@ -47,6 +55,10 @@ class Products extends Table {
   /// Operational activity status flag.
   BoolColumn get isActive =>
       boolean().named('is_active').withDefault(const Constant(true))();
+
+  /// Storefront visibility flag.
+  BoolColumn get showInStore =>
+      boolean().named('show_in_store').withDefault(const Constant(false))();
 
   /// Record creation timestamp.
   DateTimeColumn get createdAt => dateTime().named('created_at').nullable()();

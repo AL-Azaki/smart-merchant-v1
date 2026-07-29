@@ -140,6 +140,32 @@ class ProcessStockAdjustmentUseCase
             lines: txOutLines,
           );
         }
+
+        // Update actual stock quantities
+        for (final item in params.items) {
+          final inventory = await _inventoryRepository.getInventoryByUnitAndWarehouse(
+            businessId,
+            params.warehouseId,
+            item.productUnitId,
+          );
+          if (inventory != null) {
+            await _inventoryRepository.updateInventory(
+              inventory.toCompanion(false).copyWith(
+                quantity: drift.Value(item.countedQuantity),
+              ),
+            );
+          } else {
+            await _inventoryRepository.insertInventory(
+              InventoriesCompanion.insert(
+                id: _uuid.v4(),
+                businessId: businessId,
+                warehouseId: params.warehouseId,
+                productUnitId: item.productUnitId,
+                quantity: drift.Value(item.countedQuantity),
+              ),
+            );
+          }
+        }
       });
       return Right(txId);
     } catch (e) {

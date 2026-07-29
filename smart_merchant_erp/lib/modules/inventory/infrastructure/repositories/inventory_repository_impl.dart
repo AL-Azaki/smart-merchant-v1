@@ -5,6 +5,7 @@ import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/inventory_dao.dart';
 import '../../../../database/enums/inventory_transaction_status.dart';
 import '../../../../database/enums/inventory_transfer_status.dart';
+import '../../../../database/enums/stock_count_status.dart';
 
 @LazySingleton(as: InventoryRepository)
 class InventoryRepositoryImpl implements InventoryRepository {
@@ -406,6 +407,68 @@ class InventoryRepositoryImpl implements InventoryRepository {
   Future<int> markTransferItemsAsSynced(List<String> ids, String businessId) {
     return RepositoryErrorGuard.run(
       () => _dao.markTransferItemsAsSynced(ids, businessId),
+    );
+  }
+
+  // Stock Counts
+  @override
+  Future<void> recordStockCountWithItems({
+    required StockCountsCompanion header,
+    required List<StockCountItemsCompanion> items,
+  }) {
+    return RepositoryErrorGuard.run(
+      () => _dao.recordStockCountWithItems(header, items),
+    );
+  }
+
+  @override
+  Future<StockCount?> getStockCountById(String id, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.getStockCountById(id, businessId),
+    );
+  }
+
+  @override
+  Future<List<StockCount>> listStockCounts(
+    String businessId, {
+    String? warehouseId,
+    int limit = 50,
+    int offset = 0,
+  }) {
+    return RepositoryErrorGuard.run(
+      () => _dao.listStockCounts(businessId, warehouseId: warehouseId, limit: limit, offset: offset),
+    );
+  }
+
+  @override
+  Future<void> updateDraftStockCountWithItems({
+    required String id,
+    required String businessId,
+    required StockCountsCompanion header,
+    required List<StockCountItemsCompanion> items,
+  }) {
+    return RepositoryErrorGuard.run(
+      () => _dao.updateDraftStockCountWithItems(id, businessId, header, items),
+    );
+  }
+
+  @override
+  Future<int> updateStockCountStatus(
+    String id,
+    String businessId,
+    StockCountStatus status, {
+    String? postedBy,
+    DateTime? postedAt,
+  }) {
+    return RepositoryErrorGuard.run(
+      () => _dao.updateStockCountStatus(id, businessId, status, postedBy: postedBy, postedAt: postedAt),
+    );
+  }
+
+  @override
+  Future<List<StockCountItem>> getStockCountItems(String stockCountId, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.getStockCountItems(stockCountId, businessId),
     );
   }
 }

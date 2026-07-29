@@ -9,6 +9,7 @@ import '../../../hr/presentation/views/employees_view.dart';
 import '../../../fixed_assets/presentation/views/fixed_assets_view.dart';
 import '../../../documents/presentation/views/documents_view.dart';
 import 'stock_adjustments/stock_adjustments_view.dart';
+import 'stock_counts/stock_counts_view.dart';
 
 class InventoryModuleView extends ConsumerStatefulWidget {
   const InventoryModuleView({super.key});
@@ -49,6 +50,11 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
       'id': 'adjustments',
       'label': 'تسوية وجرد المخزون',
       'icon': Icons.fact_check_outlined,
+    },
+    {
+      'id': 'stock_counts',
+      'label': 'جلسات الجرد',
+      'icon': Icons.inventory_outlined,
     },
   ];
 
@@ -131,6 +137,7 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
           FixedAssetsView(),
           DocumentsView(),
           StockAdjustmentsView(),
+          StockCountsView(),
         ],
       ),
     );

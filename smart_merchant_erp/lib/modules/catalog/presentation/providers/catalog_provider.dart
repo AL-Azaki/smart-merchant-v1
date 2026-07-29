@@ -47,6 +47,11 @@ class ProductsNotifier extends _$ProductsNotifier {
       sellingPrice: data['selling_price'] != null ? double.tryParse(data['selling_price'].toString()) : null,
       isActive: data['is_active'] ?? true,
       trackStock: data['track_stock'] ?? true,
+      imagePath: data['image_url'],
+      currencyId: data['currency_id'],
+      showInStore: data['show_in_store'] ?? false,
+      openingWarehouseId: data['opening_warehouse_id'],
+      openingQuantity: data['opening_quantity'] != null ? double.tryParse(data['opening_quantity'].toString()) : null,
     );
 
     final result = await service.saveProduct(command);

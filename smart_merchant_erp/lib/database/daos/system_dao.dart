@@ -6,6 +6,7 @@ import '../tables/system/attachments_table.dart';
 import '../tables/system/exchange_rates_table.dart';
 import '../tables/system/expense_categories_table.dart';
 import '../tables/system/expenses_table.dart';
+import '../tables/system/archive_documents_table.dart';
 import '../tables/core/branches_table.dart';
 import '../tables/accounting/chart_of_accounts_table.dart';
 import '../tables/treasury/payment_methods_table.dart';
@@ -118,6 +119,26 @@ class ExpenseWithDetails {
   });
 }
 
+/// Filter DTO for [ArchiveDocuments] queries.
+class ArchiveDocumentFilter {
+  final String businessId;
+  final String? category;
+  final String? searchQuery;
+  final bool? isExpired;
+  final int limit;
+  final int offset;
+
+  const ArchiveDocumentFilter({
+    required this.businessId,
+    this.category,
+    this.searchQuery,
+    this.isExpired,
+    this.limit = 100,
+    this.offset = 0,
+  });
+}
+
+
 @DriftAccessor(
   tables: [
     ActivityLogs,
@@ -129,6 +150,7 @@ class ExpenseWithDetails {
     Branches,
     ChartOfAccounts,
     PaymentMethods,
+    ArchiveDocuments,
   ],
 )
 class SystemDao extends DatabaseAccessor<AppDatabase> with _$SystemDaoMixin {
@@ -798,15 +820,96 @@ class SystemDao extends DatabaseAccessor<AppDatabase> with _$SystemDaoMixin {
             .getSingleOrNull();
     final atts = await listAttachmentsByEntity('Expense', exp.id, businessId);
 
-    if (cat == null || pm == null) {
-      return null;
-    }
     return ExpenseWithDetails(
       expense: exp,
-      category: cat,
-      paymentMethod: pm,
+      category: cat!,
+      paymentMethod: pm!,
       attachments: atts,
     );
+  }
+
+  // ============================================================================
+  // 6. ARCHIVE DOCUMENTS
+  // ============================================================================
+
+  /// Inserts a new [ArchiveDocument] record.
+  Future<int> insertArchiveDocument(ArchiveDocumentsCompanion companion) async {
+    final businessId = companion.businessId.value;
+    _validateTenantScope(businessId);
+    return into(archiveDocuments).insert(companion);
+  }
+
+  /// Retrieves a single [ArchiveDocument] by [id] and [businessId].
+  Future<ArchiveDocument?> getArchiveDocumentById(String id, String businessId) async {
+    _validateTenantScope(businessId);
+    return (select(archiveDocuments)..where((tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId))).getSingleOrNull();
+  }
+
+  /// Updates an existing [ArchiveDocument].
+  Future<bool> updateArchiveDocument(ArchiveDocumentsCompanion companion) async {
+    final id = companion.id.value;
+    final businessId = companion.businessId.value;
+    _validateTenantScope(businessId);
+
+    final existing = await getArchiveDocumentById(id, businessId);
+    if (existing == null) {
+      return false;
+    }
+
+    final updatedCompanion = companion.copyWith(
+      version: Value(existing.version + 1),
+      syncStatus: Value(
+        existing.syncStatus == 'pending_insert'
+            ? 'pending_insert'
+            : 'pending_update',
+      ),
+      updatedAt: Value(DateTime.now()),
+    );
+
+    final count = await (update(archiveDocuments)..where((tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId))).write(updatedCompanion);
+    return count > 0;
+  }
+
+  /// Deletes an [ArchiveDocument].
+  Future<bool> deleteArchiveDocument(String id, String businessId) async {
+    _validateTenantScope(businessId);
+    final count = await (delete(archiveDocuments)..where((tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId))).go();
+    return count > 0;
+  }
+
+  /// Watches [ArchiveDocument] records matching the filter criteria.
+  Stream<List<ArchiveDocument>> watchArchiveDocuments(ArchiveDocumentFilter filter) {
+    _validateTenantScope(filter.businessId);
+    final query = select(archiveDocuments)
+      ..where((tbl) => tbl.businessId.equals(filter.businessId));
+
+    final category = filter.category;
+    if (category != null && category != 'all') {
+      query.where((tbl) => tbl.category.equals(category));
+    }
+    
+    final isExpired = filter.isExpired;
+    if (isExpired != null) {
+      if (isExpired) {
+        query.where((tbl) => tbl.expiryDate.isSmallerOrEqualValue(DateTime.now()));
+      } else {
+        query.where((tbl) => tbl.expiryDate.isNull() | tbl.expiryDate.isBiggerThanValue(DateTime.now()));
+      }
+    }
+
+    final searchQuery = filter.searchQuery;
+    if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+      final term = '%${searchQuery.trim()}%';
+      query.where((tbl) => tbl.title.like(term) | tbl.refNumber.like(term));
+    }
+
+    query
+      ..orderBy([
+        (tbl) => OrderingTerm(expression: tbl.issueDate, mode: OrderingMode.desc),
+      ])
+      ..limit(filter.limit, offset: filter.offset);
+
+    return query.watch();
   }
 
   /// Lists [Expense] records matching the filter criteria.

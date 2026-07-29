@@ -6,6 +6,7 @@ import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../../../kernel/storage/app_database.dart' hide Unit;
 import '../../domain/repositories/catalog_repository.dart';
+import '../../../inventory/application/usecases/process_stock_adjustment_usecase.dart';
 
 class ProductCommand {
   final String? id;
@@ -21,6 +22,11 @@ class ProductCommand {
   final double? sellingPrice;
   final bool isActive;
   final bool trackStock;
+  final String? imagePath;
+  final String? currencyId;
+  final bool showInStore;
+  final String? openingWarehouseId;
+  final double? openingQuantity;
 
   const ProductCommand({
     this.id,
@@ -36,6 +42,11 @@ class ProductCommand {
     this.sellingPrice,
     this.isActive = true,
     this.trackStock = true,
+    this.imagePath,
+    this.currencyId,
+    this.showInStore = false,
+    this.openingWarehouseId,
+    this.openingQuantity,
   });
 }
 
@@ -73,9 +84,10 @@ class UnitCommand {
 class CatalogApplicationService {
   final CatalogRepository _catalogRepository;
   final ApplicationContext _context;
+  final ProcessStockAdjustmentUseCase _processStockAdjustmentUseCase;
   final Uuid _uuid = const Uuid();
 
-  CatalogApplicationService(this._catalogRepository, this._context);
+  CatalogApplicationService(this._catalogRepository, this._context, this._processStockAdjustmentUseCase);
 
   Future<Either<Failure, String>> saveProduct(ProductCommand command) async {
     final businessId = _context.currentBusinessId;
@@ -91,16 +103,31 @@ class CatalogApplicationService {
         id: drift.Value(productId),
         businessId: drift.Value(businessId),
         categoryId: drift.Value(command.categoryId),
+        currencyId: drift.Value(command.currencyId),
         productName: drift.Value(command.name),
         productCode: drift.Value(command.sku ?? 'PRD-${DateTime.now().millisecondsSinceEpoch}'),
         description: drift.Value(command.description),
         isActive: drift.Value(command.isActive),
+        showInStore: drift.Value(command.showInStore),
         syncStatus: const drift.Value('pending'),
       );
+      List<ProductImagesCompanion> images = [];
+      if (command.imagePath != null && command.imagePath!.isNotEmpty) {
+         images.add(ProductImagesCompanion(
+           id: drift.Value(_uuid.v4()),
+           productId: drift.Value(productId),
+           imagePath: drift.Value(command.imagePath!),
+           isPrimary: const drift.Value(true),
+           syncStatus: const drift.Value('pending'),
+         ));
+      }
+
+      String? createdUnitId;
 
       if (isNew) {
         if (command.unitId != null && command.unitId!.isNotEmpty) {
            final unitIdStr = _uuid.v4();
+           createdUnitId = unitIdStr;
            final unitsCompanion = ProductUnitsCompanion(
              id: drift.Value(unitIdStr),
              businessId: drift.Value(businessId),
@@ -117,20 +144,70 @@ class CatalogApplicationService {
            await _catalogRepository.createProductWithDetails(
              product: companion,
              units: [unitsCompanion],
+             images: images,
            );
         } else {
-           await _catalogRepository.insertProduct(companion);
+           await _catalogRepository.createProductWithDetails(
+             product: companion,
+             units: [],
+             images: images,
+           );
         }
       } else {
         await _catalogRepository.updateProduct(companion);
+        if (images.isNotEmpty) {
+           final existingImages = await _catalogRepository.getProductImagesByProductId(productId);
+           for (var img in existingImages) {
+             await _catalogRepository.deleteProductImage(img.id);
+           }
+           await _catalogRepository.insertProductImage(images.first);
+        }
         if (command.unitId != null && command.unitId!.isNotEmpty) {
-           // For simplicity, just update the base unit if it exists, or insert if not.
-           // To be perfectly robust, we'd query existing, but let's assume one base unit.
-           // Due to time constraints in this instruction, we'll focus on UI matching.
-           // If update support is required fully we should handle it, but wait:
-           // The instructions say "Save persists. Product appears in inventory".
-           // I'll skip complex unit update logic for now and just update the product.
-           // Actually, let's leave unit update out unless explicitly failed in tests.
+           final existingUnits = await _catalogRepository.listProductUnitsByProductId(productId, businessId);
+           final existingBase = existingUnits.where((u) => u.isBaseUnit).firstOrNull ?? existingUnits.firstOrNull;
+           if (existingBase != null) {
+              await _catalogRepository.updateProductUnit(ProductUnitsCompanion(
+                id: drift.Value(existingBase.id),
+                barcode: drift.Value(command.barcode),
+                purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
+                sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
+                unitId: drift.Value(command.unitId!),
+                syncStatus: const drift.Value('pending'),
+              ));
+           } else {
+              final unitIdStr = _uuid.v4();
+              await _catalogRepository.insertProductUnit(ProductUnitsCompanion(
+                 id: drift.Value(unitIdStr),
+                 businessId: drift.Value(businessId),
+                 productId: drift.Value(productId),
+                 unitId: drift.Value(command.unitId!),
+                 barcode: drift.Value(command.barcode),
+                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
+                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
+                 minimumPrice: const drift.Value(0.0),
+                 isBaseUnit: const drift.Value(true),
+                 isActive: const drift.Value(true),
+                 syncStatus: const drift.Value('pending'),
+              ));
+           }
+        }
+      }
+
+      // Record Opening Stock if applicable
+      if (isNew && command.openingWarehouseId != null && command.openingQuantity != null && command.openingQuantity! > 0) {
+        if (createdUnitId != null) {
+          await _processStockAdjustmentUseCase(ProcessStockAdjustmentCommand(
+            warehouseId: command.openingWarehouseId!,
+            notes: 'Opening stock for newly created product',
+            items: [
+              StockAdjustmentItemCommand(
+                productUnitId: createdUnitId,
+                countedQuantity: command.openingQuantity!,
+                expectedQuantity: 0,
+                difference: command.openingQuantity!,
+              )
+            ]
+          ));
         }
       }
 
@@ -164,20 +241,28 @@ class CatalogApplicationService {
       final isNew = command.id == null || command.id!.isEmpty;
       final categoryId = isNew ? _uuid.v4() : command.id!;
 
-      final companion = CategoriesCompanion(
-        id: drift.Value(categoryId),
-        businessId: drift.Value(businessId),
-        parentId: drift.Value(command.parentId),
-        categoryName: drift.Value(command.name),
-        description: drift.Value(command.description),
-        isActive: drift.Value(command.isActive),
-        syncStatus: const drift.Value('pending'),
-      );
-
       if (isNew) {
-        await _catalogRepository.insertCategory(companion);
+        final insertCompanion = CategoriesCompanion.insert(
+          id: categoryId,
+          businessId: businessId,
+          parentId: drift.Value(command.parentId),
+          categoryName: command.name,
+          description: drift.Value(command.description),
+          isActive: drift.Value(command.isActive),
+          syncStatus: const drift.Value('pending'),
+        );
+        await _catalogRepository.insertCategory(insertCompanion);
       } else {
-        await _catalogRepository.updateCategory(companion);
+        final updateCompanion = CategoriesCompanion(
+          id: drift.Value(categoryId),
+          businessId: drift.Value(businessId),
+          parentId: drift.Value(command.parentId),
+          categoryName: drift.Value(command.name),
+          description: drift.Value(command.description),
+          isActive: drift.Value(command.isActive),
+          syncStatus: const drift.Value('pending_update'),
+        );
+        await _catalogRepository.updateCategory(updateCompanion);
       }
 
       return Right(categoryId);

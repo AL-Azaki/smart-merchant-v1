@@ -4,6 +4,11 @@ import '../../../../app/di/injection.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../application/usecases/process_warehouse_transfer_usecase.dart';
 import '../../application/usecases/process_stock_adjustment_usecase.dart' as smart_merchant_erp_usecase;
+import '../../domain/repositories/inventory_repository.dart';
+import '../../../../kernel/core/application_context.dart';
+import '../../../../database/daos/inventory_dao.dart';
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/enums/inventory_reference_type.dart';
 
 part 'inventory_provider.g.dart';
 
@@ -198,18 +203,20 @@ class StockAdjustmentNotifier extends _$StockAdjustmentNotifier {
     try {
       final useCase = getIt<smart_merchant_erp_usecase.ProcessStockAdjustmentUseCase>();
       
-      final lines = (data['lines'] as List).map((l) {
+      final linesList = data['lines'] as List;
+      final lines = linesList.map((dynamic l) {
+        final lineData = l as Map<String, dynamic>;
         return smart_merchant_erp_usecase.StockAdjustmentItemCommand(
-          productUnitId: l['product_unit_id'] ?? l['product_id'], // Adjust logic as needed
-          countedQuantity: (l['physical_qty'] as num).toDouble(),
-          expectedQuantity: (l['system_qty'] as num).toDouble(),
-          difference: (l['discrepancy'] as num).toDouble(),
+          productUnitId: (lineData['product_unit_id'] ?? lineData['product_id']) as String,
+          countedQuantity: (lineData['physical_qty'] as num).toDouble(),
+          expectedQuantity: (lineData['system_qty'] as num).toDouble(),
+          difference: (lineData['discrepancy'] as num).toDouble(),
         );
       }).toList();
 
       final command = smart_merchant_erp_usecase.ProcessStockAdjustmentCommand(
-        warehouseId: data['warehouse_id'],
-        notes: data['notes'],
+        warehouseId: data['warehouse_id'] as String,
+        notes: data['notes'] as String?,
         items: lines,
       );
 
@@ -230,5 +237,40 @@ class StockAdjustmentNotifier extends _$StockAdjustmentNotifier {
       return false;
     }
   }
+}
+
+@riverpod
+Future<List<Warehouse>> activeWarehouses(ActiveWarehousesRef ref) async {
+  final repo = getIt<InventoryRepository>();
+  final context = getIt<ApplicationContext>();
+  final filter = WarehouseFilter(
+    businessId: context.currentBusinessId,
+    branchId: context.currentBranchId,
+    isActive: true,
+  );
+  return await repo.listWarehouses(filter);
+}
+
+@riverpod
+Future<List<StockBalanceView>> warehouseStockBalances(WarehouseStockBalancesRef ref, String warehouseId) async {
+  final repo = getIt<InventoryRepository>();
+  final context = getIt<ApplicationContext>();
+  final filter = InventoryFilter(
+    businessId: context.currentBusinessId,
+    warehouseId: warehouseId,
+  );
+  return await repo.getDetailedStockBalances(filter);
+}
+
+@riverpod
+Stream<List<InventoryTransaction>> stockAdjustmentsList(StockAdjustmentsListRef ref) {
+  final repo = getIt<InventoryRepository>();
+  final context = getIt<ApplicationContext>();
+  final filter = InventoryTransactionFilter(
+    businessId: context.currentBusinessId,
+    branchId: context.currentBranchId,
+    referenceType: InventoryReferenceType.adjustment,
+  );
+  return repo.watchTransactions(filter);
 }
 

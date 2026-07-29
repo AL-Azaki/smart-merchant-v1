@@ -1,46 +1,46 @@
 import 'package:flutter/material.dart';
-import '../../../../../../kernel/storage/app_database.dart' show Product;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../shared/design_system/tokens/colors.dart';
 import '../../../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../../../../database/daos/inventory_dao.dart' show StockBalanceView;
+import '../../../providers/inventory_provider.dart';
 
-class StockAdjustmentFormSheet extends StatefulWidget {
-  final List<Product> products;
+class StockAdjustmentFormSheet extends ConsumerStatefulWidget {
   final VoidCallback onClose;
   final Function(Map<String, dynamic>) onSave;
 
   const StockAdjustmentFormSheet({
     super.key,
-    required this.products,
     required this.onClose,
     required this.onSave,
   });
 
   @override
-  State<StockAdjustmentFormSheet> createState() => _StockAdjustmentFormSheetState();
+  ConsumerState<StockAdjustmentFormSheet> createState() => _StockAdjustmentFormSheetState();
 }
 
 class _AdjustmentLine {
   final String id;
-  final Product product;
-  final double systemQty;
+  final StockBalanceView stockView;
   double? physicalQty;
 
   _AdjustmentLine({
     required this.id,
-    required this.product,
-    required this.systemQty,
+    required this.stockView,
     this.physicalQty,
   });
 
+  double get systemQty => stockView.inventory.quantity;
   double get discrepancy => (physicalQty ?? 0) - systemQty;
 }
 
-class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
+class _StockAdjustmentFormSheetState extends ConsumerState<StockAdjustmentFormSheet> {
   final TextEditingController _notesController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   final FocusNode _searchFocus = FocusNode();
 
+  String? _selectedWarehouseId;
   final List<_AdjustmentLine> _lines = [];
 
   @override
@@ -61,13 +61,12 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
     super.dispose();
   }
 
-  void _addLine(Product product) {
-    if (_lines.any((l) => l.product.id == product.id)) return;
+  void _addLine(StockBalanceView view) {
+    if (_lines.any((l) => l.stockView.productUnit.id == view.productUnit.id)) return;
     setState(() {
       _lines.add(_AdjustmentLine(
         id: 'tmp_${DateTime.now().millisecondsSinceEpoch}',
-        product: product,
-        systemQty: 100, // Mock for now, would come from actual stock
+        stockView: view,
       ));
       _searchController.clear();
       _searchFocus.unfocus();
@@ -81,6 +80,13 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
   }
 
   void _handleSave() {
+    if (_selectedWarehouseId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى اختيار المستودع أولاً.')),
+      );
+      return;
+    }
+
     final validLines = _lines.where((l) => l.physicalQty != null).toList();
     if (validLines.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -93,8 +99,10 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
       'adjustment_number': 'SA-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
       'date': DateTime.now().toIso8601String(),
       'notes': _notesController.text,
+      'warehouse_id': _selectedWarehouseId,
       'lines': validLines.map((l) => {
-        'product_id': l.product.id,
+        'product_id': l.stockView.product.id,
+        'product_unit_id': l.stockView.productUnit.id,
         'system_qty': l.systemQty,
         'physical_qty': l.physicalQty,
         'discrepancy': l.discrepancy,
@@ -108,10 +116,14 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
     final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
-    final filteredProducts = widget.products.where((p) {
-      final q = _searchQuery.toLowerCase();
-      return p.productName.toLowerCase().contains(q) || (p.productCode?.toLowerCase().contains(q) ?? false);
-    }).toList();
+    final warehousesAsync = ref.watch(activeWarehousesProvider);
+    final warehouses = warehousesAsync.valueOrNull ?? [];
+
+    List<StockBalanceView> availableStocks = [];
+    if (_selectedWarehouseId != null) {
+      final stockAsync = ref.watch(warehouseStockBalancesProvider(_selectedWarehouseId!));
+      availableStocks = stockAsync.valueOrNull ?? [];
+    }
 
     return Container(
       width: 700,
@@ -153,76 +165,98 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
-                  // Notes
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: borderColor),
-                      borderRadius: BorderRadius.circular(16),
-                      color: surfaceColor,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('سبب التعديل / البيان', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 8),
-                        TextField(
+                  Row(
+                    children: [
+                      // Warehouse Selector
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: borderColor),
+                            borderRadius: BorderRadius.circular(12),
+                            color: surfaceColor,
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              value: _selectedWarehouseId,
+                              hint: const Text('المستودع', style: TextStyle(fontWeight: FontWeight.bold)),
+                              items: warehouses.map((w) {
+                                return DropdownMenuItem(
+                                  value: w.id,
+                                  child: Text(w.warehouseName),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                setState(() {
+                                  _selectedWarehouseId = val;
+                                  _lines.clear();
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // Notes
+                      Expanded(
+                        flex: 2,
+                        child: TextField(
                           controller: _notesController,
                           decoration: InputDecoration(
-                            hintText: 'مثال: جرد نهاية الشهر، تسوية نقص مستودع...',
+                            hintText: 'سبب التعديل / البيان...',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                             prefixIcon: const Icon(Icons.description_outlined),
                           ),
-                          maxLines: 2,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   
                   // Search
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.inventory_2, color: AppColors.primary, size: 18),
-                          const SizedBox(width: 8),
-                          const Text('البحث عن المنتجات للجرد', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Autocomplete<Product>(
-                        optionsBuilder: (TextEditingValue textEditingValue) {
-                          if (textEditingValue.text == '') {
-                            return const Iterable<Product>.empty();
-                          }
-                          final q = textEditingValue.text.toLowerCase();
-                          return widget.products.where((p) {
-                            final dynamic product = p;
-                            final String name = product.productName ?? '';
-                            final String? code = product.productCode;
-                            return name.toLowerCase().contains(q) || (code?.toLowerCase().contains(q) ?? false);
-                          });
-                        },
-                        displayStringForOption: (dynamic option) => option.productName ?? '',
-                        onSelected: (option) {
-                          _addLine(option);
-                        },
-                        fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                          return TextField(
-                            controller: textEditingController,
-                            focusNode: focusNode,
-                            decoration: InputDecoration(
-                              hintText: 'ابحث بالاسم أو الباركود...',
-                              prefixIcon: const Icon(Icons.search),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+                  if (_selectedWarehouseId != null)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.inventory_2, color: AppColors.primary, size: 18),
+                            const SizedBox(width: 8),
+                            const Text('البحث عن المنتجات للجرد', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Autocomplete<StockBalanceView>(
+                          optionsBuilder: (TextEditingValue textEditingValue) {
+                            if (textEditingValue.text == '') {
+                              return const Iterable<StockBalanceView>.empty();
+                            }
+                            final q = textEditingValue.text.toLowerCase();
+                            return availableStocks.where((s) {
+                              final name = s.product.productName.toLowerCase();
+                              final code = s.product.productCode.toLowerCase();
+                              return name.contains(q) || code.contains(q);
+                            });
+                          },
+                          displayStringForOption: (StockBalanceView option) => option.product.productName,
+                          onSelected: (option) {
+                            _addLine(option);
+                          },
+                          fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                            return TextField(
+                              controller: textEditingController,
+                              focusNode: focusNode,
+                              decoration: InputDecoration(
+                                hintText: 'ابحث بالاسم أو الباركود...',
+                                prefixIcon: const Icon(Icons.search),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 24),
                   
                   // Lines
@@ -269,9 +303,8 @@ class _StockAdjustmentFormSheetState extends State<StockAdjustmentFormSheet> {
                                               child: Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  Text(line.product.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                                  if (line.product.productCode != null)
-                                                    Text(line.product.productCode!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                  Text(line.stockView.product.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                  Text(line.stockView.product.productCode, style: const TextStyle(fontSize: 12, color: Colors.grey)),
                                                 ],
                                               ),
                                             ),

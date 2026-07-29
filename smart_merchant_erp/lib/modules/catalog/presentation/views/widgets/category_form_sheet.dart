@@ -43,7 +43,7 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
     if (_formKey.currentState!.validate()) {
       widget.onSave({
         'id': widget.category?['id'],
-        'name': _nameController.text,
+        'category_name': _nameController.text,
         'name_en': _nameEnController.text,
         'is_active': _isActive,
       });
@@ -73,23 +73,28 @@ class _CategoryFormSheetState extends State<CategoryFormSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(Icons.account_tree_outlined, color: Colors.green),
                       ),
-                      child: const Icon(Icons.account_tree_outlined, color: Colors.green),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      widget.category == null ? 'إضافة فئة جديدة' : 'تعديل الفئة',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          widget.category == null ? 'إضافة فئة جديدة' : 'تعديل الفئة',
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 IconButton(
                   onPressed: widget.onClose,

@@ -11974,6 +11974,18 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _currencyIdMeta = const VerificationMeta(
+    'currencyId',
+  );
+  @override
+  late final GeneratedColumn<String> currencyId = GeneratedColumn<String>(
+    'currency_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES currencies(id) ON DELETE RESTRICT',
+  );
   static const VerificationMeta _productTypeMeta = const VerificationMeta(
     'productType',
   );
@@ -12033,6 +12045,21 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       'CHECK ("is_active" IN (0, 1))',
     ),
     defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _showInStoreMeta = const VerificationMeta(
+    'showInStore',
+  );
+  @override
+  late final GeneratedColumn<bool> showInStore = GeneratedColumn<bool>(
+    'show_in_store',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("show_in_store" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -12109,11 +12136,13 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
     categoryId,
     brandId,
     taxId,
+    currencyId,
     productType,
     productCode,
     productName,
     description,
     isActive,
+    showInStore,
     createdAt,
     updatedAt,
     deletedAt,
@@ -12164,6 +12193,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         taxId.isAcceptableOrUnknown(data['tax_id']!, _taxIdMeta),
       );
     }
+    if (data.containsKey('currency_id')) {
+      context.handle(
+        _currencyIdMeta,
+        currencyId.isAcceptableOrUnknown(data['currency_id']!, _currencyIdMeta),
+      );
+    }
     if (data.containsKey('product_type')) {
       context.handle(
         _productTypeMeta,
@@ -12208,6 +12243,15 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       context.handle(
         _isActiveMeta,
         isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    if (data.containsKey('show_in_store')) {
+      context.handle(
+        _showInStoreMeta,
+        showInStore.isAcceptableOrUnknown(
+          data['show_in_store']!,
+          _showInStoreMeta,
+        ),
       );
     }
     if (data.containsKey('created_at')) {
@@ -12280,6 +12324,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         DriftSqlType.string,
         data['${effectivePrefix}tax_id'],
       ),
+      currencyId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_id'],
+      ),
       productType: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}product_type'],
@@ -12299,6 +12347,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       isActive: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_active'],
+      )!,
+      showInStore: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_in_store'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -12349,6 +12401,9 @@ class Product extends DataClass implements Insertable<Product> {
   /// Reference to default applied tax (`taxes.id`, nullable UUID string).
   final String? taxId;
 
+  /// Foreign Key linking to default pricing currency (`currencies.id`, RESTRICT).
+  final String? currencyId;
+
   /// Product type classification (`standard`, `service`, `composite`).
   final String productType;
 
@@ -12363,6 +12418,9 @@ class Product extends DataClass implements Insertable<Product> {
 
   /// Operational activity status flag.
   final bool isActive;
+
+  /// Storefront visibility flag.
+  final bool showInStore;
 
   /// Record creation timestamp.
   final DateTime? createdAt;
@@ -12387,11 +12445,13 @@ class Product extends DataClass implements Insertable<Product> {
     this.categoryId,
     this.brandId,
     this.taxId,
+    this.currencyId,
     required this.productType,
     required this.productCode,
     required this.productName,
     this.description,
     required this.isActive,
+    required this.showInStore,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
@@ -12413,6 +12473,9 @@ class Product extends DataClass implements Insertable<Product> {
     if (!nullToAbsent || taxId != null) {
       map['tax_id'] = Variable<String>(taxId);
     }
+    if (!nullToAbsent || currencyId != null) {
+      map['currency_id'] = Variable<String>(currencyId);
+    }
     map['product_type'] = Variable<String>(productType);
     map['product_code'] = Variable<String>(productCode);
     map['product_name'] = Variable<String>(productName);
@@ -12420,6 +12483,7 @@ class Product extends DataClass implements Insertable<Product> {
       map['description'] = Variable<String>(description);
     }
     map['is_active'] = Variable<bool>(isActive);
+    map['show_in_store'] = Variable<bool>(showInStore);
     if (!nullToAbsent || createdAt != null) {
       map['created_at'] = Variable<DateTime>(createdAt);
     }
@@ -12450,6 +12514,9 @@ class Product extends DataClass implements Insertable<Product> {
       taxId: taxId == null && nullToAbsent
           ? const Value.absent()
           : Value(taxId),
+      currencyId: currencyId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currencyId),
       productType: Value(productType),
       productCode: Value(productCode),
       productName: Value(productName),
@@ -12457,6 +12524,7 @@ class Product extends DataClass implements Insertable<Product> {
           ? const Value.absent()
           : Value(description),
       isActive: Value(isActive),
+      showInStore: Value(showInStore),
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
           : Value(createdAt),
@@ -12485,11 +12553,13 @@ class Product extends DataClass implements Insertable<Product> {
       categoryId: serializer.fromJson<String?>(json['categoryId']),
       brandId: serializer.fromJson<String?>(json['brandId']),
       taxId: serializer.fromJson<String?>(json['taxId']),
+      currencyId: serializer.fromJson<String?>(json['currencyId']),
       productType: serializer.fromJson<String>(json['productType']),
       productCode: serializer.fromJson<String>(json['productCode']),
       productName: serializer.fromJson<String>(json['productName']),
       description: serializer.fromJson<String?>(json['description']),
       isActive: serializer.fromJson<bool>(json['isActive']),
+      showInStore: serializer.fromJson<bool>(json['showInStore']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
       deletedAt: serializer.fromJson<DateTime?>(json['deletedAt']),
@@ -12507,11 +12577,13 @@ class Product extends DataClass implements Insertable<Product> {
       'categoryId': serializer.toJson<String?>(categoryId),
       'brandId': serializer.toJson<String?>(brandId),
       'taxId': serializer.toJson<String?>(taxId),
+      'currencyId': serializer.toJson<String?>(currencyId),
       'productType': serializer.toJson<String>(productType),
       'productCode': serializer.toJson<String>(productCode),
       'productName': serializer.toJson<String>(productName),
       'description': serializer.toJson<String?>(description),
       'isActive': serializer.toJson<bool>(isActive),
+      'showInStore': serializer.toJson<bool>(showInStore),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
       'updatedAt': serializer.toJson<DateTime?>(updatedAt),
       'deletedAt': serializer.toJson<DateTime?>(deletedAt),
@@ -12527,11 +12599,13 @@ class Product extends DataClass implements Insertable<Product> {
     Value<String?> categoryId = const Value.absent(),
     Value<String?> brandId = const Value.absent(),
     Value<String?> taxId = const Value.absent(),
+    Value<String?> currencyId = const Value.absent(),
     String? productType,
     String? productCode,
     String? productName,
     Value<String?> description = const Value.absent(),
     bool? isActive,
+    bool? showInStore,
     Value<DateTime?> createdAt = const Value.absent(),
     Value<DateTime?> updatedAt = const Value.absent(),
     Value<DateTime?> deletedAt = const Value.absent(),
@@ -12544,11 +12618,13 @@ class Product extends DataClass implements Insertable<Product> {
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     brandId: brandId.present ? brandId.value : this.brandId,
     taxId: taxId.present ? taxId.value : this.taxId,
+    currencyId: currencyId.present ? currencyId.value : this.currencyId,
     productType: productType ?? this.productType,
     productCode: productCode ?? this.productCode,
     productName: productName ?? this.productName,
     description: description.present ? description.value : this.description,
     isActive: isActive ?? this.isActive,
+    showInStore: showInStore ?? this.showInStore,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
     deletedAt: deletedAt.present ? deletedAt.value : this.deletedAt,
@@ -12567,6 +12643,9 @@ class Product extends DataClass implements Insertable<Product> {
           : this.categoryId,
       brandId: data.brandId.present ? data.brandId.value : this.brandId,
       taxId: data.taxId.present ? data.taxId.value : this.taxId,
+      currencyId: data.currencyId.present
+          ? data.currencyId.value
+          : this.currencyId,
       productType: data.productType.present
           ? data.productType.value
           : this.productType,
@@ -12580,6 +12659,9 @@ class Product extends DataClass implements Insertable<Product> {
           ? data.description.value
           : this.description,
       isActive: data.isActive.present ? data.isActive.value : this.isActive,
+      showInStore: data.showInStore.present
+          ? data.showInStore.value
+          : this.showInStore,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
@@ -12599,11 +12681,13 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('categoryId: $categoryId, ')
           ..write('brandId: $brandId, ')
           ..write('taxId: $taxId, ')
+          ..write('currencyId: $currencyId, ')
           ..write('productType: $productType, ')
           ..write('productCode: $productCode, ')
           ..write('productName: $productName, ')
           ..write('description: $description, ')
           ..write('isActive: $isActive, ')
+          ..write('showInStore: $showInStore, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -12621,11 +12705,13 @@ class Product extends DataClass implements Insertable<Product> {
     categoryId,
     brandId,
     taxId,
+    currencyId,
     productType,
     productCode,
     productName,
     description,
     isActive,
+    showInStore,
     createdAt,
     updatedAt,
     deletedAt,
@@ -12642,11 +12728,13 @@ class Product extends DataClass implements Insertable<Product> {
           other.categoryId == this.categoryId &&
           other.brandId == this.brandId &&
           other.taxId == this.taxId &&
+          other.currencyId == this.currencyId &&
           other.productType == this.productType &&
           other.productCode == this.productCode &&
           other.productName == this.productName &&
           other.description == this.description &&
           other.isActive == this.isActive &&
+          other.showInStore == this.showInStore &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.deletedAt == this.deletedAt &&
@@ -12661,11 +12749,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String?> categoryId;
   final Value<String?> brandId;
   final Value<String?> taxId;
+  final Value<String?> currencyId;
   final Value<String> productType;
   final Value<String> productCode;
   final Value<String> productName;
   final Value<String?> description;
   final Value<bool> isActive;
+  final Value<bool> showInStore;
   final Value<DateTime?> createdAt;
   final Value<DateTime?> updatedAt;
   final Value<DateTime?> deletedAt;
@@ -12679,11 +12769,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.categoryId = const Value.absent(),
     this.brandId = const Value.absent(),
     this.taxId = const Value.absent(),
+    this.currencyId = const Value.absent(),
     this.productType = const Value.absent(),
     this.productCode = const Value.absent(),
     this.productName = const Value.absent(),
     this.description = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.showInStore = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -12698,11 +12790,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.categoryId = const Value.absent(),
     this.brandId = const Value.absent(),
     this.taxId = const Value.absent(),
+    this.currencyId = const Value.absent(),
     this.productType = const Value.absent(),
     required String productCode,
     required String productName,
     this.description = const Value.absent(),
     this.isActive = const Value.absent(),
+    this.showInStore = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.deletedAt = const Value.absent(),
@@ -12720,11 +12814,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? categoryId,
     Expression<String>? brandId,
     Expression<String>? taxId,
+    Expression<String>? currencyId,
     Expression<String>? productType,
     Expression<String>? productCode,
     Expression<String>? productName,
     Expression<String>? description,
     Expression<bool>? isActive,
+    Expression<bool>? showInStore,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<DateTime>? deletedAt,
@@ -12739,11 +12835,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (categoryId != null) 'category_id': categoryId,
       if (brandId != null) 'brand_id': brandId,
       if (taxId != null) 'tax_id': taxId,
+      if (currencyId != null) 'currency_id': currencyId,
       if (productType != null) 'product_type': productType,
       if (productCode != null) 'product_code': productCode,
       if (productName != null) 'product_name': productName,
       if (description != null) 'description': description,
       if (isActive != null) 'is_active': isActive,
+      if (showInStore != null) 'show_in_store': showInStore,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (deletedAt != null) 'deleted_at': deletedAt,
@@ -12760,11 +12858,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Value<String?>? categoryId,
     Value<String?>? brandId,
     Value<String?>? taxId,
+    Value<String?>? currencyId,
     Value<String>? productType,
     Value<String>? productCode,
     Value<String>? productName,
     Value<String?>? description,
     Value<bool>? isActive,
+    Value<bool>? showInStore,
     Value<DateTime?>? createdAt,
     Value<DateTime?>? updatedAt,
     Value<DateTime?>? deletedAt,
@@ -12779,11 +12879,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       categoryId: categoryId ?? this.categoryId,
       brandId: brandId ?? this.brandId,
       taxId: taxId ?? this.taxId,
+      currencyId: currencyId ?? this.currencyId,
       productType: productType ?? this.productType,
       productCode: productCode ?? this.productCode,
       productName: productName ?? this.productName,
       description: description ?? this.description,
       isActive: isActive ?? this.isActive,
+      showInStore: showInStore ?? this.showInStore,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       deletedAt: deletedAt ?? this.deletedAt,
@@ -12812,6 +12914,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     if (taxId.present) {
       map['tax_id'] = Variable<String>(taxId.value);
     }
+    if (currencyId.present) {
+      map['currency_id'] = Variable<String>(currencyId.value);
+    }
     if (productType.present) {
       map['product_type'] = Variable<String>(productType.value);
     }
@@ -12826,6 +12931,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (isActive.present) {
       map['is_active'] = Variable<bool>(isActive.value);
+    }
+    if (showInStore.present) {
+      map['show_in_store'] = Variable<bool>(showInStore.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -12859,11 +12967,13 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('categoryId: $categoryId, ')
           ..write('brandId: $brandId, ')
           ..write('taxId: $taxId, ')
+          ..write('currencyId: $currencyId, ')
           ..write('productType: $productType, ')
           ..write('productCode: $productCode, ')
           ..write('productName: $productName, ')
           ..write('description: $description, ')
           ..write('isActive: $isActive, ')
+          ..write('showInStore: $showInStore, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('deletedAt: $deletedAt, ')
@@ -18537,6 +18647,1760 @@ class InventoryTransfersCompanion extends UpdateCompanion<InventoryTransfer> {
           ..write('status: $status, ')
           ..write('notes: $notes, ')
           ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StockCountsTable extends StockCounts
+    with TableInfo<$StockCountsTable, StockCount> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StockCountsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _branchIdMeta = const VerificationMeta(
+    'branchId',
+  );
+  @override
+  late final GeneratedColumn<String> branchId = GeneratedColumn<String>(
+    'branch_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES branches(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _warehouseIdMeta = const VerificationMeta(
+    'warehouseId',
+  );
+  @override
+  late final GeneratedColumn<String> warehouseId = GeneratedColumn<String>(
+    'warehouse_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES warehouses(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _countNumberMeta = const VerificationMeta(
+    'countNumber',
+  );
+  @override
+  late final GeneratedColumn<String> countNumber = GeneratedColumn<String>(
+    'count_number',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countDateMeta = const VerificationMeta(
+    'countDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> countDate = GeneratedColumn<DateTime>(
+    'count_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<StockCountStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('Draft'),
+      ).withConverter<StockCountStatus>($StockCountsTable.$converterstatus);
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdByMeta = const VerificationMeta(
+    'createdBy',
+  );
+  @override
+  late final GeneratedColumn<String> createdBy = GeneratedColumn<String>(
+    'created_by',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES users(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _postedByMeta = const VerificationMeta(
+    'postedBy',
+  );
+  @override
+  late final GeneratedColumn<String> postedBy = GeneratedColumn<String>(
+    'posted_by',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'REFERENCES users(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _postedAtMeta = const VerificationMeta(
+    'postedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> postedAt = GeneratedColumn<DateTime>(
+    'posted_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    businessId,
+    branchId,
+    warehouseId,
+    countNumber,
+    countDate,
+    status,
+    notes,
+    createdBy,
+    createdAt,
+    updatedAt,
+    postedBy,
+    postedAt,
+    syncStatus,
+    version,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stock_counts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StockCount> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('branch_id')) {
+      context.handle(
+        _branchIdMeta,
+        branchId.isAcceptableOrUnknown(data['branch_id']!, _branchIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_branchIdMeta);
+    }
+    if (data.containsKey('warehouse_id')) {
+      context.handle(
+        _warehouseIdMeta,
+        warehouseId.isAcceptableOrUnknown(
+          data['warehouse_id']!,
+          _warehouseIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_warehouseIdMeta);
+    }
+    if (data.containsKey('count_number')) {
+      context.handle(
+        _countNumberMeta,
+        countNumber.isAcceptableOrUnknown(
+          data['count_number']!,
+          _countNumberMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_countNumberMeta);
+    }
+    if (data.containsKey('count_date')) {
+      context.handle(
+        _countDateMeta,
+        countDate.isAcceptableOrUnknown(data['count_date']!, _countDateMeta),
+      );
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_by')) {
+      context.handle(
+        _createdByMeta,
+        createdBy.isAcceptableOrUnknown(data['created_by']!, _createdByMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdByMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('posted_by')) {
+      context.handle(
+        _postedByMeta,
+        postedBy.isAcceptableOrUnknown(data['posted_by']!, _postedByMeta),
+      );
+    }
+    if (data.containsKey('posted_at')) {
+      context.handle(
+        _postedAtMeta,
+        postedAt.isAcceptableOrUnknown(data['posted_at']!, _postedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {businessId, id},
+    {businessId, countNumber},
+  ];
+  @override
+  StockCount map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StockCount(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}business_id'],
+      )!,
+      branchId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}branch_id'],
+      )!,
+      warehouseId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}warehouse_id'],
+      )!,
+      countNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}count_number'],
+      )!,
+      countDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}count_date'],
+      )!,
+      status: $StockCountsTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}created_by'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      postedBy: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}posted_by'],
+      ),
+      postedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}posted_at'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+    );
+  }
+
+  @override
+  $StockCountsTable createAlias(String alias) {
+    return $StockCountsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<StockCountStatus, String> $converterstatus =
+      const StockCountStatusConverter();
+}
+
+class StockCount extends DataClass implements Insertable<StockCount> {
+  final String id;
+  final String businessId;
+  final String branchId;
+  final String warehouseId;
+  final String countNumber;
+  final DateTime countDate;
+  final StockCountStatus status;
+  final String? notes;
+  final String createdBy;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? postedBy;
+  final DateTime? postedAt;
+  final String syncStatus;
+  final int version;
+  final String? deviceId;
+  const StockCount({
+    required this.id,
+    required this.businessId,
+    required this.branchId,
+    required this.warehouseId,
+    required this.countNumber,
+    required this.countDate,
+    required this.status,
+    this.notes,
+    required this.createdBy,
+    this.createdAt,
+    this.updatedAt,
+    this.postedBy,
+    this.postedAt,
+    required this.syncStatus,
+    required this.version,
+    this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    map['branch_id'] = Variable<String>(branchId);
+    map['warehouse_id'] = Variable<String>(warehouseId);
+    map['count_number'] = Variable<String>(countNumber);
+    map['count_date'] = Variable<DateTime>(countDate);
+    {
+      map['status'] = Variable<String>(
+        $StockCountsTable.$converterstatus.toSql(status),
+      );
+    }
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    map['created_by'] = Variable<String>(createdBy);
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || postedBy != null) {
+      map['posted_by'] = Variable<String>(postedBy);
+    }
+    if (!nullToAbsent || postedAt != null) {
+      map['posted_at'] = Variable<DateTime>(postedAt);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    return map;
+  }
+
+  StockCountsCompanion toCompanion(bool nullToAbsent) {
+    return StockCountsCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      branchId: Value(branchId),
+      warehouseId: Value(warehouseId),
+      countNumber: Value(countNumber),
+      countDate: Value(countDate),
+      status: Value(status),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdBy: Value(createdBy),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      postedBy: postedBy == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedBy),
+      postedAt: postedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(postedAt),
+      syncStatus: Value(syncStatus),
+      version: Value(version),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+    );
+  }
+
+  factory StockCount.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StockCount(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      branchId: serializer.fromJson<String>(json['branchId']),
+      warehouseId: serializer.fromJson<String>(json['warehouseId']),
+      countNumber: serializer.fromJson<String>(json['countNumber']),
+      countDate: serializer.fromJson<DateTime>(json['countDate']),
+      status: serializer.fromJson<StockCountStatus>(json['status']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdBy: serializer.fromJson<String>(json['createdBy']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      postedBy: serializer.fromJson<String?>(json['postedBy']),
+      postedAt: serializer.fromJson<DateTime?>(json['postedAt']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'branchId': serializer.toJson<String>(branchId),
+      'warehouseId': serializer.toJson<String>(warehouseId),
+      'countNumber': serializer.toJson<String>(countNumber),
+      'countDate': serializer.toJson<DateTime>(countDate),
+      'status': serializer.toJson<StockCountStatus>(status),
+      'notes': serializer.toJson<String?>(notes),
+      'createdBy': serializer.toJson<String>(createdBy),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'postedBy': serializer.toJson<String?>(postedBy),
+      'postedAt': serializer.toJson<DateTime?>(postedAt),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'version': serializer.toJson<int>(version),
+      'deviceId': serializer.toJson<String?>(deviceId),
+    };
+  }
+
+  StockCount copyWith({
+    String? id,
+    String? businessId,
+    String? branchId,
+    String? warehouseId,
+    String? countNumber,
+    DateTime? countDate,
+    StockCountStatus? status,
+    Value<String?> notes = const Value.absent(),
+    String? createdBy,
+    Value<DateTime?> createdAt = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<String?> postedBy = const Value.absent(),
+    Value<DateTime?> postedAt = const Value.absent(),
+    String? syncStatus,
+    int? version,
+    Value<String?> deviceId = const Value.absent(),
+  }) => StockCount(
+    id: id ?? this.id,
+    businessId: businessId ?? this.businessId,
+    branchId: branchId ?? this.branchId,
+    warehouseId: warehouseId ?? this.warehouseId,
+    countNumber: countNumber ?? this.countNumber,
+    countDate: countDate ?? this.countDate,
+    status: status ?? this.status,
+    notes: notes.present ? notes.value : this.notes,
+    createdBy: createdBy ?? this.createdBy,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    postedBy: postedBy.present ? postedBy.value : this.postedBy,
+    postedAt: postedAt.present ? postedAt.value : this.postedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    version: version ?? this.version,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+  );
+  StockCount copyWithCompanion(StockCountsCompanion data) {
+    return StockCount(
+      id: data.id.present ? data.id.value : this.id,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
+      branchId: data.branchId.present ? data.branchId.value : this.branchId,
+      warehouseId: data.warehouseId.present
+          ? data.warehouseId.value
+          : this.warehouseId,
+      countNumber: data.countNumber.present
+          ? data.countNumber.value
+          : this.countNumber,
+      countDate: data.countDate.present ? data.countDate.value : this.countDate,
+      status: data.status.present ? data.status.value : this.status,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      postedBy: data.postedBy.present ? data.postedBy.value : this.postedBy,
+      postedAt: data.postedAt.present ? data.postedAt.value : this.postedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      version: data.version.present ? data.version.value : this.version,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockCount(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('warehouseId: $warehouseId, ')
+          ..write('countNumber: $countNumber, ')
+          ..write('countDate: $countDate, ')
+          ..write('status: $status, ')
+          ..write('notes: $notes, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('postedBy: $postedBy, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    businessId,
+    branchId,
+    warehouseId,
+    countNumber,
+    countDate,
+    status,
+    notes,
+    createdBy,
+    createdAt,
+    updatedAt,
+    postedBy,
+    postedAt,
+    syncStatus,
+    version,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StockCount &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.branchId == this.branchId &&
+          other.warehouseId == this.warehouseId &&
+          other.countNumber == this.countNumber &&
+          other.countDate == this.countDate &&
+          other.status == this.status &&
+          other.notes == this.notes &&
+          other.createdBy == this.createdBy &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.postedBy == this.postedBy &&
+          other.postedAt == this.postedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.version == this.version &&
+          other.deviceId == this.deviceId);
+}
+
+class StockCountsCompanion extends UpdateCompanion<StockCount> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String> branchId;
+  final Value<String> warehouseId;
+  final Value<String> countNumber;
+  final Value<DateTime> countDate;
+  final Value<StockCountStatus> status;
+  final Value<String?> notes;
+  final Value<String> createdBy;
+  final Value<DateTime?> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<String?> postedBy;
+  final Value<DateTime?> postedAt;
+  final Value<String> syncStatus;
+  final Value<int> version;
+  final Value<String?> deviceId;
+  final Value<int> rowid;
+  const StockCountsCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.branchId = const Value.absent(),
+    this.warehouseId = const Value.absent(),
+    this.countNumber = const Value.absent(),
+    this.countDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdBy = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.postedBy = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StockCountsCompanion.insert({
+    required String id,
+    required String businessId,
+    required String branchId,
+    required String warehouseId,
+    required String countNumber,
+    this.countDate = const Value.absent(),
+    this.status = const Value.absent(),
+    this.notes = const Value.absent(),
+    required String createdBy,
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.postedBy = const Value.absent(),
+    this.postedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       businessId = Value(businessId),
+       branchId = Value(branchId),
+       warehouseId = Value(warehouseId),
+       countNumber = Value(countNumber),
+       createdBy = Value(createdBy);
+  static Insertable<StockCount> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? branchId,
+    Expression<String>? warehouseId,
+    Expression<String>? countNumber,
+    Expression<DateTime>? countDate,
+    Expression<String>? status,
+    Expression<String>? notes,
+    Expression<String>? createdBy,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? postedBy,
+    Expression<DateTime>? postedAt,
+    Expression<String>? syncStatus,
+    Expression<int>? version,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (branchId != null) 'branch_id': branchId,
+      if (warehouseId != null) 'warehouse_id': warehouseId,
+      if (countNumber != null) 'count_number': countNumber,
+      if (countDate != null) 'count_date': countDate,
+      if (status != null) 'status': status,
+      if (notes != null) 'notes': notes,
+      if (createdBy != null) 'created_by': createdBy,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (postedBy != null) 'posted_by': postedBy,
+      if (postedAt != null) 'posted_at': postedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (version != null) 'version': version,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StockCountsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? businessId,
+    Value<String>? branchId,
+    Value<String>? warehouseId,
+    Value<String>? countNumber,
+    Value<DateTime>? countDate,
+    Value<StockCountStatus>? status,
+    Value<String?>? notes,
+    Value<String>? createdBy,
+    Value<DateTime?>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<String?>? postedBy,
+    Value<DateTime?>? postedAt,
+    Value<String>? syncStatus,
+    Value<int>? version,
+    Value<String?>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return StockCountsCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      branchId: branchId ?? this.branchId,
+      warehouseId: warehouseId ?? this.warehouseId,
+      countNumber: countNumber ?? this.countNumber,
+      countDate: countDate ?? this.countDate,
+      status: status ?? this.status,
+      notes: notes ?? this.notes,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      postedBy: postedBy ?? this.postedBy,
+      postedAt: postedAt ?? this.postedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (branchId.present) {
+      map['branch_id'] = Variable<String>(branchId.value);
+    }
+    if (warehouseId.present) {
+      map['warehouse_id'] = Variable<String>(warehouseId.value);
+    }
+    if (countNumber.present) {
+      map['count_number'] = Variable<String>(countNumber.value);
+    }
+    if (countDate.present) {
+      map['count_date'] = Variable<DateTime>(countDate.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $StockCountsTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdBy.present) {
+      map['created_by'] = Variable<String>(createdBy.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (postedBy.present) {
+      map['posted_by'] = Variable<String>(postedBy.value);
+    }
+    if (postedAt.present) {
+      map['posted_at'] = Variable<DateTime>(postedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockCountsCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('branchId: $branchId, ')
+          ..write('warehouseId: $warehouseId, ')
+          ..write('countNumber: $countNumber, ')
+          ..write('countDate: $countDate, ')
+          ..write('status: $status, ')
+          ..write('notes: $notes, ')
+          ..write('createdBy: $createdBy, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('postedBy: $postedBy, ')
+          ..write('postedAt: $postedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $StockCountItemsTable extends StockCountItems
+    with TableInfo<$StockCountItemsTable, StockCountItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StockCountItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES businesses(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _stockCountIdMeta = const VerificationMeta(
+    'stockCountId',
+  );
+  @override
+  late final GeneratedColumn<String> stockCountId = GeneratedColumn<String>(
+    'stock_count_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL REFERENCES stock_counts(id) ON DELETE CASCADE',
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES products(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _productUnitIdMeta = const VerificationMeta(
+    'productUnitId',
+  );
+  @override
+  late final GeneratedColumn<String> productUnitId = GeneratedColumn<String>(
+    'product_unit_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints:
+        'NOT NULL REFERENCES product_units(id) ON DELETE RESTRICT',
+  );
+  static const VerificationMeta _expectedQuantityMeta = const VerificationMeta(
+    'expectedQuantity',
+  );
+  @override
+  late final GeneratedColumn<double> expectedQuantity = GeneratedColumn<double>(
+    'expected_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _countedQuantityMeta = const VerificationMeta(
+    'countedQuantity',
+  );
+  @override
+  late final GeneratedColumn<double> countedQuantity = GeneratedColumn<double>(
+    'counted_quantity',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _differenceQuantityMeta =
+      const VerificationMeta('differenceQuantity');
+  @override
+  late final GeneratedColumn<double> differenceQuantity =
+      GeneratedColumn<double>(
+        'difference_quantity',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    businessId,
+    stockCountId,
+    productId,
+    productUnitId,
+    expectedQuantity,
+    countedQuantity,
+    differenceQuantity,
+    notes,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    version,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stock_count_items';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<StockCountItem> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('stock_count_id')) {
+      context.handle(
+        _stockCountIdMeta,
+        stockCountId.isAcceptableOrUnknown(
+          data['stock_count_id']!,
+          _stockCountIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_stockCountIdMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('product_unit_id')) {
+      context.handle(
+        _productUnitIdMeta,
+        productUnitId.isAcceptableOrUnknown(
+          data['product_unit_id']!,
+          _productUnitIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_productUnitIdMeta);
+    }
+    if (data.containsKey('expected_quantity')) {
+      context.handle(
+        _expectedQuantityMeta,
+        expectedQuantity.isAcceptableOrUnknown(
+          data['expected_quantity']!,
+          _expectedQuantityMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_expectedQuantityMeta);
+    }
+    if (data.containsKey('counted_quantity')) {
+      context.handle(
+        _countedQuantityMeta,
+        countedQuantity.isAcceptableOrUnknown(
+          data['counted_quantity']!,
+          _countedQuantityMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_countedQuantityMeta);
+    }
+    if (data.containsKey('difference_quantity')) {
+      context.handle(
+        _differenceQuantityMeta,
+        differenceQuantity.isAcceptableOrUnknown(
+          data['difference_quantity']!,
+          _differenceQuantityMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_differenceQuantityMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StockCountItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StockCountItem(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}business_id'],
+      )!,
+      stockCountId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stock_count_id'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      )!,
+      productUnitId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_unit_id'],
+      )!,
+      expectedQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}expected_quantity'],
+      )!,
+      countedQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}counted_quantity'],
+      )!,
+      differenceQuantity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}difference_quantity'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+    );
+  }
+
+  @override
+  $StockCountItemsTable createAlias(String alias) {
+    return $StockCountItemsTable(attachedDatabase, alias);
+  }
+}
+
+class StockCountItem extends DataClass implements Insertable<StockCountItem> {
+  final String id;
+  final String businessId;
+  final String stockCountId;
+  final String productId;
+  final String productUnitId;
+  final double expectedQuantity;
+  final double countedQuantity;
+  final double differenceQuantity;
+  final String? notes;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String syncStatus;
+  final int version;
+  final String? deviceId;
+  const StockCountItem({
+    required this.id,
+    required this.businessId,
+    required this.stockCountId,
+    required this.productId,
+    required this.productUnitId,
+    required this.expectedQuantity,
+    required this.countedQuantity,
+    required this.differenceQuantity,
+    this.notes,
+    this.createdAt,
+    this.updatedAt,
+    required this.syncStatus,
+    required this.version,
+    this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    map['stock_count_id'] = Variable<String>(stockCountId);
+    map['product_id'] = Variable<String>(productId);
+    map['product_unit_id'] = Variable<String>(productUnitId);
+    map['expected_quantity'] = Variable<double>(expectedQuantity);
+    map['counted_quantity'] = Variable<double>(countedQuantity);
+    map['difference_quantity'] = Variable<double>(differenceQuantity);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    return map;
+  }
+
+  StockCountItemsCompanion toCompanion(bool nullToAbsent) {
+    return StockCountItemsCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      stockCountId: Value(stockCountId),
+      productId: Value(productId),
+      productUnitId: Value(productUnitId),
+      expectedQuantity: Value(expectedQuantity),
+      countedQuantity: Value(countedQuantity),
+      differenceQuantity: Value(differenceQuantity),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      version: Value(version),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+    );
+  }
+
+  factory StockCountItem.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StockCountItem(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      stockCountId: serializer.fromJson<String>(json['stockCountId']),
+      productId: serializer.fromJson<String>(json['productId']),
+      productUnitId: serializer.fromJson<String>(json['productUnitId']),
+      expectedQuantity: serializer.fromJson<double>(json['expectedQuantity']),
+      countedQuantity: serializer.fromJson<double>(json['countedQuantity']),
+      differenceQuantity: serializer.fromJson<double>(
+        json['differenceQuantity'],
+      ),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'stockCountId': serializer.toJson<String>(stockCountId),
+      'productId': serializer.toJson<String>(productId),
+      'productUnitId': serializer.toJson<String>(productUnitId),
+      'expectedQuantity': serializer.toJson<double>(expectedQuantity),
+      'countedQuantity': serializer.toJson<double>(countedQuantity),
+      'differenceQuantity': serializer.toJson<double>(differenceQuantity),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'version': serializer.toJson<int>(version),
+      'deviceId': serializer.toJson<String?>(deviceId),
+    };
+  }
+
+  StockCountItem copyWith({
+    String? id,
+    String? businessId,
+    String? stockCountId,
+    String? productId,
+    String? productUnitId,
+    double? expectedQuantity,
+    double? countedQuantity,
+    double? differenceQuantity,
+    Value<String?> notes = const Value.absent(),
+    Value<DateTime?> createdAt = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    String? syncStatus,
+    int? version,
+    Value<String?> deviceId = const Value.absent(),
+  }) => StockCountItem(
+    id: id ?? this.id,
+    businessId: businessId ?? this.businessId,
+    stockCountId: stockCountId ?? this.stockCountId,
+    productId: productId ?? this.productId,
+    productUnitId: productUnitId ?? this.productUnitId,
+    expectedQuantity: expectedQuantity ?? this.expectedQuantity,
+    countedQuantity: countedQuantity ?? this.countedQuantity,
+    differenceQuantity: differenceQuantity ?? this.differenceQuantity,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    version: version ?? this.version,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+  );
+  StockCountItem copyWithCompanion(StockCountItemsCompanion data) {
+    return StockCountItem(
+      id: data.id.present ? data.id.value : this.id,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
+      stockCountId: data.stockCountId.present
+          ? data.stockCountId.value
+          : this.stockCountId,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      productUnitId: data.productUnitId.present
+          ? data.productUnitId.value
+          : this.productUnitId,
+      expectedQuantity: data.expectedQuantity.present
+          ? data.expectedQuantity.value
+          : this.expectedQuantity,
+      countedQuantity: data.countedQuantity.present
+          ? data.countedQuantity.value
+          : this.countedQuantity,
+      differenceQuantity: data.differenceQuantity.present
+          ? data.differenceQuantity.value
+          : this.differenceQuantity,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      version: data.version.present ? data.version.value : this.version,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockCountItem(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('stockCountId: $stockCountId, ')
+          ..write('productId: $productId, ')
+          ..write('productUnitId: $productUnitId, ')
+          ..write('expectedQuantity: $expectedQuantity, ')
+          ..write('countedQuantity: $countedQuantity, ')
+          ..write('differenceQuantity: $differenceQuantity, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    businessId,
+    stockCountId,
+    productId,
+    productUnitId,
+    expectedQuantity,
+    countedQuantity,
+    differenceQuantity,
+    notes,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    version,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StockCountItem &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.stockCountId == this.stockCountId &&
+          other.productId == this.productId &&
+          other.productUnitId == this.productUnitId &&
+          other.expectedQuantity == this.expectedQuantity &&
+          other.countedQuantity == this.countedQuantity &&
+          other.differenceQuantity == this.differenceQuantity &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.version == this.version &&
+          other.deviceId == this.deviceId);
+}
+
+class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String> stockCountId;
+  final Value<String> productId;
+  final Value<String> productUnitId;
+  final Value<double> expectedQuantity;
+  final Value<double> countedQuantity;
+  final Value<double> differenceQuantity;
+  final Value<String?> notes;
+  final Value<DateTime?> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<String> syncStatus;
+  final Value<int> version;
+  final Value<String?> deviceId;
+  final Value<int> rowid;
+  const StockCountItemsCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.stockCountId = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.productUnitId = const Value.absent(),
+    this.expectedQuantity = const Value.absent(),
+    this.countedQuantity = const Value.absent(),
+    this.differenceQuantity = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StockCountItemsCompanion.insert({
+    required String id,
+    required String businessId,
+    required String stockCountId,
+    required String productId,
+    required String productUnitId,
+    required double expectedQuantity,
+    required double countedQuantity,
+    required double differenceQuantity,
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       businessId = Value(businessId),
+       stockCountId = Value(stockCountId),
+       productId = Value(productId),
+       productUnitId = Value(productUnitId),
+       expectedQuantity = Value(expectedQuantity),
+       countedQuantity = Value(countedQuantity),
+       differenceQuantity = Value(differenceQuantity);
+  static Insertable<StockCountItem> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? stockCountId,
+    Expression<String>? productId,
+    Expression<String>? productUnitId,
+    Expression<double>? expectedQuantity,
+    Expression<double>? countedQuantity,
+    Expression<double>? differenceQuantity,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncStatus,
+    Expression<int>? version,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (stockCountId != null) 'stock_count_id': stockCountId,
+      if (productId != null) 'product_id': productId,
+      if (productUnitId != null) 'product_unit_id': productUnitId,
+      if (expectedQuantity != null) 'expected_quantity': expectedQuantity,
+      if (countedQuantity != null) 'counted_quantity': countedQuantity,
+      if (differenceQuantity != null) 'difference_quantity': differenceQuantity,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (version != null) 'version': version,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StockCountItemsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? businessId,
+    Value<String>? stockCountId,
+    Value<String>? productId,
+    Value<String>? productUnitId,
+    Value<double>? expectedQuantity,
+    Value<double>? countedQuantity,
+    Value<double>? differenceQuantity,
+    Value<String?>? notes,
+    Value<DateTime?>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<String>? syncStatus,
+    Value<int>? version,
+    Value<String?>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return StockCountItemsCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      stockCountId: stockCountId ?? this.stockCountId,
+      productId: productId ?? this.productId,
+      productUnitId: productUnitId ?? this.productUnitId,
+      expectedQuantity: expectedQuantity ?? this.expectedQuantity,
+      countedQuantity: countedQuantity ?? this.countedQuantity,
+      differenceQuantity: differenceQuantity ?? this.differenceQuantity,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (stockCountId.present) {
+      map['stock_count_id'] = Variable<String>(stockCountId.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (productUnitId.present) {
+      map['product_unit_id'] = Variable<String>(productUnitId.value);
+    }
+    if (expectedQuantity.present) {
+      map['expected_quantity'] = Variable<double>(expectedQuantity.value);
+    }
+    if (countedQuantity.present) {
+      map['counted_quantity'] = Variable<double>(countedQuantity.value);
+    }
+    if (differenceQuantity.present) {
+      map['difference_quantity'] = Variable<double>(differenceQuantity.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockCountItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('stockCountId: $stockCountId, ')
+          ..write('productId: $productId, ')
+          ..write('productUnitId: $productUnitId, ')
+          ..write('expectedQuantity: $expectedQuantity, ')
+          ..write('countedQuantity: $countedQuantity, ')
+          ..write('differenceQuantity: $differenceQuantity, ')
+          ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('syncStatus: $syncStatus, ')
@@ -64740,6 +66604,811 @@ class ExpensesCompanion extends UpdateCompanion<Expense> {
   }
 }
 
+class $ArchiveDocumentsTable extends ArchiveDocuments
+    with TableInfo<$ArchiveDocumentsTable, ArchiveDocument> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ArchiveDocumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _businessIdMeta = const VerificationMeta(
+    'businessId',
+  );
+  @override
+  late final GeneratedColumn<String> businessId = GeneratedColumn<String>(
+    'business_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL REFERENCES businesses(id) ON DELETE CASCADE',
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _refNumberMeta = const VerificationMeta(
+    'refNumber',
+  );
+  @override
+  late final GeneratedColumn<String> refNumber = GeneratedColumn<String>(
+    'ref_number',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _issueDateMeta = const VerificationMeta(
+    'issueDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> issueDate = GeneratedColumn<DateTime>(
+    'issue_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiryDateMeta = const VerificationMeta(
+    'expiryDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiryDate = GeneratedColumn<DateTime>(
+    'expiry_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _fileUrlMeta = const VerificationMeta(
+    'fileUrl',
+  );
+  @override
+  late final GeneratedColumn<String> fileUrl = GeneratedColumn<String>(
+    'file_url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _syncStatusMeta = const VerificationMeta(
+    'syncStatus',
+  );
+  @override
+  late final GeneratedColumn<String> syncStatus = GeneratedColumn<String>(
+    'sync_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('pending'),
+  );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    businessId,
+    title,
+    category,
+    refNumber,
+    issueDate,
+    expiryDate,
+    fileUrl,
+    notes,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    version,
+    deviceId,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'archive_documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ArchiveDocument> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('business_id')) {
+      context.handle(
+        _businessIdMeta,
+        businessId.isAcceptableOrUnknown(data['business_id']!, _businessIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_businessIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('ref_number')) {
+      context.handle(
+        _refNumberMeta,
+        refNumber.isAcceptableOrUnknown(data['ref_number']!, _refNumberMeta),
+      );
+    }
+    if (data.containsKey('issue_date')) {
+      context.handle(
+        _issueDateMeta,
+        issueDate.isAcceptableOrUnknown(data['issue_date']!, _issueDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_issueDateMeta);
+    }
+    if (data.containsKey('expiry_date')) {
+      context.handle(
+        _expiryDateMeta,
+        expiryDate.isAcceptableOrUnknown(data['expiry_date']!, _expiryDateMeta),
+      );
+    }
+    if (data.containsKey('file_url')) {
+      context.handle(
+        _fileUrlMeta,
+        fileUrl.isAcceptableOrUnknown(data['file_url']!, _fileUrlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fileUrlMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('sync_status')) {
+      context.handle(
+        _syncStatusMeta,
+        syncStatus.isAcceptableOrUnknown(data['sync_status']!, _syncStatusMeta),
+      );
+    }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ArchiveDocument map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ArchiveDocument(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      businessId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}business_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      refNumber: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}ref_number'],
+      ),
+      issueDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}issue_date'],
+      )!,
+      expiryDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expiry_date'],
+      ),
+      fileUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}file_url'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      ),
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      syncStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sync_status'],
+      )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      ),
+    );
+  }
+
+  @override
+  $ArchiveDocumentsTable createAlias(String alias) {
+    return $ArchiveDocumentsTable(attachedDatabase, alias);
+  }
+}
+
+class ArchiveDocument extends DataClass implements Insertable<ArchiveDocument> {
+  final String id;
+  final String businessId;
+  final String title;
+  final String category;
+  final String? refNumber;
+  final DateTime issueDate;
+  final DateTime? expiryDate;
+  final String fileUrl;
+  final String? notes;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String syncStatus;
+  final int version;
+  final String? deviceId;
+  const ArchiveDocument({
+    required this.id,
+    required this.businessId,
+    required this.title,
+    required this.category,
+    this.refNumber,
+    required this.issueDate,
+    this.expiryDate,
+    required this.fileUrl,
+    this.notes,
+    this.createdAt,
+    this.updatedAt,
+    required this.syncStatus,
+    required this.version,
+    this.deviceId,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['business_id'] = Variable<String>(businessId);
+    map['title'] = Variable<String>(title);
+    map['category'] = Variable<String>(category);
+    if (!nullToAbsent || refNumber != null) {
+      map['ref_number'] = Variable<String>(refNumber);
+    }
+    map['issue_date'] = Variable<DateTime>(issueDate);
+    if (!nullToAbsent || expiryDate != null) {
+      map['expiry_date'] = Variable<DateTime>(expiryDate);
+    }
+    map['file_url'] = Variable<String>(fileUrl);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || createdAt != null) {
+      map['created_at'] = Variable<DateTime>(createdAt);
+    }
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    map['sync_status'] = Variable<String>(syncStatus);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || deviceId != null) {
+      map['device_id'] = Variable<String>(deviceId);
+    }
+    return map;
+  }
+
+  ArchiveDocumentsCompanion toCompanion(bool nullToAbsent) {
+    return ArchiveDocumentsCompanion(
+      id: Value(id),
+      businessId: Value(businessId),
+      title: Value(title),
+      category: Value(category),
+      refNumber: refNumber == null && nullToAbsent
+          ? const Value.absent()
+          : Value(refNumber),
+      issueDate: Value(issueDate),
+      expiryDate: expiryDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(expiryDate),
+      fileUrl: Value(fileUrl),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      createdAt: createdAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      syncStatus: Value(syncStatus),
+      version: Value(version),
+      deviceId: deviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(deviceId),
+    );
+  }
+
+  factory ArchiveDocument.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ArchiveDocument(
+      id: serializer.fromJson<String>(json['id']),
+      businessId: serializer.fromJson<String>(json['businessId']),
+      title: serializer.fromJson<String>(json['title']),
+      category: serializer.fromJson<String>(json['category']),
+      refNumber: serializer.fromJson<String?>(json['refNumber']),
+      issueDate: serializer.fromJson<DateTime>(json['issueDate']),
+      expiryDate: serializer.fromJson<DateTime?>(json['expiryDate']),
+      fileUrl: serializer.fromJson<String>(json['fileUrl']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      syncStatus: serializer.fromJson<String>(json['syncStatus']),
+      version: serializer.fromJson<int>(json['version']),
+      deviceId: serializer.fromJson<String?>(json['deviceId']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'businessId': serializer.toJson<String>(businessId),
+      'title': serializer.toJson<String>(title),
+      'category': serializer.toJson<String>(category),
+      'refNumber': serializer.toJson<String?>(refNumber),
+      'issueDate': serializer.toJson<DateTime>(issueDate),
+      'expiryDate': serializer.toJson<DateTime?>(expiryDate),
+      'fileUrl': serializer.toJson<String>(fileUrl),
+      'notes': serializer.toJson<String?>(notes),
+      'createdAt': serializer.toJson<DateTime?>(createdAt),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'syncStatus': serializer.toJson<String>(syncStatus),
+      'version': serializer.toJson<int>(version),
+      'deviceId': serializer.toJson<String?>(deviceId),
+    };
+  }
+
+  ArchiveDocument copyWith({
+    String? id,
+    String? businessId,
+    String? title,
+    String? category,
+    Value<String?> refNumber = const Value.absent(),
+    DateTime? issueDate,
+    Value<DateTime?> expiryDate = const Value.absent(),
+    String? fileUrl,
+    Value<String?> notes = const Value.absent(),
+    Value<DateTime?> createdAt = const Value.absent(),
+    Value<DateTime?> updatedAt = const Value.absent(),
+    String? syncStatus,
+    int? version,
+    Value<String?> deviceId = const Value.absent(),
+  }) => ArchiveDocument(
+    id: id ?? this.id,
+    businessId: businessId ?? this.businessId,
+    title: title ?? this.title,
+    category: category ?? this.category,
+    refNumber: refNumber.present ? refNumber.value : this.refNumber,
+    issueDate: issueDate ?? this.issueDate,
+    expiryDate: expiryDate.present ? expiryDate.value : this.expiryDate,
+    fileUrl: fileUrl ?? this.fileUrl,
+    notes: notes.present ? notes.value : this.notes,
+    createdAt: createdAt.present ? createdAt.value : this.createdAt,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    syncStatus: syncStatus ?? this.syncStatus,
+    version: version ?? this.version,
+    deviceId: deviceId.present ? deviceId.value : this.deviceId,
+  );
+  ArchiveDocument copyWithCompanion(ArchiveDocumentsCompanion data) {
+    return ArchiveDocument(
+      id: data.id.present ? data.id.value : this.id,
+      businessId: data.businessId.present
+          ? data.businessId.value
+          : this.businessId,
+      title: data.title.present ? data.title.value : this.title,
+      category: data.category.present ? data.category.value : this.category,
+      refNumber: data.refNumber.present ? data.refNumber.value : this.refNumber,
+      issueDate: data.issueDate.present ? data.issueDate.value : this.issueDate,
+      expiryDate: data.expiryDate.present
+          ? data.expiryDate.value
+          : this.expiryDate,
+      fileUrl: data.fileUrl.present ? data.fileUrl.value : this.fileUrl,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      syncStatus: data.syncStatus.present
+          ? data.syncStatus.value
+          : this.syncStatus,
+      version: data.version.present ? data.version.value : this.version,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArchiveDocument(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('title: $title, ')
+          ..write('category: $category, ')
+          ..write('refNumber: $refNumber, ')
+          ..write('issueDate: $issueDate, ')
+          ..write('expiryDate: $expiryDate, ')
+          ..write('fileUrl: $fileUrl, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    businessId,
+    title,
+    category,
+    refNumber,
+    issueDate,
+    expiryDate,
+    fileUrl,
+    notes,
+    createdAt,
+    updatedAt,
+    syncStatus,
+    version,
+    deviceId,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ArchiveDocument &&
+          other.id == this.id &&
+          other.businessId == this.businessId &&
+          other.title == this.title &&
+          other.category == this.category &&
+          other.refNumber == this.refNumber &&
+          other.issueDate == this.issueDate &&
+          other.expiryDate == this.expiryDate &&
+          other.fileUrl == this.fileUrl &&
+          other.notes == this.notes &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.syncStatus == this.syncStatus &&
+          other.version == this.version &&
+          other.deviceId == this.deviceId);
+}
+
+class ArchiveDocumentsCompanion extends UpdateCompanion<ArchiveDocument> {
+  final Value<String> id;
+  final Value<String> businessId;
+  final Value<String> title;
+  final Value<String> category;
+  final Value<String?> refNumber;
+  final Value<DateTime> issueDate;
+  final Value<DateTime?> expiryDate;
+  final Value<String> fileUrl;
+  final Value<String?> notes;
+  final Value<DateTime?> createdAt;
+  final Value<DateTime?> updatedAt;
+  final Value<String> syncStatus;
+  final Value<int> version;
+  final Value<String?> deviceId;
+  final Value<int> rowid;
+  const ArchiveDocumentsCompanion({
+    this.id = const Value.absent(),
+    this.businessId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.category = const Value.absent(),
+    this.refNumber = const Value.absent(),
+    this.issueDate = const Value.absent(),
+    this.expiryDate = const Value.absent(),
+    this.fileUrl = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ArchiveDocumentsCompanion.insert({
+    required String id,
+    required String businessId,
+    required String title,
+    required String category,
+    this.refNumber = const Value.absent(),
+    required DateTime issueDate,
+    this.expiryDate = const Value.absent(),
+    required String fileUrl,
+    this.notes = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.syncStatus = const Value.absent(),
+    this.version = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       businessId = Value(businessId),
+       title = Value(title),
+       category = Value(category),
+       issueDate = Value(issueDate),
+       fileUrl = Value(fileUrl);
+  static Insertable<ArchiveDocument> custom({
+    Expression<String>? id,
+    Expression<String>? businessId,
+    Expression<String>? title,
+    Expression<String>? category,
+    Expression<String>? refNumber,
+    Expression<DateTime>? issueDate,
+    Expression<DateTime>? expiryDate,
+    Expression<String>? fileUrl,
+    Expression<String>? notes,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? syncStatus,
+    Expression<int>? version,
+    Expression<String>? deviceId,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (businessId != null) 'business_id': businessId,
+      if (title != null) 'title': title,
+      if (category != null) 'category': category,
+      if (refNumber != null) 'ref_number': refNumber,
+      if (issueDate != null) 'issue_date': issueDate,
+      if (expiryDate != null) 'expiry_date': expiryDate,
+      if (fileUrl != null) 'file_url': fileUrl,
+      if (notes != null) 'notes': notes,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (syncStatus != null) 'sync_status': syncStatus,
+      if (version != null) 'version': version,
+      if (deviceId != null) 'device_id': deviceId,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ArchiveDocumentsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? businessId,
+    Value<String>? title,
+    Value<String>? category,
+    Value<String?>? refNumber,
+    Value<DateTime>? issueDate,
+    Value<DateTime?>? expiryDate,
+    Value<String>? fileUrl,
+    Value<String?>? notes,
+    Value<DateTime?>? createdAt,
+    Value<DateTime?>? updatedAt,
+    Value<String>? syncStatus,
+    Value<int>? version,
+    Value<String?>? deviceId,
+    Value<int>? rowid,
+  }) {
+    return ArchiveDocumentsCompanion(
+      id: id ?? this.id,
+      businessId: businessId ?? this.businessId,
+      title: title ?? this.title,
+      category: category ?? this.category,
+      refNumber: refNumber ?? this.refNumber,
+      issueDate: issueDate ?? this.issueDate,
+      expiryDate: expiryDate ?? this.expiryDate,
+      fileUrl: fileUrl ?? this.fileUrl,
+      notes: notes ?? this.notes,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      deviceId: deviceId ?? this.deviceId,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (businessId.present) {
+      map['business_id'] = Variable<String>(businessId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (refNumber.present) {
+      map['ref_number'] = Variable<String>(refNumber.value);
+    }
+    if (issueDate.present) {
+      map['issue_date'] = Variable<DateTime>(issueDate.value);
+    }
+    if (expiryDate.present) {
+      map['expiry_date'] = Variable<DateTime>(expiryDate.value);
+    }
+    if (fileUrl.present) {
+      map['file_url'] = Variable<String>(fileUrl.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (syncStatus.present) {
+      map['sync_status'] = Variable<String>(syncStatus.value);
+    }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ArchiveDocumentsCompanion(')
+          ..write('id: $id, ')
+          ..write('businessId: $businessId, ')
+          ..write('title: $title, ')
+          ..write('category: $category, ')
+          ..write('refNumber: $refNumber, ')
+          ..write('issueDate: $issueDate, ')
+          ..write('expiryDate: $expiryDate, ')
+          ..write('fileUrl: $fileUrl, ')
+          ..write('notes: $notes, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('syncStatus: $syncStatus, ')
+          ..write('version: $version, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -64776,6 +67445,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $InventoryTransferItemsTable(this);
   late final $InventoryTransfersTable inventoryTransfers =
       $InventoryTransfersTable(this);
+  late final $StockCountsTable stockCounts = $StockCountsTable(this);
+  late final $StockCountItemsTable stockCountItems = $StockCountItemsTable(
+    this,
+  );
   late final $WarehousesTable warehouses = $WarehousesTable(this);
   late final $ChannelsTable channels = $ChannelsTable(this);
   late final $CustomerReceivablesTable customerReceivables =
@@ -64854,6 +67527,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ExpenseCategoriesTable expenseCategories =
       $ExpenseCategoriesTable(this);
   late final $ExpensesTable expenses = $ExpensesTable(this);
+  late final $ArchiveDocumentsTable archiveDocuments = $ArchiveDocumentsTable(
+    this,
+  );
   late final Index uqProductImagesPrimary = Index(
     'uq_product_images_primary',
     'CREATE UNIQUE INDEX uq_product_images_primary ON product_images (product_id)',
@@ -64920,6 +67596,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     inventoryTransactions,
     inventoryTransferItems,
     inventoryTransfers,
+    stockCounts,
+    stockCountItems,
     warehouses,
     channels,
     customerReceivables,
@@ -64967,6 +67645,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     exchangeRates,
     expenseCategories,
     expenses,
+    archiveDocuments,
     uqProductImagesPrimary,
     uqProductUnitsOneBase,
     idxSalesInvoicesStatus,
@@ -70992,11 +73671,13 @@ typedef $$ProductsTableCreateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> brandId,
       Value<String?> taxId,
+      Value<String?> currencyId,
       Value<String> productType,
       required String productCode,
       required String productName,
       Value<String?> description,
       Value<bool> isActive,
+      Value<bool> showInStore,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
       Value<DateTime?> deletedAt,
@@ -71012,11 +73693,13 @@ typedef $$ProductsTableUpdateCompanionBuilder =
       Value<String?> categoryId,
       Value<String?> brandId,
       Value<String?> taxId,
+      Value<String?> currencyId,
       Value<String> productType,
       Value<String> productCode,
       Value<String> productName,
       Value<String?> description,
       Value<bool> isActive,
+      Value<bool> showInStore,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
       Value<DateTime?> deletedAt,
@@ -71060,6 +73743,11 @@ class $$ProductsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get productType => $composableBuilder(
     column: $table.productType,
     builder: (column) => ColumnFilters(column),
@@ -71082,6 +73770,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showInStore => $composableBuilder(
+    column: $table.showInStore,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -71150,6 +73843,11 @@ class $$ProductsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get productType => $composableBuilder(
     column: $table.productType,
     builder: (column) => ColumnOrderings(column),
@@ -71172,6 +73870,11 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<bool> get isActive => $composableBuilder(
     column: $table.isActive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showInStore => $composableBuilder(
+    column: $table.showInStore,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -71234,6 +73937,11 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<String> get taxId =>
       $composableBuilder(column: $table.taxId, builder: (column) => column);
 
+  GeneratedColumn<String> get currencyId => $composableBuilder(
+    column: $table.currencyId,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get productType => $composableBuilder(
     column: $table.productType,
     builder: (column) => column,
@@ -71256,6 +73964,11 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get isActive =>
       $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  GeneratedColumn<bool> get showInStore => $composableBuilder(
+    column: $table.showInStore,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -71311,11 +74024,13 @@ class $$ProductsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> brandId = const Value.absent(),
                 Value<String?> taxId = const Value.absent(),
+                Value<String?> currencyId = const Value.absent(),
                 Value<String> productType = const Value.absent(),
                 Value<String> productCode = const Value.absent(),
                 Value<String> productName = const Value.absent(),
                 Value<String?> description = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> showInStore = const Value.absent(),
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -71329,11 +74044,13 @@ class $$ProductsTableTableManager
                 categoryId: categoryId,
                 brandId: brandId,
                 taxId: taxId,
+                currencyId: currencyId,
                 productType: productType,
                 productCode: productCode,
                 productName: productName,
                 description: description,
                 isActive: isActive,
+                showInStore: showInStore,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -71349,11 +74066,13 @@ class $$ProductsTableTableManager
                 Value<String?> categoryId = const Value.absent(),
                 Value<String?> brandId = const Value.absent(),
                 Value<String?> taxId = const Value.absent(),
+                Value<String?> currencyId = const Value.absent(),
                 Value<String> productType = const Value.absent(),
                 required String productCode,
                 required String productName,
                 Value<String?> description = const Value.absent(),
                 Value<bool> isActive = const Value.absent(),
+                Value<bool> showInStore = const Value.absent(),
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
                 Value<DateTime?> deletedAt = const Value.absent(),
@@ -71367,11 +74086,13 @@ class $$ProductsTableTableManager
                 categoryId: categoryId,
                 brandId: brandId,
                 taxId: taxId,
+                currencyId: currencyId,
                 productType: productType,
                 productCode: productCode,
                 productName: productName,
                 description: description,
                 isActive: isActive,
+                showInStore: showInStore,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
@@ -74025,6 +76746,815 @@ typedef $$InventoryTransfersTableProcessedTableManager =
         >,
       ),
       InventoryTransfer,
+      PrefetchHooks Function()
+    >;
+typedef $$StockCountsTableCreateCompanionBuilder =
+    StockCountsCompanion Function({
+      required String id,
+      required String businessId,
+      required String branchId,
+      required String warehouseId,
+      required String countNumber,
+      Value<DateTime> countDate,
+      Value<StockCountStatus> status,
+      Value<String?> notes,
+      required String createdBy,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String?> postedBy,
+      Value<DateTime?> postedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+typedef $$StockCountsTableUpdateCompanionBuilder =
+    StockCountsCompanion Function({
+      Value<String> id,
+      Value<String> businessId,
+      Value<String> branchId,
+      Value<String> warehouseId,
+      Value<String> countNumber,
+      Value<DateTime> countDate,
+      Value<StockCountStatus> status,
+      Value<String?> notes,
+      Value<String> createdBy,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String?> postedBy,
+      Value<DateTime?> postedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+
+class $$StockCountsTableFilterComposer
+    extends Composer<_$AppDatabase, $StockCountsTable> {
+  $$StockCountsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get branchId => $composableBuilder(
+    column: $table.branchId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get warehouseId => $composableBuilder(
+    column: $table.warehouseId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get countNumber => $composableBuilder(
+    column: $table.countNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get countDate => $composableBuilder(
+    column: $table.countDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<StockCountStatus, StockCountStatus, String>
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get postedBy => $composableBuilder(
+    column: $table.postedBy,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get postedAt => $composableBuilder(
+    column: $table.postedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StockCountsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StockCountsTable> {
+  $$StockCountsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get branchId => $composableBuilder(
+    column: $table.branchId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get warehouseId => $composableBuilder(
+    column: $table.warehouseId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get countNumber => $composableBuilder(
+    column: $table.countNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get countDate => $composableBuilder(
+    column: $table.countDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get createdBy => $composableBuilder(
+    column: $table.createdBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get postedBy => $composableBuilder(
+    column: $table.postedBy,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get postedAt => $composableBuilder(
+    column: $table.postedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StockCountsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StockCountsTable> {
+  $$StockCountsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get branchId =>
+      $composableBuilder(column: $table.branchId, builder: (column) => column);
+
+  GeneratedColumn<String> get warehouseId => $composableBuilder(
+    column: $table.warehouseId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get countNumber => $composableBuilder(
+    column: $table.countNumber,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get countDate =>
+      $composableBuilder(column: $table.countDate, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<StockCountStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get createdBy =>
+      $composableBuilder(column: $table.createdBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get postedBy =>
+      $composableBuilder(column: $table.postedBy, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get postedAt =>
+      $composableBuilder(column: $table.postedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$StockCountsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StockCountsTable,
+          StockCount,
+          $$StockCountsTableFilterComposer,
+          $$StockCountsTableOrderingComposer,
+          $$StockCountsTableAnnotationComposer,
+          $$StockCountsTableCreateCompanionBuilder,
+          $$StockCountsTableUpdateCompanionBuilder,
+          (
+            StockCount,
+            BaseReferences<_$AppDatabase, $StockCountsTable, StockCount>,
+          ),
+          StockCount,
+          PrefetchHooks Function()
+        > {
+  $$StockCountsTableTableManager(_$AppDatabase db, $StockCountsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StockCountsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StockCountsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StockCountsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> businessId = const Value.absent(),
+                Value<String> branchId = const Value.absent(),
+                Value<String> warehouseId = const Value.absent(),
+                Value<String> countNumber = const Value.absent(),
+                Value<DateTime> countDate = const Value.absent(),
+                Value<StockCountStatus> status = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String> createdBy = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String?> postedBy = const Value.absent(),
+                Value<DateTime?> postedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StockCountsCompanion(
+                id: id,
+                businessId: businessId,
+                branchId: branchId,
+                warehouseId: warehouseId,
+                countNumber: countNumber,
+                countDate: countDate,
+                status: status,
+                notes: notes,
+                createdBy: createdBy,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                postedBy: postedBy,
+                postedAt: postedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String businessId,
+                required String branchId,
+                required String warehouseId,
+                required String countNumber,
+                Value<DateTime> countDate = const Value.absent(),
+                Value<StockCountStatus> status = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                required String createdBy,
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String?> postedBy = const Value.absent(),
+                Value<DateTime?> postedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StockCountsCompanion.insert(
+                id: id,
+                businessId: businessId,
+                branchId: branchId,
+                warehouseId: warehouseId,
+                countNumber: countNumber,
+                countDate: countDate,
+                status: status,
+                notes: notes,
+                createdBy: createdBy,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                postedBy: postedBy,
+                postedAt: postedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StockCountsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StockCountsTable,
+      StockCount,
+      $$StockCountsTableFilterComposer,
+      $$StockCountsTableOrderingComposer,
+      $$StockCountsTableAnnotationComposer,
+      $$StockCountsTableCreateCompanionBuilder,
+      $$StockCountsTableUpdateCompanionBuilder,
+      (
+        StockCount,
+        BaseReferences<_$AppDatabase, $StockCountsTable, StockCount>,
+      ),
+      StockCount,
+      PrefetchHooks Function()
+    >;
+typedef $$StockCountItemsTableCreateCompanionBuilder =
+    StockCountItemsCompanion Function({
+      required String id,
+      required String businessId,
+      required String stockCountId,
+      required String productId,
+      required String productUnitId,
+      required double expectedQuantity,
+      required double countedQuantity,
+      required double differenceQuantity,
+      Value<String?> notes,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+typedef $$StockCountItemsTableUpdateCompanionBuilder =
+    StockCountItemsCompanion Function({
+      Value<String> id,
+      Value<String> businessId,
+      Value<String> stockCountId,
+      Value<String> productId,
+      Value<String> productUnitId,
+      Value<double> expectedQuantity,
+      Value<double> countedQuantity,
+      Value<double> differenceQuantity,
+      Value<String?> notes,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+
+class $$StockCountItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $StockCountItemsTable> {
+  $$StockCountItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get stockCountId => $composableBuilder(
+    column: $table.stockCountId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productUnitId => $composableBuilder(
+    column: $table.productUnitId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get expectedQuantity => $composableBuilder(
+    column: $table.expectedQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get countedQuantity => $composableBuilder(
+    column: $table.countedQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get differenceQuantity => $composableBuilder(
+    column: $table.differenceQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$StockCountItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StockCountItemsTable> {
+  $$StockCountItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get stockCountId => $composableBuilder(
+    column: $table.stockCountId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productUnitId => $composableBuilder(
+    column: $table.productUnitId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get expectedQuantity => $composableBuilder(
+    column: $table.expectedQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get countedQuantity => $composableBuilder(
+    column: $table.countedQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get differenceQuantity => $composableBuilder(
+    column: $table.differenceQuantity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$StockCountItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StockCountItemsTable> {
+  $$StockCountItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get stockCountId => $composableBuilder(
+    column: $table.stockCountId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get productUnitId => $composableBuilder(
+    column: $table.productUnitId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get expectedQuantity => $composableBuilder(
+    column: $table.expectedQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get countedQuantity => $composableBuilder(
+    column: $table.countedQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get differenceQuantity => $composableBuilder(
+    column: $table.differenceQuantity,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$StockCountItemsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $StockCountItemsTable,
+          StockCountItem,
+          $$StockCountItemsTableFilterComposer,
+          $$StockCountItemsTableOrderingComposer,
+          $$StockCountItemsTableAnnotationComposer,
+          $$StockCountItemsTableCreateCompanionBuilder,
+          $$StockCountItemsTableUpdateCompanionBuilder,
+          (
+            StockCountItem,
+            BaseReferences<
+              _$AppDatabase,
+              $StockCountItemsTable,
+              StockCountItem
+            >,
+          ),
+          StockCountItem,
+          PrefetchHooks Function()
+        > {
+  $$StockCountItemsTableTableManager(
+    _$AppDatabase db,
+    $StockCountItemsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StockCountItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StockCountItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StockCountItemsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> businessId = const Value.absent(),
+                Value<String> stockCountId = const Value.absent(),
+                Value<String> productId = const Value.absent(),
+                Value<String> productUnitId = const Value.absent(),
+                Value<double> expectedQuantity = const Value.absent(),
+                Value<double> countedQuantity = const Value.absent(),
+                Value<double> differenceQuantity = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StockCountItemsCompanion(
+                id: id,
+                businessId: businessId,
+                stockCountId: stockCountId,
+                productId: productId,
+                productUnitId: productUnitId,
+                expectedQuantity: expectedQuantity,
+                countedQuantity: countedQuantity,
+                differenceQuantity: differenceQuantity,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String businessId,
+                required String stockCountId,
+                required String productId,
+                required String productUnitId,
+                required double expectedQuantity,
+                required double countedQuantity,
+                required double differenceQuantity,
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => StockCountItemsCompanion.insert(
+                id: id,
+                businessId: businessId,
+                stockCountId: stockCountId,
+                productId: productId,
+                productUnitId: productUnitId,
+                expectedQuantity: expectedQuantity,
+                countedQuantity: countedQuantity,
+                differenceQuantity: differenceQuantity,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$StockCountItemsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $StockCountItemsTable,
+      StockCountItem,
+      $$StockCountItemsTableFilterComposer,
+      $$StockCountItemsTableOrderingComposer,
+      $$StockCountItemsTableAnnotationComposer,
+      $$StockCountItemsTableCreateCompanionBuilder,
+      $$StockCountItemsTableUpdateCompanionBuilder,
+      (
+        StockCountItem,
+        BaseReferences<_$AppDatabase, $StockCountItemsTable, StockCountItem>,
+      ),
+      StockCountItem,
       PrefetchHooks Function()
     >;
 typedef $$WarehousesTableCreateCompanionBuilder =
@@ -94542,6 +98072,389 @@ typedef $$ExpensesTableProcessedTableManager =
       Expense,
       PrefetchHooks Function()
     >;
+typedef $$ArchiveDocumentsTableCreateCompanionBuilder =
+    ArchiveDocumentsCompanion Function({
+      required String id,
+      required String businessId,
+      required String title,
+      required String category,
+      Value<String?> refNumber,
+      required DateTime issueDate,
+      Value<DateTime?> expiryDate,
+      required String fileUrl,
+      Value<String?> notes,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+typedef $$ArchiveDocumentsTableUpdateCompanionBuilder =
+    ArchiveDocumentsCompanion Function({
+      Value<String> id,
+      Value<String> businessId,
+      Value<String> title,
+      Value<String> category,
+      Value<String?> refNumber,
+      Value<DateTime> issueDate,
+      Value<DateTime?> expiryDate,
+      Value<String> fileUrl,
+      Value<String?> notes,
+      Value<DateTime?> createdAt,
+      Value<DateTime?> updatedAt,
+      Value<String> syncStatus,
+      Value<int> version,
+      Value<String?> deviceId,
+      Value<int> rowid,
+    });
+
+class $$ArchiveDocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $ArchiveDocumentsTable> {
+  $$ArchiveDocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get refNumber => $composableBuilder(
+    column: $table.refNumber,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get issueDate => $composableBuilder(
+    column: $table.issueDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get fileUrl => $composableBuilder(
+    column: $table.fileUrl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ArchiveDocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ArchiveDocumentsTable> {
+  $$ArchiveDocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get refNumber => $composableBuilder(
+    column: $table.refNumber,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get issueDate => $composableBuilder(
+    column: $table.issueDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get fileUrl => $composableBuilder(
+    column: $table.fileUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ArchiveDocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ArchiveDocumentsTable> {
+  $$ArchiveDocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get businessId => $composableBuilder(
+    column: $table.businessId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get refNumber =>
+      $composableBuilder(column: $table.refNumber, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get issueDate =>
+      $composableBuilder(column: $table.issueDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiryDate => $composableBuilder(
+    column: $table.expiryDate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get fileUrl =>
+      $composableBuilder(column: $table.fileUrl, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get syncStatus => $composableBuilder(
+    column: $table.syncStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+}
+
+class $$ArchiveDocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ArchiveDocumentsTable,
+          ArchiveDocument,
+          $$ArchiveDocumentsTableFilterComposer,
+          $$ArchiveDocumentsTableOrderingComposer,
+          $$ArchiveDocumentsTableAnnotationComposer,
+          $$ArchiveDocumentsTableCreateCompanionBuilder,
+          $$ArchiveDocumentsTableUpdateCompanionBuilder,
+          (
+            ArchiveDocument,
+            BaseReferences<
+              _$AppDatabase,
+              $ArchiveDocumentsTable,
+              ArchiveDocument
+            >,
+          ),
+          ArchiveDocument,
+          PrefetchHooks Function()
+        > {
+  $$ArchiveDocumentsTableTableManager(
+    _$AppDatabase db,
+    $ArchiveDocumentsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ArchiveDocumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ArchiveDocumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ArchiveDocumentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> businessId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> category = const Value.absent(),
+                Value<String?> refNumber = const Value.absent(),
+                Value<DateTime> issueDate = const Value.absent(),
+                Value<DateTime?> expiryDate = const Value.absent(),
+                Value<String> fileUrl = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ArchiveDocumentsCompanion(
+                id: id,
+                businessId: businessId,
+                title: title,
+                category: category,
+                refNumber: refNumber,
+                issueDate: issueDate,
+                expiryDate: expiryDate,
+                fileUrl: fileUrl,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String businessId,
+                required String title,
+                required String category,
+                Value<String?> refNumber = const Value.absent(),
+                required DateTime issueDate,
+                Value<DateTime?> expiryDate = const Value.absent(),
+                required String fileUrl,
+                Value<String?> notes = const Value.absent(),
+                Value<DateTime?> createdAt = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String> syncStatus = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<String?> deviceId = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ArchiveDocumentsCompanion.insert(
+                id: id,
+                businessId: businessId,
+                title: title,
+                category: category,
+                refNumber: refNumber,
+                issueDate: issueDate,
+                expiryDate: expiryDate,
+                fileUrl: fileUrl,
+                notes: notes,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                syncStatus: syncStatus,
+                version: version,
+                deviceId: deviceId,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ArchiveDocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ArchiveDocumentsTable,
+      ArchiveDocument,
+      $$ArchiveDocumentsTableFilterComposer,
+      $$ArchiveDocumentsTableOrderingComposer,
+      $$ArchiveDocumentsTableAnnotationComposer,
+      $$ArchiveDocumentsTableCreateCompanionBuilder,
+      $$ArchiveDocumentsTableUpdateCompanionBuilder,
+      (
+        ArchiveDocument,
+        BaseReferences<_$AppDatabase, $ArchiveDocumentsTable, ArchiveDocument>,
+      ),
+      ArchiveDocument,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -94602,6 +98515,10 @@ class $AppDatabaseManager {
       );
   $$InventoryTransfersTableTableManager get inventoryTransfers =>
       $$InventoryTransfersTableTableManager(_db, _db.inventoryTransfers);
+  $$StockCountsTableTableManager get stockCounts =>
+      $$StockCountsTableTableManager(_db, _db.stockCounts);
+  $$StockCountItemsTableTableManager get stockCountItems =>
+      $$StockCountItemsTableTableManager(_db, _db.stockCountItems);
   $$WarehousesTableTableManager get warehouses =>
       $$WarehousesTableTableManager(_db, _db.warehouses);
   $$ChannelsTableTableManager get channels =>
@@ -94699,4 +98616,6 @@ class $AppDatabaseManager {
       $$ExpenseCategoriesTableTableManager(_db, _db.expenseCategories);
   $$ExpensesTableTableManager get expenses =>
       $$ExpensesTableTableManager(_db, _db.expenses);
+  $$ArchiveDocumentsTableTableManager get archiveDocuments =>
+      $$ArchiveDocumentsTableTableManager(_db, _db.archiveDocuments);
 }

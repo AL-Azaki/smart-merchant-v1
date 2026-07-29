@@ -70,10 +70,18 @@ import '../../modules/hr/infrastructure/repositories/hr_repository_impl.dart'
     as _i882;
 import '../../modules/inventory/application/services/warehouse_context_service.dart'
     as _i1014;
+import '../../modules/inventory/application/usecases/get_stock_count_details_usecase.dart'
+    as _i46;
+import '../../modules/inventory/application/usecases/get_stock_counts_usecase.dart'
+    as _i700;
+import '../../modules/inventory/application/usecases/post_stock_count_usecase.dart'
+    as _i676;
 import '../../modules/inventory/application/usecases/process_stock_adjustment_usecase.dart'
     as _i18;
 import '../../modules/inventory/application/usecases/process_warehouse_transfer_usecase.dart'
     as _i912;
+import '../../modules/inventory/application/usecases/save_stock_count_usecase.dart'
+    as _i557;
 import '../../modules/inventory/domain/repositories/inventory_repository.dart'
     as _i525;
 import '../../modules/inventory/infrastructure/repositories/inventory_repository_impl.dart'
@@ -101,6 +109,8 @@ import '../../modules/sales/infrastructure/repositories/sales_repository_impl.da
     as _i310;
 import '../../modules/sales/presentation/mappers/sales_invoice_document_mapper.dart'
     as _i680;
+import '../../modules/system/application/services/archive_document_service.dart'
+    as _i878;
 import '../../modules/system/application/services/document_application_service.dart'
     as _i1014;
 import '../../modules/system/domain/repositories/system_repository.dart'
@@ -241,12 +251,6 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i924.ApplicationTransactionRunner>(
       () => _i924.ApplicationTransactionRunnerImpl(gh<_i98.AppDatabase>()),
     );
-    gh.factory<_i468.CatalogApplicationService>(
-      () => _i468.CatalogApplicationService(
-        gh<_i914.CatalogRepository>(),
-        gh<_i477.ApplicationContext>(),
-      ),
-    );
     gh.lazySingleton<_i746.PurchasingRepository>(
       () => _i558.PurchasingRepositoryImpl(gh<_i896.PurchasingDao>()),
     );
@@ -273,6 +277,12 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i705.SyncRemoteApiClient>(
       () => registerModule.getSyncRemoteApiClient(gh<_i125.ApiClient>()),
     );
+    gh.factory<_i878.ArchiveDocumentService>(
+      () => _i878.ArchiveDocumentService(
+        gh<_i688.SystemRepository>(),
+        gh<_i477.ApplicationContext>(),
+      ),
+    );
     gh.factory<_i851.SupplierApplicationService>(
       () => _i851.SupplierApplicationService(
         gh<_i746.PurchasingRepository>(),
@@ -297,6 +307,24 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i259.TreasuryRepository>(),
         gh<_i477.ApplicationContext>(),
         gh<_i924.ApplicationTransactionRunner>(),
+      ),
+    );
+    gh.factory<_i700.GetStockCountsUseCase>(
+      () => _i700.GetStockCountsUseCase(
+        gh<_i525.InventoryRepository>(),
+        gh<_i477.ApplicationContext>(),
+      ),
+    );
+    gh.factory<_i46.GetStockCountDetailsUseCase>(
+      () => _i46.GetStockCountDetailsUseCase(
+        gh<_i525.InventoryRepository>(),
+        gh<_i477.ApplicationContext>(),
+      ),
+    );
+    gh.factory<_i557.SaveStockCountUseCase>(
+      () => _i557.SaveStockCountUseCase(
+        gh<_i525.InventoryRepository>(),
+        gh<_i477.ApplicationContext>(),
       ),
     );
     gh.factory<_i904.EmployeeApplicationService>(
@@ -353,6 +381,21 @@ extension GetItInjectableX on _i174.GetIt {
     gh.lazySingleton<_i457.AuthRepository>(
       () =>
           _i599.AuthRepositoryImpl.injectable(gh<_i370.AuthLocalDataSource>()),
+    );
+    gh.factory<_i676.PostStockCountUseCase>(
+      () => _i676.PostStockCountUseCase(
+        gh<_i525.InventoryRepository>(),
+        gh<_i477.ApplicationContext>(),
+        gh<_i18.ProcessStockAdjustmentUseCase>(),
+        gh<_i924.ApplicationTransactionRunner>(),
+      ),
+    );
+    gh.factory<_i468.CatalogApplicationService>(
+      () => _i468.CatalogApplicationService(
+        gh<_i914.CatalogRepository>(),
+        gh<_i477.ApplicationContext>(),
+        gh<_i18.ProcessStockAdjustmentUseCase>(),
+      ),
     );
     gh.factory<_i108.ReceivePaymentUseCase>(
       () => _i108.ReceivePaymentUseCase(
