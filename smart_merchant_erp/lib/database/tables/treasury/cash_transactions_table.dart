@@ -1,9 +1,14 @@
+import 'cash_registers_table.dart';
 import 'package:drift/drift.dart';
+import '../accounting/chart_of_accounts_table.dart';
+import '../core/currencies_table.dart';
+import '../core/businesses_table.dart';
+import '../core/branches_table.dart';
 
 /// Drift table definition for `cash_transactions`.
 ///
 /// Purpose: Individual cash movement records within a cash register.
-/// Domain: DOMAIN 4 — FINANCE (Structure & Cash/Bank)
+/// Domain: DOMAIN 4 â€” FINANCE (Structure & Cash/Bank)
 /// Database Owner: SQLite (ERP)
 /// Offline Metadata: Requires sync tracking columns (`sync_status`, `version`, `device_id`)
 /// as cash movements, deposits, withdrawals, and POS receipts occur locally inside SQLite (Source of Truth) and sync bidirectionally.
@@ -12,7 +17,7 @@ class CashTransactions extends Table {
   @override
   String get tableName => 'cash_transactions';
 
-  /// Primary Key — UUID string stored as TEXT.
+  /// Primary Key â€” UUID string stored as TEXT.
   TextColumn get id => text()();
 
   /// Foreign Key linking to `businesses.id` (CASCADE).
@@ -88,3 +93,4 @@ class CashTransactions extends Table {
     'CHECK (amount > 0)',
   ];
 }
+

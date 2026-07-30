@@ -229,13 +229,21 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildTextField('المدينة *', 'صنعاء', controller: _cityController),
+                            child: _buildTextField(
+                              'المدينة *',
+                              'صنعاء',
+                              controller: _cityController,
+                            ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 16),
 
-                      _buildTextField('العنوان التفصيلي', 'شارع، حي، مبنى...', controller: _addressController),
+                      _buildTextField(
+                        'العنوان التفصيلي',
+                        'شارع، حي، مبنى...',
+                        controller: _addressController,
+                      ),
                       const SizedBox(height: 16),
 
                       Row(
@@ -271,11 +279,14 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                           ref
                               .read(authNotifierProvider.notifier)
                               .completeSetup({
-                            'business_type': _selectedBusinessType,
-                            'business_name': _businessNameController.text.isNotEmpty ? _businessNameController.text : 'My Setup Business',
-                            'primary_phone': _phoneController.text,
-                            'primary_email': _emailController.text,
-                          });
+                                'business_type': _selectedBusinessType,
+                                'business_name':
+                                    _businessNameController.text.isNotEmpty
+                                    ? _businessNameController.text
+                                    : 'My Setup Business',
+                                'primary_phone': _phoneController.text,
+                                'primary_email': _emailController.text,
+                              });
                         },
                         style: ElevatedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 56),

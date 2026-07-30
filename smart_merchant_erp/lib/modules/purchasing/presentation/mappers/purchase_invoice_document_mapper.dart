@@ -5,24 +5,30 @@ import '../../../../kernel/core/application_context.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_line.dart';
 import '../../../../database/daos/catalog_dao.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import 'package:intl/intl.dart';
-import 'package:injectable/injectable.dart';
 
-@injectable
 class PurchaseInvoiceDocumentMapper {
   final PurchasingDao _purchasingDao;
   final CoreDao _coreDao;
   final CatalogDao _catalogDao;
   final ApplicationContext _context;
 
-  PurchaseInvoiceDocumentMapper(this._purchasingDao, this._coreDao, this._catalogDao, this._context);
+  PurchaseInvoiceDocumentMapper(
+    this._purchasingDao,
+    this._coreDao,
+    this._catalogDao,
+    this._context,
+  );
 
   Future<CommercialDocumentData> mapToDocumentData(String invoiceId) async {
     final businessId = _context.currentBusinessId;
-    
+
     // 1. Fetch PurchaseInvoice with Items
-    final invoiceWithItems = await _purchasingDao.getInvoiceWithItemsById(invoiceId, businessId);
+    final invoiceWithItems = await _purchasingDao.getInvoiceWithItemsById(
+      invoiceId,
+      businessId,
+    );
     if (invoiceWithItems == null) {
       throw Exception('Purchase Invoice not found for mapping.');
     }
@@ -46,9 +52,12 @@ class PurchaseInvoiceDocumentMapper {
     String supplierName = 'مورد غير معروف';
     String? supplierPhone;
     String? supplierAddress;
-    
+
     if (invoice.supplierId.isNotEmpty) {
-      final supplier = await _purchasingDao.getSupplierById(invoice.supplierId, businessId);
+      final supplier = await _purchasingDao.getSupplierById(
+        invoice.supplierId,
+        businessId,
+      );
       if (supplier != null) {
         supplierName = supplier.supplierName;
         supplierPhone = supplier.phone;
@@ -60,13 +69,19 @@ class PurchaseInvoiceDocumentMapper {
     final documentLines = <CommercialDocumentLine>[];
     for (final item in items) {
       // Need product details (name, etc.)
-      final productUnit = await _catalogDao.getProductUnitById(item.productUnitId, businessId);
+      final productUnit = await _catalogDao.getProductUnitById(
+        item.productUnitId,
+        businessId,
+      );
       String description = 'منتج غير معروف';
       String? barcode = productUnit?.barcode;
-      
+
       if (productUnit != null) {
-         final product = await _catalogDao.getProductById(productUnit.productId, businessId);
-         description = product?.productName ?? description;
+        final product = await _catalogDao.getProductById(
+          productUnit.productId,
+          businessId,
+        );
+        description = product?.productName ?? description;
       }
 
       documentLines.add(
@@ -77,7 +92,8 @@ class PurchaseInvoiceDocumentMapper {
           unitName: null, // Optional: look up from units table
           quantity: item.quantity,
           unitPrice: item.unitPrice, // Purchase uses unitPrice in drift table
-          discount: 0.0, // Assuming discount isn't tracked per item for purchase yet
+          discount:
+              0.0, // Assuming discount isn't tracked per item for purchase yet
           tax: item.tax,
           lineTotal: item.lineTotal,
         ),
@@ -89,70 +105,70 @@ class PurchaseInvoiceDocumentMapper {
     if (invoice.paymentStatus == 'Unpaid') {
       paymentMethod = 'آجل';
     } else if (invoice.paymentStatus == 'Partial') {
-       paymentMethod = 'نقداً / آجل';
+      paymentMethod = 'نقداً / آجل';
     }
 
     double paidAmount = 0.0;
     double remainingAmount = 0.0;
-    
+
     // We should lookup supplier payables to get real paid/remaining amounts
     if (invoice.supplierId.isNotEmpty) {
-       final payablesList = await _purchasingDao.listPayables(
-          SupplierPayableFilter(
-            businessId: businessId, 
-            purchaseInvoiceId: invoice.id,
-          ),
-       );
-       if (payablesList.isNotEmpty) {
-          final payable = payablesList.first;
-          paidAmount = payable.paidAmount;
-          remainingAmount = payable.remainingAmount;
-       } else {
-          // If no payable, it implies fully paid cash purchase
-          paidAmount = invoice.grandTotal;
-          remainingAmount = 0.0;
-       }
+      final payablesList = await _purchasingDao.listPayables(
+        SupplierPayableFilter(
+          businessId: businessId,
+          purchaseInvoiceId: invoice.id,
+        ),
+      );
+      if (payablesList.isNotEmpty) {
+        final payable = payablesList.first;
+        paidAmount = payable.paidAmount;
+        remainingAmount = payable.remainingAmount;
+      } else {
+        // If no payable, it implies fully paid cash purchase
+        paidAmount = invoice.grandTotal;
+        remainingAmount = 0.0;
+      }
     } else {
-       // Just in case
-       paidAmount = invoice.grandTotal;
-       remainingAmount = 0.0;
+      // Just in case
+      paidAmount = invoice.grandTotal;
+      remainingAmount = 0.0;
     }
 
     return CommercialDocumentData(
       documentType: 'فاتورة مشتريات',
       documentNumber: invoice.invoiceNumber,
       issueDate: invoice.purchaseDate,
-      
+
       businessName: businessName,
       businessPhone: businessPhone,
       businessAddress: businessAddress,
       taxNumber: taxNumber,
-      
+
       branchName: branchName,
-      
+
       customerOrSupplierName: supplierName,
       customerOrSupplierPhone: supplierPhone,
       customerOrSupplierAddress: supplierAddress,
-      
+
       currencyCode: invoice.currencyId, // Should ideally be code
       currencySymbol: 'YER',
-      
+
       paymentMethod: paymentMethod,
       paymentStatus: invoice.paymentStatus,
-      
+
       items: documentLines,
-      
+
       subtotal: invoice.subTotal,
       discount: invoice.discountTotal,
       tax: invoice.taxTotal,
       grandTotal: invoice.grandTotal,
-      
+
       paidAmount: paidAmount,
       remainingAmount: remainingAmount,
-      
+
       notes: invoice.notes,
       terms: 'ملاحظات الفاتورة',
-      
+
       sellerSignatureLabel: 'توقيع المورد',
       customerSignatureLabel: 'توقيع المستلم',
       managementApprovalLabel: 'اعتماد الإدارة',

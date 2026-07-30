@@ -59,9 +59,8 @@ class _FixedAssetsViewState extends ConsumerState<FixedAssetsView> {
                         children: [
                           Text(
                             'الأصول الثابتة',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
+                            style: Theme.of(context).textTheme.titleLarge
+                                ?.copyWith(fontWeight: FontWeight.w800),
                           ),
                           Text(
                             '${assets.length} أصل',
@@ -85,11 +84,16 @@ class _FixedAssetsViewState extends ConsumerState<FixedAssetsView> {
                           context: context,
                           builder: (ctx) => Dialog(
                             backgroundColor: Colors.transparent,
-                            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                            insetPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 24,
+                            ),
                             child: FixedAssetFormSheet(
                               onClose: () => Navigator.pop(ctx),
                               onSave: (data) async {
-                                final success = await ref.read(fixedAssetsNotifierProvider.notifier).saveAsset(data);
+                                final success = await ref
+                                    .read(fixedAssetsNotifierProvider.notifier)
+                                    .saveAsset(data);
                                 if (success && ctx.mounted) {
                                   Navigator.pop(ctx);
                                 }
@@ -118,7 +122,9 @@ class _FixedAssetsViewState extends ConsumerState<FixedAssetsView> {
                       child: TextField(
                         onChanged: (val) {
                           setState(() => _searchQuery = val);
-                          ref.read(fixedAssetsSearchQueryProvider.notifier).setQuery(val);
+                          ref
+                              .read(fixedAssetsSearchQueryProvider.notifier)
+                              .setQuery(val);
                         },
                         decoration: const InputDecoration(
                           hintText: 'ابحث باسم الأصل أو الكود...',
@@ -159,79 +165,107 @@ class _FixedAssetsViewState extends ConsumerState<FixedAssetsView> {
                   border: Border.all(color: borderColor),
                 ),
                 child: assets.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inventory_outlined, size: 48, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'لا توجد أصول',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'قم بإضافة أصل جديد لعرضه هنا.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: assets.length,
-                      separatorBuilder: (context, index) => Divider(height: 1, color: borderColor),
-                      itemBuilder: (context, index) {
-                        final asset = assets[index];
-                        return ListTile(
-                          onTap: () {},
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                          leading: Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                    ? const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.inventory_outlined,
+                              size: 48,
+                              color: Colors.grey,
                             ),
-                            child: const Icon(Icons.business_center, color: AppColors.primary),
-                          ),
-                          title: Text(asset.assetName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                          subtitle: Text('${asset.assetCode} - ${asset.assetCategoryId ?? ""}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${asset.acquisitionCost.toStringAsFixed(0)} YER',
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                  ),
-                                  Text(
-                                    asset.status,
-                                    style: TextStyle(
-                                      color: asset.status == 'Active' ? Colors.green : (asset.status == 'Draft' ? Colors.orange : Colors.red),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 12,
+                            SizedBox(height: 16),
+                            Text(
+                              'لا توجد أصول',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'قم بإضافة أصل جديد لعرضه هنا.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: assets.length,
+                        separatorBuilder: (context, index) =>
+                            Divider(height: 1, color: borderColor),
+                        itemBuilder: (context, index) {
+                          final asset = assets[index];
+                          return ListTile(
+                            onTap: () {},
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 8,
+                            ),
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(
+                                Icons.business_center,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            title: Text(
+                              asset.assetName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${asset.assetCode} - ${asset.assetCategoryId ?? ""}',
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${asset.acquisitionCost.toStringAsFixed(0)} YER',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 16),
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () {},
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
+                                    Text(
+                                      asset.status,
+                                      style: TextStyle(
+                                        color: asset.status == 'Active'
+                                            ? Colors.green
+                                            : (asset.status == 'Draft'
+                                                  ? Colors.orange
+                                                  : Colors.red),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 16),
+                                IconButton(
+                                  icon: const Icon(Icons.edit, size: 20),
+                                  onPressed: () {},
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
           ],
         );
-      }
+      },
     );
   }
 }

@@ -81,7 +81,9 @@ class _CurrenciesViewState extends State<CurrenciesView> {
       currency: currency,
       onSave: (updatedData) {
         setState(() {
-          final index = _currencies.indexWhere((c) => c['id'] == updatedData['id']);
+          final index = _currencies.indexWhere(
+            (c) => c['id'] == updatedData['id'],
+          );
           if (index != -1) {
             _currencies[index] = updatedData;
           }
@@ -101,7 +103,10 @@ class _CurrenciesViewState extends State<CurrenciesView> {
     showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('حذف العملة', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          'حذف العملة',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: const Text('هل أنت متأكد من حذف هذه العملة؟'),
         actions: [
           TextButton(
@@ -128,8 +133,12 @@ class _CurrenciesViewState extends State<CurrenciesView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     final filtered = _filteredCurrencies;
@@ -177,12 +186,25 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                         onChanged: (val) => setState(() => _searchQuery = val),
                         decoration: InputDecoration(
                           hintText: 'البحث عن عملة...',
-                          hintStyle: TextStyle(color: textSecondary, fontSize: 14),
-                          prefixIcon: Icon(Icons.search_rounded, color: textSecondary, size: 20),
+                          hintStyle: TextStyle(
+                            color: textSecondary,
+                            fontSize: 14,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            color: textSecondary,
+                            size: 20,
+                          ),
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                          ),
                         ),
-                        style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                        style: TextStyle(
+                          color: textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
                       ),
                     );
 
@@ -202,7 +224,10 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                         icon: const Icon(Icons.add_rounded, size: 20),
                         label: const Text(
                           'إضافة عملة',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                     );
@@ -245,7 +270,11 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                         child: Center(
                           child: Text(
                             'لا توجد نتائج مطابقة',
-                            style: TextStyle(fontSize: 16, color: textSecondary, fontWeight: FontWeight.w600),
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       );
@@ -292,11 +321,14 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                         height: 48,
                                         decoration: BoxDecoration(
                                           color: const Color(0xFFE0F2FE),
-                                          borderRadius: BorderRadius.circular(14),
+                                          borderRadius: BorderRadius.circular(
+                                            14,
+                                          ),
                                         ),
                                         alignment: Alignment.center,
                                         child: Text(
-                                          (cur['currency_symbol'] ?? '').toString(),
+                                          (cur['currency_symbol'] ?? '')
+                                              .toString(),
                                           style: const TextStyle(
                                             fontSize: 17,
                                             fontWeight: FontWeight.w900,
@@ -307,10 +339,12 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                       const SizedBox(width: 14),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              (cur['currency_name_ar'] ?? '').toString(),
+                                              (cur['currency_name_ar'] ?? '')
+                                                  .toString(),
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w900,
@@ -320,7 +354,8 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
-                                              (cur['currency_code'] ?? '').toString(),
+                                              (cur['currency_code'] ?? '')
+                                                  .toString(),
                                               style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
@@ -336,14 +371,20 @@ class _CurrenciesViewState extends State<CurrenciesView> {
 
                                   // Exchange rate box
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
+                                      color: isDark
+                                          ? AppColors.surfaceDark
+                                          : const Color(0xFFF8FAFC),
                                       borderRadius: BorderRadius.circular(12),
                                       border: Border.all(color: borderColor),
                                     ),
                                     child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'سعر الصرف',
@@ -372,13 +413,18 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                       if (!isBase)
                                         InkWell(
                                           onTap: () => _confirmDelete(cur),
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
                                           child: Container(
                                             width: 40,
                                             height: 38,
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFEF4444).withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(10),
+                                              color: const Color(
+                                                0xFFEF4444,
+                                              ).withOpacity(0.1),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
                                             ),
                                             child: const Icon(
                                               Icons.delete_outline_rounded,
@@ -392,16 +438,25 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                         child: SizedBox(
                                           height: 38,
                                           child: ElevatedButton.icon(
-                                            onPressed: () => _openEditSheet(cur),
+                                            onPressed: () =>
+                                                _openEditSheet(cur),
                                             style: ElevatedButton.styleFrom(
-                                              backgroundColor: const Color(0xFF3B82F6).withOpacity(0.12),
-                                              foregroundColor: const Color(0xFF3B82F6),
+                                              backgroundColor: const Color(
+                                                0xFF3B82F6,
+                                              ).withOpacity(0.12),
+                                              foregroundColor: const Color(
+                                                0xFF3B82F6,
+                                              ),
                                               elevation: 0,
                                               shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(10),
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
                                               ),
                                             ),
-                                            icon: const Icon(Icons.edit_outlined, size: 16),
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                              size: 16,
+                                            ),
                                             label: const Text(
                                               'تعديل',
                                               style: TextStyle(
@@ -423,9 +478,14 @@ class _CurrenciesViewState extends State<CurrenciesView> {
                                   top: 0,
                                   left: 0,
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF10B981).withOpacity(0.15),
+                                      color: const Color(
+                                        0xFF10B981,
+                                      ).withOpacity(0.15),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: const Text(

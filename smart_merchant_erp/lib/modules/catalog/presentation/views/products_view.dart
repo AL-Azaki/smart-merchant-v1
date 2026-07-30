@@ -115,11 +115,16 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                             context: context,
                             builder: (ctx) => Dialog(
                               backgroundColor: Colors.transparent,
-                              insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                              insetPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 24,
+                              ),
                               child: ProductFormSheet(
                                 onClose: () => Navigator.pop(ctx),
                                 onSave: (productData) async {
-                                  await ref.read(productsNotifierProvider.notifier).saveProduct(productData);
+                                  await ref
+                                      .read(productsNotifierProvider.notifier)
+                                      .saveProduct(productData);
                                   if (ctx.mounted) Navigator.pop(ctx);
                                 },
                               ),
@@ -249,7 +254,11 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                                         context: context,
                                         builder: (ctx) => Dialog(
                                           backgroundColor: Colors.transparent,
-                                          insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                          insetPadding:
+                                              const EdgeInsets.symmetric(
+                                                horizontal: 16,
+                                                vertical: 24,
+                                              ),
                                           child: ProductFormSheet(
                                             product: {
                                               'id': p.id,
@@ -262,8 +271,14 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                                             },
                                             onClose: () => Navigator.pop(ctx),
                                             onSave: (productData) async {
-                                              await ref.read(productsNotifierProvider.notifier).saveProduct(productData);
-                                              if (ctx.mounted) Navigator.pop(ctx);
+                                              await ref
+                                                  .read(
+                                                    productsNotifierProvider
+                                                        .notifier,
+                                                  )
+                                                  .saveProduct(productData);
+                                              if (ctx.mounted)
+                                                Navigator.pop(ctx);
                                             },
                                           ),
                                         ),
@@ -280,18 +295,32 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
                                         context: context,
                                         builder: (ctx) => AlertDialog(
                                           title: const Text('تأكيد الحذف'),
-                                          content: Text('هل أنت متأكد من رغبتك في حذف المنتج "${p.productName}"؟\nهذا الإجراء لا يمكن التراجع عنه.'),
+                                          content: Text(
+                                            'هل أنت متأكد من رغبتك في حذف المنتج "${p.productName}"؟\nهذا الإجراء لا يمكن التراجع عنه.',
+                                          ),
                                           actions: [
                                             TextButton(
-                                              onPressed: () => Navigator.pop(ctx),
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx),
                                               child: const Text('إلغاء'),
                                             ),
                                             TextButton(
                                               onPressed: () async {
-                                                await ref.read(productsNotifierProvider.notifier).deleteProduct(p.id);
-                                                if (ctx.mounted) Navigator.pop(ctx);
+                                                await ref
+                                                    .read(
+                                                      productsNotifierProvider
+                                                          .notifier,
+                                                    )
+                                                    .deleteProduct(p.id);
+                                                if (ctx.mounted)
+                                                  Navigator.pop(ctx);
                                               },
-                                              child: const Text('حذف', style: TextStyle(color: AppColors.error)),
+                                              child: const Text(
+                                                'حذف',
+                                                style: TextStyle(
+                                                  color: AppColors.error,
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),

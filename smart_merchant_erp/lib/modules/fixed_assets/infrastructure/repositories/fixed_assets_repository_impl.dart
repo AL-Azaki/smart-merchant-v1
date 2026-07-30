@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/fixed_assets_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/fixed_assets_dao.dart';
 
-@LazySingleton(as: FixedAssetsRepository)
 class FixedAssetsRepositoryImpl implements FixedAssetsRepository {
   final FixedAssetsDao _dao;
 

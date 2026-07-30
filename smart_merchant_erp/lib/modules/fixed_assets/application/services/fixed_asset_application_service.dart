@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -45,7 +44,6 @@ class FixedAssetCommand {
   });
 }
 
-@injectable
 class FixedAssetApplicationService {
   final FixedAssetsRepository _fixedAssetsRepository;
   final ApplicationContext _context;
@@ -53,7 +51,9 @@ class FixedAssetApplicationService {
 
   FixedAssetApplicationService(this._fixedAssetsRepository, this._context);
 
-  Future<Either<Failure, String>> saveFixedAsset(FixedAssetCommand command) async {
+  Future<Either<Failure, String>> saveFixedAsset(
+    FixedAssetCommand command,
+  ) async {
     final businessId = _context.currentBusinessId;
     final branchId = _context.currentBranchId;
     if (businessId.isEmpty) {
@@ -67,18 +67,30 @@ class FixedAssetApplicationService {
       final companion = FixedAssetsCompanion(
         id: drift.Value(assetId),
         businessId: drift.Value(businessId),
-        branchId: branchId != null ? drift.Value(branchId) : const drift.Value.absent(),
+        branchId: branchId != null
+            ? drift.Value(branchId)
+            : const drift.Value.absent(),
         assetCode: drift.Value(command.assetCode),
         assetName: drift.Value(command.assetName),
-        assetCategoryId: drift.Value(command.assetCategoryId == 'أجهزة إلكترونية' || command.assetCategoryId == 'أثاث ومعدات' || command.assetCategoryId == 'مركبات ووسائل نقل' ? null : command.assetCategoryId),
+        assetCategoryId: drift.Value(
+          command.assetCategoryId == 'أجهزة إلكترونية' ||
+                  command.assetCategoryId == 'أثاث ومعدات' ||
+                  command.assetCategoryId == 'مركبات ووسائل نقل'
+              ? null
+              : command.assetCategoryId,
+        ),
         acquisitionDate: drift.Value(command.purchaseDate),
         acquisitionCost: drift.Value(command.purchasePrice),
-        baseAcquisitionCost: drift.Value(command.purchasePrice), // assuming 1:1 for simplicity
+        baseAcquisitionCost: drift.Value(
+          command.purchasePrice,
+        ), // assuming 1:1 for simplicity
         usefulLife: drift.Value(command.usefulLifeMonths),
         residualValue: drift.Value(command.salvageValue),
         baseResidualValue: drift.Value(command.salvageValue),
         depreciationMethod: drift.Value(command.depreciationMethod),
-        depreciationStartDate: drift.Value(command.capitalizationDate ?? command.purchaseDate),
+        depreciationStartDate: drift.Value(
+          command.capitalizationDate ?? command.purchaseDate,
+        ),
         status: drift.Value(command.isActive ? 'Active' : 'Draft'),
         currencyId: const drift.Value('YER'), // Use QA default currency
         createdBy: drift.Value(_context.currentUserId),

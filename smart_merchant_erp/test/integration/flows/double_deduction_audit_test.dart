@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/app/di/injection.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';
@@ -66,7 +67,7 @@ void main() {
 
     final request = CompleteSaleCommand(
       customerId: 'cust-qa-01',
-      currencyId: 'YER-id',
+      currencyId: 'YER',
       isCreditSale: false,
       items: items,
     );

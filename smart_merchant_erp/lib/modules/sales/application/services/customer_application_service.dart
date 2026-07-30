@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -37,7 +36,6 @@ class CustomerCommand {
   });
 }
 
-@injectable
 class CustomerApplicationService {
   final SalesRepository _salesRepository;
   final ApplicationContext _context;
@@ -62,8 +60,12 @@ class CustomerApplicationService {
         phone: drift.Value(command.phone),
         email: drift.Value(command.email),
         address: drift.Value(command.address),
-        creditLimit: command.creditLimit != null ? drift.Value(command.creditLimit!) : const drift.Value.absent(),
-        openingBalance: command.openingBalance != null ? drift.Value(command.openingBalance!) : const drift.Value.absent(),
+        creditLimit: command.creditLimit != null
+            ? drift.Value(command.creditLimit!)
+            : const drift.Value.absent(),
+        openingBalance: command.openingBalance != null
+            ? drift.Value(command.openingBalance!)
+            : const drift.Value.absent(),
         openingBalanceType: drift.Value(command.openingBalanceType),
         openingBalanceDate: drift.Value(command.openingBalanceDate),
         isActive: drift.Value(command.isActive),

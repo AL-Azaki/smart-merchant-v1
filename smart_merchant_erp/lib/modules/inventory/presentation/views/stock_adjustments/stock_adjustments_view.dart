@@ -28,7 +28,7 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
 
     final adjustmentsAsync = ref.watch(stockAdjustmentsListProvider);
     final allAdjustments = adjustmentsAsync.valueOrNull ?? [];
-    
+
     final adjustments = allAdjustments.where((adj) {
       if (_searchQuery.isEmpty) return true;
       final query = _searchQuery.toLowerCase();
@@ -87,17 +87,28 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                     context: context,
                     builder: (ctx) => Dialog(
                       backgroundColor: Colors.transparent,
-                      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                      insetPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 24,
+                      ),
                       child: StockAdjustmentFormSheet(
                         onClose: () => Navigator.pop(ctx),
                         onSave: (data) async {
-                          final success = await ref.read(stockAdjustmentNotifierProvider.notifier).submitAdjustment(data);
+                          final success = await ref
+                              .read(stockAdjustmentNotifierProvider.notifier)
+                              .submitAdjustment(data);
                           if (success) {
                             if (ctx.mounted) Navigator.pop(ctx);
                           } else {
-                            final error = ref.read(stockAdjustmentNotifierProvider).error;
+                            final error = ref
+                                .read(stockAdjustmentNotifierProvider)
+                                .error;
                             if (ctx.mounted && error != null) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Failed: ${error.message}')));
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed: ${error.message}'),
+                                ),
+                              );
                             }
                           }
                         },
@@ -110,8 +121,13 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
@@ -182,7 +198,10 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                         SizedBox(height: 16),
                         Text(
                           'لا توجد تسويات مخزنية',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         Text(
                           'قم بإنشاء تسوية جديدة لعرضها هنا.',
@@ -209,10 +228,15 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
+                                color: isDark
+                                    ? AppColors.surfaceDark
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: Icon(Icons.fact_check, color: AppColors.primary),
+                              child: Icon(
+                                Icons.fact_check,
+                                color: AppColors.primary,
+                              ),
                             ),
                             const SizedBox(width: 16),
                             Expanded(
@@ -223,18 +247,34 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                                     children: [
                                       Text(
                                         'تسوية ${adj.transactionType.name}',
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                        ),
                                       ),
                                       const SizedBox(width: 8),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
-                                          color: AppColors.primary.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: AppColors.primary.withOpacity(
+                                            0.1,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         child: Text(
-                                          DateFormat('yyyy-MM-dd').format(adj.transactionDate),
-                                          style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+                                          DateFormat(
+                                            'yyyy-MM-dd',
+                                          ).format(adj.transactionDate),
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -242,7 +282,10 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                                   const SizedBox(height: 4),
                                   Text(
                                     adj.status.name,
-                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                    style: const TextStyle(
+                                      color: Colors.grey,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ],
                               ),

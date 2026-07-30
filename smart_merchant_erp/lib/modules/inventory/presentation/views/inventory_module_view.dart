@@ -85,9 +85,7 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
         child: Container(
           decoration: BoxDecoration(
             color: surfaceColor,
-            border: Border(
-              bottom: BorderSide(color: borderColor, width: 1.5),
-            ),
+            border: Border(bottom: BorderSide(color: borderColor, width: 1.5)),
           ),
           child: TabBar(
             controller: _tabController,

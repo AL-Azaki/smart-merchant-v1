@@ -6,10 +6,6 @@ class JournalEntriesView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: JournalEntriesTab(),
-      ),
-    );
+    return const Scaffold(body: SafeArea(child: JournalEntriesTab()));
   }
 }

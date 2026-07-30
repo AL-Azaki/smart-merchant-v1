@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/system_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/system_dao.dart';
 
-@LazySingleton(as: SystemRepository)
 class SystemRepositoryImpl implements SystemRepository {
   final SystemDao _dao;
 
@@ -333,26 +331,39 @@ class SystemRepositoryImpl implements SystemRepository {
   // Archive Documents
   @override
   Future<int> insertArchiveDocument(ArchiveDocumentsCompanion companion) {
-    return RepositoryErrorGuard.run(() => _dao.insertArchiveDocument(companion));
+    return RepositoryErrorGuard.run(
+      () => _dao.insertArchiveDocument(companion),
+    );
   }
 
   @override
   Future<bool> updateArchiveDocument(ArchiveDocumentsCompanion companion) {
-    return RepositoryErrorGuard.run(() => _dao.updateArchiveDocument(companion));
+    return RepositoryErrorGuard.run(
+      () => _dao.updateArchiveDocument(companion),
+    );
   }
 
   @override
-  Future<ArchiveDocument?> getArchiveDocumentById(String id, String businessId) {
-    return RepositoryErrorGuard.run(() => _dao.getArchiveDocumentById(id, businessId));
+  Future<ArchiveDocument?> getArchiveDocumentById(
+    String id,
+    String businessId,
+  ) {
+    return RepositoryErrorGuard.run(
+      () => _dao.getArchiveDocumentById(id, businessId),
+    );
   }
 
   @override
-  Stream<List<ArchiveDocument>> watchArchiveDocuments(ArchiveDocumentFilter filter) {
+  Stream<List<ArchiveDocument>> watchArchiveDocuments(
+    ArchiveDocumentFilter filter,
+  ) {
     return RepositoryErrorGuard.guardStream(_dao.watchArchiveDocuments(filter));
   }
 
   @override
   Future<bool> deleteArchiveDocument(String id, String businessId) {
-    return RepositoryErrorGuard.run(() => _dao.deleteArchiveDocument(id, businessId));
+    return RepositoryErrorGuard.run(
+      () => _dao.deleteArchiveDocument(id, businessId),
+    );
   }
 }

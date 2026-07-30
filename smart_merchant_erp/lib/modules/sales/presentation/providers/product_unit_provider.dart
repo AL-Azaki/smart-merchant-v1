@@ -1,7 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../kernel/storage/app_database.dart' show Product, ProductUnit;
-import '../../../../database/daos/catalog_dao.dart' show ProductFilter;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/catalog_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 
 part 'product_unit_provider.g.dart';
@@ -44,14 +44,14 @@ class PosProductsNotifier extends _$PosProductsNotifier {
           product.id,
           session.businessId!,
         );
-        
+
         if (units.isNotEmpty) {
           // Find the base unit, or just take the first one
           final baseUnit = units.firstWhere(
             (u) => u.isBaseUnit,
             orElse: () => units.first,
           );
-          
+
           items.add(
             PosProductItem(
               product: product,

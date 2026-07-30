@@ -1,9 +1,15 @@
+import 'cash_registers_table.dart';
 import 'package:drift/drift.dart';
+import 'payment_methods_table.dart';
+import '../accounting/chart_of_accounts_table.dart';
+import '../core/currencies_table.dart';
+import '../core/businesses_table.dart';
+import '../core/branches_table.dart';
 
 /// Drift table definition for `payments`.
 ///
 /// Purpose: Treasury payment/receipt voucher headers with polymorphic contact linkage and multi-currency support.
-/// Domain: DOMAIN 7 — FINANCE (Payments & Receipts)
+/// Domain: DOMAIN 7 â€” FINANCE (Payments & Receipts)
 /// Database Owner: SQLite (ERP)
 /// Offline Metadata: Requires sync tracking columns (`sync_status`, `version`, `device_id`)
 /// as receipt and payout vouchers are issued locally in SQLite (Source of Truth) and synced bidirectionally to update central reporting.
@@ -13,7 +19,7 @@ class Payments extends Table {
   @override
   String get tableName => 'payments';
 
-  /// Primary Key — UUID string stored as TEXT.
+  /// Primary Key â€” UUID string stored as TEXT.
   TextColumn get id => text()();
 
   /// Foreign Key linking to `businesses.id` (RESTRICT).
@@ -138,3 +144,4 @@ class Payments extends Table {
     'CHECK (status IN (\'Draft\', \'Posted\', \'Reversed\'))',
   ];
 }
+

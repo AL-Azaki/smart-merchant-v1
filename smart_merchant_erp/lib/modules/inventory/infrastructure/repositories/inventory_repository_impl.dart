@@ -1,4 +1,3 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/inventory_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
@@ -7,7 +6,6 @@ import '../../../../database/enums/inventory_transaction_status.dart';
 import '../../../../database/enums/inventory_transfer_status.dart';
 import '../../../../database/enums/stock_count_status.dart';
 
-@LazySingleton(as: InventoryRepository)
 class InventoryRepositoryImpl implements InventoryRepository {
   final InventoryDao _dao;
 
@@ -436,7 +434,12 @@ class InventoryRepositoryImpl implements InventoryRepository {
     int offset = 0,
   }) {
     return RepositoryErrorGuard.run(
-      () => _dao.listStockCounts(businessId, warehouseId: warehouseId, limit: limit, offset: offset),
+      () => _dao.listStockCounts(
+        businessId,
+        warehouseId: warehouseId,
+        limit: limit,
+        offset: offset,
+      ),
     );
   }
 
@@ -461,12 +464,21 @@ class InventoryRepositoryImpl implements InventoryRepository {
     DateTime? postedAt,
   }) {
     return RepositoryErrorGuard.run(
-      () => _dao.updateStockCountStatus(id, businessId, status, postedBy: postedBy, postedAt: postedAt),
+      () => _dao.updateStockCountStatus(
+        id,
+        businessId,
+        status,
+        postedBy: postedBy,
+        postedAt: postedAt,
+      ),
     );
   }
 
   @override
-  Future<List<StockCountItem>> getStockCountItems(String stockCountId, String businessId) {
+  Future<List<StockCountItem>> getStockCountItems(
+    String stockCountId,
+    String businessId,
+  ) {
     return RepositoryErrorGuard.run(
       () => _dao.getStockCountItems(stockCountId, businessId),
     );

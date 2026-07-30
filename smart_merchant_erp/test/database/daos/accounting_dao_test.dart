@@ -65,20 +65,7 @@ void main() {
             isDefault: const drift.Value(true),
           ),
         );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
 
     // Seed AccountTypes
     await database
@@ -371,7 +358,7 @@ void main() {
             documentDate: DateTime(2026, 5, 10),
             journalType: 'Manual',
             documentType: 'Manual',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             status: const drift.Value('Posted'),
             createdBy: 'u-owner',
           ),
@@ -382,7 +369,7 @@ void main() {
               journalEntryId: 'je-balanced',
               lineNumber: 1,
               chartOfAccountId: 'acc-debit',
-              currencyId: 'curr-sar',
+              currencyId: 'SAR',
               type: 'Debit',
               baseAmount: const drift.Value(1500.0),
             ),
@@ -392,7 +379,7 @@ void main() {
               journalEntryId: 'je-balanced',
               lineNumber: 2,
               chartOfAccountId: 'acc-credit',
-              currencyId: 'curr-sar',
+              currencyId: 'SAR',
               type: 'Credit',
               baseAmount: const drift.Value(1500.0),
             ),
@@ -419,7 +406,7 @@ void main() {
               documentDate: DateTime(2026, 5, 11),
               journalType: 'Manual',
               documentType: 'Manual',
-              currencyId: 'curr-sar',
+              currencyId: 'SAR',
               createdBy: 'u-owner',
             ),
             [
@@ -429,7 +416,7 @@ void main() {
                 journalEntryId: 'je-unbalanced',
                 lineNumber: 1,
                 chartOfAccountId: 'acc-debit',
-                currencyId: 'curr-sar',
+                currencyId: 'SAR',
                 type: 'Debit',
                 baseAmount: const drift.Value(1000.0),
               ),
@@ -439,7 +426,7 @@ void main() {
                 journalEntryId: 'je-unbalanced',
                 lineNumber: 2,
                 chartOfAccountId: 'acc-credit',
-                currencyId: 'curr-sar',
+                currencyId: 'SAR',
                 type: 'Credit',
                 baseAmount: const drift.Value(800.0), // Unbalanced!
               ),
@@ -557,7 +544,7 @@ void main() {
           businessId: 'BUS_A',
           fiscalYearId: 'fy-2026',
           chartOfAccountId: 'coa-ob1',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           debitAmount: const drift.Value(50000.0),
           baseDebitAmount: const drift.Value(50000.0),
           createdBy: 'u-owner',
@@ -567,7 +554,7 @@ void main() {
           businessId: 'BUS_A',
           fiscalYearId: 'fy-2026',
           chartOfAccountId: 'coa-ob2',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           creditAmount: const drift.Value(50000.0),
           baseCreditAmount: const drift.Value(50000.0),
           createdBy: 'u-owner',

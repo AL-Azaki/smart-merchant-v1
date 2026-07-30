@@ -72,9 +72,13 @@ class UserCardWidget extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  user.isActive ? Icons.check_circle_rounded : Icons.pause_circle_rounded,
+                  user.isActive
+                      ? Icons.check_circle_rounded
+                      : Icons.pause_circle_rounded,
                   size: 16,
-                  color: user.isActive ? AppColors.success : AppColors.textSecondaryLight,
+                  color: user.isActive
+                      ? AppColors.success
+                      : AppColors.textSecondaryLight,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
@@ -85,7 +89,9 @@ class UserCardWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -126,9 +132,14 @@ class UserCardWidget extends StatelessWidget {
             children: [
               // Role Badge (Shield icon)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 ),
                 child: Row(
@@ -145,7 +156,9 @@ class UserCardWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                        color: isDark
+                            ? AppColors.textPrimaryDark
+                            : AppColors.textPrimaryLight,
                       ),
                     ),
                   ],
@@ -154,7 +167,10 @@ class UserCardWidget extends StatelessWidget {
 
               // Branch Badge (Location icon)
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.success.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
@@ -183,7 +199,11 @@ class UserCardWidget extends StatelessWidget {
           ),
 
           const SizedBox(height: AppSpacing.md),
-          Divider(color: border.withValues(alpha: 0.6), height: 1, thickness: 1),
+          Divider(
+            color: border.withValues(alpha: 0.6),
+            height: 1,
+            thickness: 1,
+          ),
           const SizedBox(height: AppSpacing.sm),
 
           // Action Buttons: Delete & Edit Buttons
@@ -195,15 +215,22 @@ class UserCardWidget extends StatelessWidget {
                 onTap: onEdit ?? () {},
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                    color: isDark
+                        ? const Color(0xFF374151)
+                        : const Color(0xFFF1F5F9),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                   ),
                   child: Icon(
                     Icons.edit_outlined,
                     size: 18,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
               ),
@@ -214,7 +241,10 @@ class UserCardWidget extends StatelessWidget {
                 onTap: onDelete ?? () {},
                 borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.error.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),

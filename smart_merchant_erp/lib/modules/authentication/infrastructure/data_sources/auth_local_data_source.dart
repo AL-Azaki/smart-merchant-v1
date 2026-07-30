@@ -1,4 +1,3 @@
-import 'package:injectable/injectable.dart';
 import '../../../../kernel/core/data_sources.dart';
 import '../../../../kernel/error/exceptions.dart';
 import '../../../../kernel/storage/app_database.dart';
@@ -21,7 +20,6 @@ abstract class AuthLocalDataSource implements LocalDataSource {
   AuthDao get authDao;
 }
 
-@LazySingleton(as: AuthLocalDataSource)
 class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   final AppDatabase _db;
   late final AuthDao _authDao;

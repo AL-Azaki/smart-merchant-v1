@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/sales_dao.dart';
@@ -252,7 +252,9 @@ class PosNotifier extends _$PosNotifier {
     final isFulfilled = await service.isOrderAlreadyFulfilled(order.id);
     if (isFulfilled) {
       state = state.copyWith(
-        error: const ValidationFailure('هذا الطلب مكتمل بالفعل ولا يمكن معالجته مرة أخرى.'),
+        error: const ValidationFailure(
+          'هذا الطلب مكتمل بالفعل ولا يمكن معالجته مرة أخرى.',
+        ),
       );
       return;
     }
@@ -262,21 +264,26 @@ class PosNotifier extends _$PosNotifier {
     final cartItems = items.map((item) {
       return PosCartItem(
         id: item.productUnitId,
-        name: 'منتج ${item.productUnitId.substring(0, 8)}', // Will be resolved by product lookup
+        name:
+            'منتج ${item.productUnitId.substring(0, 8)}', // Will be resolved by product lookup
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        taxRate: item.quantity > 0 ? (item.tax / (item.quantity * item.unitPrice)).clamp(0.0, 1.0) : 0.0,
+        taxRate: item.quantity > 0
+            ? (item.tax / (item.quantity * item.unitPrice)).clamp(0.0, 1.0)
+            : 0.0,
         productUnitId: item.productUnitId,
       );
     }).toList();
 
     // Calculate totals
     final salesItems = cartItems
-        .map((c) => SalesItem(
-              quantity: c.quantity,
-              unitPrice: c.unitPrice,
-              taxRate: c.taxRate,
-            ))
+        .map(
+          (c) => SalesItem(
+            quantity: c.quantity,
+            unitPrice: c.unitPrice,
+            taxRate: c.taxRate,
+          ),
+        )
         .toList();
     final totals = SalesCalculator.calculate(items: salesItems);
 
@@ -315,7 +322,9 @@ class PosNotifier extends _$PosNotifier {
     if (!sessionState.isActive || sessionState.branchId == null) {
       state = state.copyWith(
         isSubmitting: false,
-        error: const ValidationFailure('Session or Branch context missing. Cannot execute sale.'),
+        error: const ValidationFailure(
+          'Session or Branch context missing. Cannot execute sale.',
+        ),
       );
       return;
     }

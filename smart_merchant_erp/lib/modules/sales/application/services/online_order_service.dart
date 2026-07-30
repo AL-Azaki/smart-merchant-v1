@@ -1,5 +1,4 @@
 import 'package:dartz/dartz.dart';
-import 'package:injectable/injectable.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../../../kernel/storage/app_database.dart';
@@ -19,7 +18,6 @@ import '../../domain/repositories/sales_repository.dart';
 ///   Confirmed → Cashier accepted the order
 ///   Cancelled → Cashier rejected the order
 ///   Delivered → Fulfilled (after CompleteSaleUseCase succeeds)
-@injectable
 class OnlineOrderService {
   final SalesRepository _salesRepository;
   final ApplicationContext _context;
@@ -40,9 +38,11 @@ class OnlineOrderService {
         return const Left(ValidationFailure('الطلب غير موجود.'));
       }
       if (order.status != 'Pending') {
-        return Left(ValidationFailure(
-          'لا يمكن قبول طلب بحالة "${order.status}". يجب أن يكون الطلب في حالة "قيد المراجعة".',
-        ));
+        return Left(
+          ValidationFailure(
+            'لا يمكن قبول طلب بحالة "${order.status}". يجب أن يكون الطلب في حالة "قيد المراجعة".',
+          ),
+        );
       }
 
       // Guard: prevent accepting a deleted order
@@ -119,9 +119,11 @@ class OnlineOrderService {
         return const Left(ValidationFailure('الطلب مكتمل بالفعل.'));
       }
       if (order.status != 'Confirmed') {
-        return Left(ValidationFailure(
-          'لا يمكن إكمال طلب بحالة "${order.status}". يجب قبول الطلب أولاً.',
-        ));
+        return Left(
+          ValidationFailure(
+            'لا يمكن إكمال طلب بحالة "${order.status}". يجب قبول الطلب أولاً.',
+          ),
+        );
       }
 
       final updated = await _salesRepository.updateOrderStatus(

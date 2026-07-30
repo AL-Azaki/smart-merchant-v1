@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../database/enums/stock_count_status.dart';
 import '../../../../kernel/core/application_context.dart';
@@ -8,7 +7,6 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../domain/repositories/inventory_repository.dart';
 import 'process_stock_adjustment_usecase.dart';
 
-@injectable
 class PostStockCountUseCase {
   final InventoryRepository _repository;
   final ApplicationContext _context;
@@ -27,12 +25,20 @@ class PostStockCountUseCase {
     final branchId = _context.currentBranchId;
     final userId = _context.currentUserId;
 
-    if (businessId == null || businessId.isEmpty || branchId == null || branchId.isEmpty || userId == null || userId.isEmpty) {
+    if (businessId == null ||
+        businessId.isEmpty ||
+        branchId == null ||
+        branchId.isEmpty ||
+        userId == null ||
+        userId.isEmpty) {
       throw Exception('Missing application context.');
     }
 
     await _transactionRunner.runInTransaction(() async {
-      final count = await _repository.getStockCountById(stockCountId, businessId);
+      final count = await _repository.getStockCountById(
+        stockCountId,
+        businessId,
+      );
       if (count == null) {
         throw Exception('Stock Count not found.');
       }
@@ -41,13 +47,18 @@ class PostStockCountUseCase {
         throw Exception('Only Draft stock counts can be posted.');
       }
 
-      final items = await _repository.getStockCountItems(stockCountId, businessId);
+      final items = await _repository.getStockCountItems(
+        stockCountId,
+        businessId,
+      );
       if (items.isEmpty) {
         throw Exception('Cannot post an empty stock count.');
       }
 
       // We only want to adjust items that actually have a difference.
-      final differenceItems = items.where((i) => i.differenceQuantity != 0).toList();
+      final differenceItems = items
+          .where((i) => i.differenceQuantity != 0)
+          .toList();
 
       if (differenceItems.isNotEmpty) {
         final adjustmentItems = differenceItems.map((i) {
@@ -66,9 +77,10 @@ class PostStockCountUseCase {
         );
 
         final result = await _processStockAdjustmentUseCase(adjustmentCommand);
-        
+
         result.fold(
-          (failure) => throw Exception('فشل في إنشاء تسوية الجرد: ${failure.message}'),
+          (failure) =>
+              throw Exception('فشل في إنشاء تسوية الجرد: ${failure.message}'),
           (txId) => null, // success
         );
       }

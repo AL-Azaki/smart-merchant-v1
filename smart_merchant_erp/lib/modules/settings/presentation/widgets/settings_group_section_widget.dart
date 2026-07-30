@@ -30,16 +30,13 @@ class SettingsGroupSectionWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 19,
                 fontWeight: FontWeight.w900,
-                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                color: isDark
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Container(
-                height: 1.5,
-                color: border,
-              ),
-            ),
+            Expanded(child: Container(height: 1.5, color: border)),
           ],
         ),
         const SizedBox(height: AppSpacing.lg),

@@ -6,10 +6,11 @@ import '../providers/sales_provider.dart';
 import '../providers/customer_provider.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../mappers/sales_invoice_document_mapper.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
-import '../../../../kernel/storage/app_database.dart' show SalesInvoice, Customer;
+import '../../../../kernel/storage/app_database.dart'
+    show SalesInvoice, Customer;
 
 class SalesListView extends ConsumerStatefulWidget {
   const SalesListView({super.key});
@@ -42,16 +43,18 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
     } catch (e) {
       if (!context.mounted) return;
       Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     final invoicesAsync = ref.watch(salesInvoicesNotifierProvider);
@@ -92,39 +95,35 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                 initialValue: _statusFilter,
                 onSelected: (value) => setState(() => _statusFilter = value),
                 offset: const Offset(0, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: null,
-                    child: Text('الكل'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Draft',
-                    child: Text('مسودة'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Unpaid',
-                    child: Text('غير مدفوعة'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Paid',
-                    child: Text('مدفوعة'),
-                  ),
+                  PopupMenuItem(value: null, child: Text('الكل')),
+                  PopupMenuItem(value: 'Draft', child: Text('مسودة')),
+                  PopupMenuItem(value: 'Unpaid', child: Text('غير مدفوعة')),
+                  PopupMenuItem(value: 'Paid', child: Text('مدفوعة')),
                 ],
                 child: Container(
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: _statusFilter == null ? surfaceColor : AppColors.primary.withOpacity(0.1),
+                    color: _statusFilter == null
+                        ? surfaceColor
+                        : AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _statusFilter == null ? borderColor : AppColors.primary,
+                      color: _statusFilter == null
+                          ? borderColor
+                          : AppColors.primary,
                     ),
                   ),
                   child: Icon(
                     Icons.filter_list,
-                    color: _statusFilter == null 
-                        ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                    color: _statusFilter == null
+                        ? (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight)
                         : AppColors.primary,
                   ),
                 ),
@@ -141,13 +140,21 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
               if (_searchQuery.isNotEmpty) {
                 final sq = _searchQuery.toLowerCase();
                 filtered = filtered.where((i) {
-                  final cName = _getCustomerName(i.customerId, customers).toLowerCase();
-                  return i.invoiceNumber.toLowerCase().contains(sq) || cName.contains(sq);
+                  final cName = _getCustomerName(
+                    i.customerId,
+                    customers,
+                  ).toLowerCase();
+                  return i.invoiceNumber.toLowerCase().contains(sq) ||
+                      cName.contains(sq);
                 }).toList();
               }
               if (_statusFilter != null) {
                 filtered = filtered
-                    .where((i) => i.paymentStatus == _statusFilter || i.status == _statusFilter)
+                    .where(
+                      (i) =>
+                          i.paymentStatus == _statusFilter ||
+                          i.status == _statusFilter,
+                    )
                     .toList();
               }
 
@@ -166,11 +173,7 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
-                          Icons.receipt_long,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
+                        Icon(Icons.receipt_long, size: 48, color: Colors.grey),
                         SizedBox(height: 16),
                         Text(
                           'لا توجد فواتير مبيعات',
@@ -250,14 +253,42 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
         child: DataTable(
           showCheckboxColumn: false,
           headingRowColor: WidgetStateProperty.all(
-            isDark ? AppColors.surfaceDark.withOpacity(0.5) : const Color(0xFFF8FAFC),
+            isDark
+                ? AppColors.surfaceDark.withOpacity(0.5)
+                : const Color(0xFFF8FAFC),
           ),
           columns: const [
-            DataColumn(label: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('العميل', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+            DataColumn(
+              label: Text(
+                'رقم الفاتورة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'التاريخ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'العميل',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'الحالة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'الإجمالي',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              numeric: true,
+            ),
           ],
           rows: invoices.map((inv) {
             final cName = _getCustomerName(inv.customerId, customers);
@@ -265,12 +296,22 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
             return DataRow(
               onSelectChanged: (_) => _openInvoice(context, inv),
               cells: [
-                DataCell(Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataCell(Text(DateFormat('yyyy-MM-dd').format(inv.invoiceDate))),
+                DataCell(
+                  Text(
+                    inv.invoiceNumber,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataCell(
+                  Text(DateFormat('yyyy-MM-dd').format(inv.invoiceDate)),
+                ),
                 DataCell(Text(cName)),
                 DataCell(
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
@@ -285,10 +326,15 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                     ),
                   ),
                 ),
-                DataCell(Text(
-                  '${NumberFormat('#,##0.00').format(inv.grandTotal)} ر.ي',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                )),
+                DataCell(
+                  Text(
+                    '${NumberFormat('#,##0.00').format(inv.grandTotal)} ر.ي',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
               ],
             );
           }).toList(),
@@ -305,7 +351,8 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
   ) {
     return ListView.separated(
       itemCount: invoices.length,
-      separatorBuilder: (context, index) => Divider(height: 1, color: borderColor),
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: borderColor),
       itemBuilder: (context, index) {
         final invoice = invoices[index];
         final cName = _getCustomerName(invoice.customerId, customers);
@@ -324,13 +371,19 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                     Expanded(
                       child: Text(
                         invoice.invoiceNumber,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
@@ -349,18 +402,28 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.person, size: 16, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                    Icon(
+                      Icons.person,
+                      size: 16,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         cName,
-                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 14,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       DateFormat('yyyy-MM-dd').format(invoice.invoiceDate),
-                      style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -368,7 +431,12 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('الإجمالي', style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                    Text(
+                      'الإجمالي',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
                     Text(
                       '${NumberFormat('#,##0.00').format(invoice.grandTotal)} ر.ي',
                       style: const TextStyle(
@@ -386,6 +454,4 @@ class _SalesListViewState extends ConsumerState<SalesListView> {
       },
     );
   }
-
-
 }

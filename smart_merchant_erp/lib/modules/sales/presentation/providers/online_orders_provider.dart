@@ -1,12 +1,10 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/sales_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/services/online_order_service.dart';
-
-part 'online_orders_provider.g.dart';
 
 /// State class for the Online Orders Inbox.
 class OnlineOrdersState {
@@ -56,23 +54,23 @@ class OnlineOrdersState {
       isLoading: isLoading ?? this.isLoading,
       isActionInProgress: isActionInProgress ?? this.isActionInProgress,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage:
-          clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 
   /// Count of orders in Pending status.
-  int get pendingCount =>
-      orders.where((o) => o.status == 'Pending').length;
+  int get pendingCount => orders.where((o) => o.status == 'Pending').length;
 
   /// Count of orders in Confirmed (accepted) status.
-  int get confirmedCount =>
-      orders.where((o) => o.status == 'Confirmed').length;
+  int get confirmedCount => orders.where((o) => o.status == 'Confirmed').length;
 }
 
 /// Reactive stream provider for online orders from SQLite.
-@riverpod
-class OnlineOrdersNotifier extends _$OnlineOrdersNotifier {
+final onlineOrdersNotifierProvider = AutoDisposeStreamNotifierProvider<OnlineOrdersNotifier, List<OrderEntity>>(() => OnlineOrdersNotifier());
+
+class OnlineOrdersNotifier extends AutoDisposeStreamNotifier<List<OrderEntity>> {
   @override
   Stream<List<OrderEntity>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -81,15 +79,14 @@ class OnlineOrdersNotifier extends _$OnlineOrdersNotifier {
     final repo = ref.watch(salesRepositoryProvider);
 
     // Watch all orders for this business, sorted by order date descending
-    return repo.watchOrders(
-      OrderFilter(businessId: session.businessId!),
-    );
+    return repo.watchOrders(OrderFilter(businessId: session.businessId!));
   }
 }
 
 /// Stateful notifier for UI actions (accept, reject, select, filter, search).
-@riverpod
-class OnlineOrdersActionNotifier extends _$OnlineOrdersActionNotifier {
+final onlineOrdersActionNotifierProvider = AutoDisposeNotifierProvider<OnlineOrdersActionNotifier, OnlineOrdersState>(() => OnlineOrdersActionNotifier());
+
+class OnlineOrdersActionNotifier extends AutoDisposeNotifier<OnlineOrdersState> {
   @override
   OnlineOrdersState build() {
     return const OnlineOrdersState();

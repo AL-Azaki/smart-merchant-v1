@@ -110,46 +110,75 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
-            child: ref.watch(purchaseReturnsFutureProvider()).when(
-              data: (returns) {
-                if (returns.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.assignment_return_outlined, size: 48, color: Colors.grey),
-                        SizedBox(height: 16),
-                        Text('لا توجد فواتير مرتجعة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('قم بإنشاء فاتورة مرتجع جديدة لإضافتها هنا.', style: TextStyle(color: Colors.grey)),
-                      ],
-                    ),
-                  );
-                }
-                
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: returns.length,
-                  separatorBuilder: (context, index) => Divider(color: borderColor),
-                  itemBuilder: (context, index) {
-                    final ret = returns[index];
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.error.withOpacity(0.1),
-                        child: const Icon(Icons.keyboard_return, color: AppColors.error),
-                      ),
-                      title: Text(ret.returnNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(DateFormat('yyyy-MM-dd').format(ret.returnDate)),
-                      trailing: Text(
-                        '-${ret.totalAmount.toStringAsFixed(2)}', 
-                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
+            child: ref
+                .watch(purchaseReturnsFutureProvider(null))
+                .when(
+                  data: (returns) {
+                    if (returns.isEmpty) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.assignment_return_outlined,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'لا توجد فواتير مرتجعة',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'قم بإنشاء فاتورة مرتجع جديدة لإضافتها هنا.',
+                              style: TextStyle(color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: returns.length,
+                      separatorBuilder: (context, index) =>
+                          Divider(color: borderColor),
+                      itemBuilder: (context, index) {
+                        final ret = returns[index];
+                        return ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.error.withOpacity(0.1),
+                            child: const Icon(
+                              Icons.keyboard_return,
+                              color: AppColors.error,
+                            ),
+                          ),
+                          title: Text(
+                            ret.returnNumber,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text(
+                            DateFormat('yyyy-MM-dd').format(ret.returnDate),
+                          ),
+                          trailing: Text(
+                            '-${ret.totalAmount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
-                );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, s) => Center(child: Text('Error: \$e')),
-            ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (e, s) => Center(child: Text('Error: \$e')),
+                ),
           ),
         ),
       ],

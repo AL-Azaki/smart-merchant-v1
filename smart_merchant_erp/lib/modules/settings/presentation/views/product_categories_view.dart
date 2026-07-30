@@ -14,10 +14,30 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
   String _searchQuery = '';
 
   final List<Map<String, dynamic>> _categories = [
-    {'id': 'cat_1', 'name': 'المشروبات والعصائر', 'name_en': 'Beverages & Juices', 'is_active': true},
-    {'id': 'cat_2', 'name': 'الأغذية والأطعمة', 'name_en': 'Food & Groceries', 'is_active': true},
-    {'id': 'cat_3', 'name': 'المنظفات والمطهرات', 'name_en': 'Detergents & Cleaners', 'is_active': true},
-    {'id': 'cat_4', 'name': 'المنتجات الورقية', 'name_en': 'Paper Products', 'is_active': true},
+    {
+      'id': 'cat_1',
+      'name': 'المشروبات والعصائر',
+      'name_en': 'Beverages & Juices',
+      'is_active': true,
+    },
+    {
+      'id': 'cat_2',
+      'name': 'الأغذية والأطعمة',
+      'name_en': 'Food & Groceries',
+      'is_active': true,
+    },
+    {
+      'id': 'cat_3',
+      'name': 'المنظفات والمطهرات',
+      'name_en': 'Detergents & Cleaners',
+      'is_active': true,
+    },
+    {
+      'id': 'cat_4',
+      'name': 'المنتجات الورقية',
+      'name_en': 'Paper Products',
+      'is_active': true,
+    },
   ];
 
   @override
@@ -37,8 +57,12 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
   }
 
   void _showFormSheet({Map<String, dynamic>? category}) {
-    final nameController = TextEditingController(text: (category?['name'] as String?) ?? '');
-    final nameEnController = TextEditingController(text: (category?['name_en'] as String?) ?? '');
+    final nameController = TextEditingController(
+      text: (category?['name'] as String?) ?? '',
+    );
+    final nameEnController = TextEditingController(
+      text: (category?['name_en'] as String?) ?? '',
+    );
     bool isActive = (category?['is_active'] as bool?) ?? true;
 
     showModalBottomSheet<void>(
@@ -49,18 +73,28 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         final surface = isDark ? AppColors.surfaceDark : Colors.white;
         final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-        final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-        final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-        final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+        final textPrimary = isDark
+            ? AppColors.textPrimaryDark
+            : AppColors.textPrimaryLight;
+        final textSecondary = isDark
+            ? AppColors.textSecondaryDark
+            : AppColors.textSecondaryLight;
+        final borderColor = isDark
+            ? AppColors.borderDark
+            : const Color(0xFFE2E8F0);
         final inputBg = isDark ? const Color(0xFF1E293B) : Colors.white;
 
         return StatefulBuilder(
           builder: (context, setModalState) => Padding(
-            padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
             child: Container(
               decoration: BoxDecoration(
                 color: bg,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -68,11 +102,16 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                   children: [
                     // Sheet Header
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 18,
+                      ),
                       decoration: BoxDecoration(
                         color: surface,
                         border: Border(bottom: BorderSide(color: borderColor)),
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -83,20 +122,36 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF10B981).withOpacity(0.15),
+                                  color: const Color(
+                                    0xFF10B981,
+                                  ).withOpacity(0.15),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.folder_open_rounded, color: Color(0xFF10B981), size: 20),
+                                child: const Icon(
+                                  Icons.folder_open_rounded,
+                                  color: Color(0xFF10B981),
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                category != null ? 'تعديل الفئة' : 'إضافة فئة جديدة',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
+                                category != null
+                                    ? 'تعديل الفئة'
+                                    : 'إضافة فئة جديدة',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: textPrimary,
+                                ),
                               ),
                             ],
                           ),
                           IconButton(
-                            icon: Icon(Icons.close_rounded, color: textPrimary, size: 20),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              color: textPrimary,
+                              size: 20,
+                            ),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
@@ -109,40 +164,93 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('اسم الفئة (عربي) *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textSecondary)),
+                          Text(
+                            'اسم الفئة (عربي) *',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textSecondary,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           TextField(
                             controller: nameController,
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: inputBg,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF10B981),
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 16),
 
-                          Text('اسم الفئة (إنجليزي)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textSecondary)),
+                          Text(
+                            'اسم الفئة (إنجليزي)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: textSecondary,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           TextField(
                             controller: nameEnController,
                             decoration: InputDecoration(
                               filled: true,
                               fillColor: inputBg,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5)),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFF10B981),
+                                  width: 1.5,
+                                ),
+                              ),
                             ),
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 20),
 
                           InkWell(
-                            onTap: () => setModalState(() => isActive = !isActive),
+                            onTap: () =>
+                                setModalState(() => isActive = !isActive),
                             child: Row(
                               children: [
                                 SizedBox(
@@ -151,14 +259,22 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                   child: Checkbox(
                                     value: isActive,
                                     activeColor: const Color(0xFF10B981),
-                                    onChanged: (val) => setModalState(() => isActive = val ?? true),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (val) => setModalState(
+                                      () => isActive = val ?? true,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(
                                   'فئة نشطة',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: textPrimary,
+                                  ),
                                 ),
                               ],
                             ),
@@ -172,13 +288,25 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                 child: SizedBox(
                                   height: 48,
                                   child: OutlinedButton(
-                                    onPressed: () => Navigator.of(context).pop(),
+                                    onPressed: () =>
+                                        Navigator.of(context).pop(),
                                     style: OutlinedButton.styleFrom(
-                                      backgroundColor: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                                      backgroundColor: isDark
+                                          ? Colors.white10
+                                          : const Color(0xFFF1F5F9),
                                       side: BorderSide.none,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
-                                    child: Text('إلغاء', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textSecondary)),
+                                    child: Text(
+                                      'إلغاء',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: textSecondary,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -188,17 +316,23 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                   height: 48,
                                   child: ElevatedButton.icon(
                                     onPressed: () {
-                                      if (nameController.text.trim().isEmpty) return;
+                                      if (nameController.text.trim().isEmpty)
+                                        return;
                                       setState(() {
                                         if (category != null) {
-                                          category['name'] = nameController.text.trim();
-                                          category['name_en'] = nameEnController.text.trim();
+                                          category['name'] = nameController.text
+                                              .trim();
+                                          category['name_en'] = nameEnController
+                                              .text
+                                              .trim();
                                           category['is_active'] = isActive;
                                         } else {
                                           _categories.insert(0, {
-                                            'id': 'cat_${DateTime.now().millisecondsSinceEpoch}',
+                                            'id':
+                                                'cat_${DateTime.now().millisecondsSinceEpoch}',
                                             'name': nameController.text.trim(),
-                                            'name_en': nameEnController.text.trim(),
+                                            'name_en': nameEnController.text
+                                                .trim(),
                                             'is_active': isActive,
                                           });
                                         }
@@ -209,10 +343,21 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                       backgroundColor: const Color(0xFF10B981),
                                       foregroundColor: Colors.white,
                                       elevation: 0,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
                                     ),
-                                    icon: const Icon(Icons.check_rounded, size: 18),
-                                    label: const Text('حفظ', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                                    icon: const Icon(
+                                      Icons.check_rounded,
+                                      size: 18,
+                                    ),
+                                    label: const Text(
+                                      'حفظ',
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
@@ -236,8 +381,12 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     final items = _filtered;
@@ -245,7 +394,10 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
     return Scaffold(
       backgroundColor: bg,
       appBar: AppBar(
-        title: const Text('فئات المنتجات', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+        title: const Text(
+          'فئات المنتجات',
+          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+        ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => Navigator.of(context).pop(),
@@ -286,7 +438,11 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                               color: const Color(0xFF10B981).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.folder_open_rounded, color: Color(0xFF10B981), size: 22),
+                            child: const Icon(
+                              Icons.folder_open_rounded,
+                              color: Color(0xFF10B981),
+                              size: 22,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Column(
@@ -294,11 +450,19 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                             children: [
                               Text(
                                 'فئات المنتجات',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: textPrimary),
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: textPrimary,
+                                ),
                               ),
                               Text(
                                 '${items.length} فئة',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: textSecondary,
+                                ),
                               ),
                             ],
                           ),
@@ -313,10 +477,18 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                             foregroundColor: Colors.white,
                             elevation: 0,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                           icon: const Icon(Icons.add_rounded, size: 20),
-                          label: const Text('إضافة فئة', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800)),
+                          label: const Text(
+                            'إضافة فئة',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -338,11 +510,19 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                     decoration: InputDecoration(
                       hintText: 'ابحث عن فئة...',
                       hintStyle: TextStyle(color: textSecondary, fontSize: 14),
-                      prefixIcon: Icon(Icons.search_rounded, color: textSecondary, size: 20),
+                      prefixIcon: Icon(
+                        Icons.search_rounded,
+                        color: textSecondary,
+                        size: 20,
+                      ),
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    style: TextStyle(color: textPrimary, fontWeight: FontWeight.w600, fontSize: 14),
+                    style: TextStyle(
+                      color: textPrimary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
@@ -351,7 +531,9 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final width = constraints.maxWidth;
-                    int crossAxisCount = width >= 900 ? 3 : (width >= 600 ? 2 : 1);
+                    int crossAxisCount = width >= 900
+                        ? 3
+                        : (width >= 600 ? 2 : 1);
 
                     return GridView.builder(
                       shrinkWrap: true,
@@ -384,35 +566,57 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                       width: 44,
                                       height: 44,
                                       decoration: BoxDecoration(
-                                        color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+                                        color: isDark
+                                            ? AppColors.surfaceDark
+                                            : const Color(0xFFF1F5F9),
                                         borderRadius: BorderRadius.circular(12),
                                         border: Border.all(color: borderColor),
                                       ),
-                                      child: Icon(Icons.style_outlined, color: textSecondary, size: 20),
+                                      child: Icon(
+                                        Icons.style_outlined,
+                                        color: textSecondary,
+                                        size: 20,
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             (item['name'] ?? '').toString(),
-                                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
+                                            style: TextStyle(
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w800,
+                                              color: textPrimary,
+                                            ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
                                             (item['name_en'] ?? '').toString(),
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary),
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: textSecondary,
+                                            ),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ],
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: isActive ? const Color(0xFF10B981).withOpacity(0.12) : Colors.red.withOpacity(0.12),
+                                        color: isActive
+                                            ? const Color(
+                                                0xFF10B981,
+                                              ).withOpacity(0.12)
+                                            : Colors.red.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Text(
@@ -420,7 +624,9 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w800,
-                                          color: isActive ? const Color(0xFF10B981) : Colors.red,
+                                          color: isActive
+                                              ? const Color(0xFF10B981)
+                                              : Colors.red,
                                         ),
                                       ),
                                     ),
@@ -430,26 +636,46 @@ class _ProductCategoriesViewState extends State<ProductCategoriesView> {
                               const Spacer(),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: isDark ? AppColors.surfaceDark : const Color(0xFFF8FAFC),
-                                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-                                  border: Border(top: BorderSide(color: borderColor)),
+                                  color: isDark
+                                      ? AppColors.surfaceDark
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: const BorderRadius.vertical(
+                                    bottom: Radius.circular(16),
+                                  ),
+                                  border: Border(
+                                    top: BorderSide(color: borderColor),
+                                  ),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 6,
+                                ),
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.edit_outlined, size: 18, color: textSecondary),
-                                      onPressed: () => _showFormSheet(category: item),
+                                      icon: Icon(
+                                        Icons.edit_outlined,
+                                        size: 18,
+                                        color: textSecondary,
+                                      ),
+                                      onPressed: () =>
+                                          _showFormSheet(category: item),
                                       padding: EdgeInsets.zero,
                                       constraints: const BoxConstraints(),
                                     ),
                                     const SizedBox(width: 16),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.red),
+                                      icon: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        size: 18,
+                                        color: Colors.red,
+                                      ),
                                       onPressed: () {
                                         setState(() {
-                                          _categories.removeWhere((c) => c['id'] == item['id']);
+                                          _categories.removeWhere(
+                                            (c) => c['id'] == item['id'],
+                                          );
                                         });
                                       },
                                       padding: EdgeInsets.zero,

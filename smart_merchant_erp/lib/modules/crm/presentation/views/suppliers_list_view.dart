@@ -39,7 +39,9 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
       data: (suppliers) {
         final filteredSuppliers = suppliers.where((s) {
           final q = _searchQuery.toLowerCase();
-          return s.supplierName.toLowerCase().contains(q) || (s.phone?.contains(q) ?? false) || (s.contactPerson?.toLowerCase().contains(q) ?? false);
+          return s.supplierName.toLowerCase().contains(q) ||
+              (s.phone?.contains(q) ?? false) ||
+              (s.contactPerson?.toLowerCase().contains(q) ?? false);
         }).toList();
 
         return Column(
@@ -73,9 +75,8 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                             children: [
                               Text(
                                 'الموردين',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
                               Text(
                                 '${suppliers.length} مورد',
@@ -102,16 +103,21 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                           barrierDismissible: false,
                           builder: (ctx) => Dialog(
                             backgroundColor: Colors.transparent,
-                            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                            insetPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 24,
+                            ),
                             child: ContactFormSheet(
                               isCustomer: false,
                               onClose: () => Navigator.pop(ctx),
-                                onSave: (data) async {
-                                  final successId = await ref.read(crmNotifierProvider.notifier).saveSupplier(data);
-                                  if (successId != null && ctx.mounted) {
-                                    Navigator.pop(ctx);
-                                  }
-                                },
+                              onSave: (data) async {
+                                final successId = await ref
+                                    .read(crmNotifierProvider.notifier)
+                                    .saveSupplier(data);
+                                if (successId != null && ctx.mounted) {
+                                  Navigator.pop(ctx);
+                                }
+                              },
                             ),
                           ),
                         );
@@ -187,7 +193,10 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                             SizedBox(height: 16),
                             Text(
                               'لا يوجد موردين',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               'قم بإضافة مورد جديد لعرضه هنا.',
@@ -199,7 +208,8 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: filteredSuppliers.length,
-                        separatorBuilder: (_, __) => Divider(color: borderColor),
+                        separatorBuilder: (_, __) =>
+                            Divider(color: borderColor),
                         itemBuilder: (context, index) {
                           final s = filteredSuppliers[index];
                           return ListTile(
@@ -207,12 +217,15 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => SupplierDetailsView(supplier: s),
+                                  builder: (context) =>
+                                      SupplierDetailsView(supplier: s),
                                 ),
                               );
                             },
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.warning.withOpacity(0.1),
+                              backgroundColor: AppColors.warning.withOpacity(
+                                0.1,
+                              ),
                               child: Text(
                                 s.supplierName.substring(0, 1),
                                 style: const TextStyle(
@@ -221,8 +234,15 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                                 ),
                               ),
                             ),
-                            title: Text(s.supplierName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('${s.phone ?? 'لا يوجد هاتف'} - الرصيد: ${s.openingBalance} ${s.openingBalanceType == 'credit' ? 'دائن (علينا)' : 'مدين (لنا)'}'),
+                            title: Text(
+                              s.supplierName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${s.phone ?? 'لا يوجد هاتف'} - الرصيد: ${s.openingBalance} ${s.openingBalanceType == 'credit' ? 'دائن (علينا)' : 'مدين (لنا)'}',
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -233,7 +253,11 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                                       context: context,
                                       builder: (ctx) => Dialog(
                                         backgroundColor: Colors.transparent,
-                                        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                        insetPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 24,
+                                            ),
                                         child: ContactFormSheet(
                                           contact: {
                                             'id': s.id,
@@ -243,14 +267,22 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                                             'address': s.supplierAddress,
                                             'credit_limit': s.creditLimit,
                                             'opening_balance': s.openingBalance,
-                                            'opening_balance_type': s.openingBalanceType,
-                                            'opening_balance_date': s.openingBalanceDate?.toIso8601String(),
+                                            'opening_balance_type':
+                                                s.openingBalanceType,
+                                            'opening_balance_date': s
+                                                .openingBalanceDate
+                                                ?.toIso8601String(),
                                           },
                                           isCustomer: false,
                                           onClose: () => Navigator.pop(ctx),
                                           onSave: (data) async {
-                                            final successId = await ref.read(crmNotifierProvider.notifier).saveSupplier(data);
-                                            if (successId != null && ctx.mounted) {
+                                            final successId = await ref
+                                                .read(
+                                                  crmNotifierProvider.notifier,
+                                                )
+                                                .saveSupplier(data);
+                                            if (successId != null &&
+                                                ctx.mounted) {
                                               Navigator.pop(ctx);
                                             }
                                           },

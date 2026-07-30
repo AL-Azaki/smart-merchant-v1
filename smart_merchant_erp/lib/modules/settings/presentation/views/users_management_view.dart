@@ -103,19 +103,26 @@ class _UsersManagementViewState extends State<UsersManagementView> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-            final border = isDark ? AppColors.borderDark : AppColors.borderLight;
+            final surface = isDark
+                ? AppColors.surfaceDark
+                : AppColors.surfaceLight;
+            final border = isDark
+                ? AppColors.borderDark
+                : AppColors.borderLight;
 
             return Container(
               padding: EdgeInsets.only(
                 left: AppSpacing.lg,
                 right: AppSpacing.lg,
                 top: AppSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
               ),
               decoration: BoxDecoration(
                 color: surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.radiusXl),
+                ),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -131,8 +138,12 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             Container(
                               padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusMd,
+                                ),
                               ),
                               child: const Icon(
                                 Icons.person_add_alt_1_rounded,
@@ -146,7 +157,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
                           ],
@@ -155,7 +168,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                           icon: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                              color: isDark
+                                  ? const Color(0xFF374151)
+                                  : const Color(0xFFF1F5F9),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.close_rounded, size: 18),
@@ -219,15 +234,23 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  color: isDark
+                                      ? const Color(0xFF1F2937)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
                                   border: Border.all(color: border, width: 1.5),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -237,7 +260,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
                                     ),
                                     items: const [
                                       DropdownMenuItem(
@@ -250,11 +275,14 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                       ),
                                       DropdownMenuItem(
                                         value: 'أمين مخزن (Inventory Manager)',
-                                        child: Text('أمين مخزن (Inventory Manager)'),
+                                        child: Text(
+                                          'أمين مخزن (Inventory Manager)',
+                                        ),
                                       ),
                                     ],
                                     onChanged: (val) {
-                                      if (val != null) setModalState(() => selectedRole = val);
+                                      if (val != null)
+                                        setModalState(() => selectedRole = val);
                                     },
                                   ),
                                 ),
@@ -272,15 +300,23 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  color: isDark
+                                      ? const Color(0xFF1F2937)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
                                   border: Border.all(color: border, width: 1.5),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -290,7 +326,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
                                     ),
                                     items: const [
                                       DropdownMenuItem(
@@ -303,7 +341,10 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                       ),
                                     ],
                                     onChanged: (val) {
-                                      if (val != null) setModalState(() => selectedBranch = val);
+                                      if (val != null)
+                                        setModalState(
+                                          () => selectedBranch = val,
+                                        );
                                     },
                                   ),
                                 ),
@@ -317,10 +358,17 @@ class _UsersManagementViewState extends State<UsersManagementView> {
 
                     // Active Status Checkbox Container
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        color: isDark
+                            ? const Color(0xFF1F2937)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         border: Border.all(color: border, width: 1.5),
                       ),
                       child: Row(
@@ -329,7 +377,8 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             value: isActive,
                             activeColor: AppColors.primary,
                             onChanged: (val) {
-                              if (val != null) setModalState(() => isActive = val);
+                              if (val != null)
+                                setModalState(() => isActive = val);
                             },
                           ),
                           Text(
@@ -337,7 +386,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ],
@@ -357,11 +408,15 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('تم إضافة المستخدم بنجاح'),
+                                  content: const Text(
+                                    'تم إضافة المستخدم بنجاح',
+                                  ),
                                   backgroundColor: AppColors.success,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                   ),
                                 ),
                               );
@@ -376,7 +431,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: border, width: 1.5),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusLg,
+                                  ),
                                 ),
                               ),
                               onPressed: () => Navigator.pop(ctx),
@@ -385,7 +442,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                             ),
@@ -409,7 +468,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
     final usernameCtrl = TextEditingController(text: 'admin_user');
     final phoneCtrl = TextEditingController(text: '771234567');
     final passwordCtrl = TextEditingController();
-    String selectedRole = user.role.contains('Admin') ? 'مدير النظام (Admin)' : 'كاشير مبيعات (Cashier)';
+    String selectedRole = user.role.contains('Admin')
+        ? 'مدير النظام (Admin)'
+        : 'كاشير مبيعات (Cashier)';
     String selectedBranch = user.branch;
     bool isActive = user.isActive;
 
@@ -421,19 +482,26 @@ class _UsersManagementViewState extends State<UsersManagementView> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-            final border = isDark ? AppColors.borderDark : AppColors.borderLight;
+            final surface = isDark
+                ? AppColors.surfaceDark
+                : AppColors.surfaceLight;
+            final border = isDark
+                ? AppColors.borderDark
+                : AppColors.borderLight;
 
             return Container(
               padding: EdgeInsets.only(
                 left: AppSpacing.lg,
                 right: AppSpacing.lg,
                 top: AppSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
               ),
               decoration: BoxDecoration(
                 color: surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.radiusXl),
+                ),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -449,8 +517,12 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             Container(
                               padding: const EdgeInsets.all(AppSpacing.sm),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.12,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusMd,
+                                ),
                               ),
                               child: const Icon(
                                 Icons.manage_accounts_rounded,
@@ -464,7 +536,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
                           ],
@@ -473,7 +547,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                           icon: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                              color: isDark
+                                  ? const Color(0xFF374151)
+                                  : const Color(0xFFF1F5F9),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(Icons.close_rounded, size: 18),
@@ -532,15 +608,23 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  color: isDark
+                                      ? const Color(0xFF1F2937)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
                                   border: Border.all(color: border, width: 1.5),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -550,7 +634,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
                                     ),
                                     items: const [
                                       DropdownMenuItem(
@@ -563,11 +649,14 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                       ),
                                       DropdownMenuItem(
                                         value: 'أمين مخزن (Inventory Manager)',
-                                        child: Text('أمين مخزن (Inventory Manager)'),
+                                        child: Text(
+                                          'أمين مخزن (Inventory Manager)',
+                                        ),
                                       ),
                                     ],
                                     onChanged: (val) {
-                                      if (val != null) setModalState(() => selectedRole = val);
+                                      if (val != null)
+                                        setModalState(() => selectedRole = val);
                                     },
                                   ),
                                 ),
@@ -585,15 +674,23 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.md,
+                                ),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  color: isDark
+                                      ? const Color(0xFF1F2937)
+                                      : const Color(0xFFF8FAFC),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
                                   border: Border.all(color: border, width: 1.5),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -603,7 +700,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                      color: isDark
+                                          ? AppColors.textPrimaryDark
+                                          : AppColors.textPrimaryLight,
                                     ),
                                     items: const [
                                       DropdownMenuItem(
@@ -616,7 +715,10 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                       ),
                                     ],
                                     onChanged: (val) {
-                                      if (val != null) setModalState(() => selectedBranch = val);
+                                      if (val != null)
+                                        setModalState(
+                                          () => selectedBranch = val,
+                                        );
                                     },
                                   ),
                                 ),
@@ -630,10 +732,17 @@ class _UsersManagementViewState extends State<UsersManagementView> {
 
                     // Active Checkbox Tile
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                        color: isDark
+                            ? const Color(0xFF1F2937)
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusMd,
+                        ),
                         border: Border.all(color: border, width: 1.5),
                       ),
                       child: Row(
@@ -642,7 +751,8 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             value: isActive,
                             activeColor: AppColors.primary,
                             onChanged: (val) {
-                              if (val != null) setModalState(() => isActive = val);
+                              if (val != null)
+                                setModalState(() => isActive = val);
                             },
                           ),
                           Text(
@@ -650,7 +760,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ],
@@ -670,11 +782,15 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('تم تحديث بيانات المستخدم (${user.name}) بنجاح'),
+                                  content: Text(
+                                    'تم تحديث بيانات المستخدم (${user.name}) بنجاح',
+                                  ),
                                   backgroundColor: AppColors.success,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                   ),
                                 ),
                               );
@@ -689,7 +805,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(color: border, width: 1.5),
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusLg,
+                                  ),
                                 ),
                               ),
                               onPressed: () => Navigator.pop(ctx),
@@ -698,7 +816,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w700,
-                                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                  color: isDark
+                                      ? AppColors.textPrimaryDark
+                                      : AppColors.textPrimaryLight,
                                 ),
                               ),
                             ),
@@ -757,7 +877,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -769,7 +891,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                     height: 1.4,
                   ),
                 ),
@@ -786,7 +910,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             backgroundColor: AppColors.error,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusLg,
+                              ),
                             ),
                           ),
                           onPressed: () {
@@ -800,7 +926,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 backgroundColor: AppColors.error,
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSpacing.radiusMd,
+                                  ),
                                 ),
                               ),
                             );
@@ -824,7 +952,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: border, width: 1.5),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusLg,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.pop(ctx),
@@ -833,7 +963,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ),
@@ -855,7 +987,9 @@ class _UsersManagementViewState extends State<UsersManagementView> {
     final filtered = _filteredUsers;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Column(
         children: [
           // Header Bar
@@ -887,10 +1021,16 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.sm + 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.radiusMd,
+                                        ),
                                       ),
                                       child: const Icon(
                                         Icons.people_alt_rounded,
@@ -900,7 +1040,8 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                     ),
                                     const SizedBox(width: AppSpacing.md),
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'إدارة المستخدمين',
@@ -941,10 +1082,16 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.sm + 2,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusMd,
+                                      ),
                                     ),
                                     child: const Icon(
                                       Icons.people_alt_rounded,
@@ -954,7 +1101,8 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                   ),
                                   const SizedBox(width: AppSpacing.md),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'إدارة المستخدمين',
@@ -1010,10 +1158,16 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(AppSpacing.xxl),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusXl,
+                            ),
                             border: Border.all(
-                              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.borderLight,
                             ),
                           ),
                           child: Column(
@@ -1047,13 +1201,15 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: filtered.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: AppSpacing.lg),
                                 itemBuilder: (context, index) {
                                   final userItem = filtered[index];
                                   return UserCardWidget(
                                     user: userItem,
                                     onEdit: () => _showEditUserModal(userItem),
-                                    onDelete: () => _showDeleteConfirmModal(userItem),
+                                    onDelete: () =>
+                                        _showDeleteConfirmModal(userItem),
                                   );
                                 },
                               );
@@ -1063,18 +1219,20 @@ class _UsersManagementViewState extends State<UsersManagementView> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: filtered.length,
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: AppSpacing.lg,
-                                mainAxisSpacing: AppSpacing.lg,
-                                mainAxisExtent: 240,
-                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: AppSpacing.lg,
+                                    mainAxisSpacing: AppSpacing.lg,
+                                    mainAxisExtent: 240,
+                                  ),
                               itemBuilder: (context, index) {
                                 final userItem = filtered[index];
                                 return UserCardWidget(
                                   user: userItem,
                                   onEdit: () => _showEditUserModal(userItem),
-                                  onDelete: () => _showDeleteConfirmModal(userItem),
+                                  onDelete: () =>
+                                      _showDeleteConfirmModal(userItem),
                                 );
                               },
                             );

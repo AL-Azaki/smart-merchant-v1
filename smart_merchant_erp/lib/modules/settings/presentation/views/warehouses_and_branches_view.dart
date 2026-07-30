@@ -9,7 +9,9 @@ class WarehousesAndBranchesView extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : const Color(0xFF1E293B);
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : const Color(0xFF1E293B);
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     return Scaffold(

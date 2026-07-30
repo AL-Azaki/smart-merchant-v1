@@ -1,10 +1,8 @@
 import 'package:dartz/dartz.dart';
-import 'package:injectable/injectable.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../domain/repositories/accounting_repository.dart';
 
-@injectable
 class AccountingApplicationService {
   final AccountingRepository _accountingRepository;
   final ApplicationContext _context;

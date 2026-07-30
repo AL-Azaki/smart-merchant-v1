@@ -86,20 +86,7 @@ void main() {
           ),
         );
 
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
 
     await database
         .into(database.warehouses)
@@ -197,7 +184,7 @@ void main() {
             channelId: 'ch-pos-01',
             customerId: const drift.Value('cust-01'),
             orderNumber: 'ORD-2026-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             subTotal: const drift.Value(200.0),
             grandTotal: const drift.Value(200.0),
             baseSubTotal: const drift.Value(200.0),
@@ -234,7 +221,7 @@ void main() {
             branchId: 'BRANCH_1',
             customerId: const drift.Value('cust-01'),
             invoiceNumber: 'INV-2026-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             subTotal: const drift.Value(300.0),
             grandTotal: const drift.Value(300.0),
             baseSubTotal: const drift.Value(300.0),
@@ -261,7 +248,7 @@ void main() {
             businessId: 'BUS_A',
             customerId: 'cust-01',
             salesInvoiceId: 'inv-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 300.0,
             baseOriginalAmount: 300.0,
             paidAmount: const drift.Value(100.0),
@@ -307,7 +294,7 @@ void main() {
             branchId: 'BRANCH_1',
             salesInvoiceId: 'inv-001',
             returnNumber: 'RET-2026-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             totalAmount: const drift.Value(100.0),
             baseTotalAmount: const drift.Value(100.0),
             status: const drift.Value('Posted'),
@@ -395,7 +382,7 @@ void main() {
           branchId: 'BRANCH_1',
           channelId: 'ch-branch',
           orderNumber: 'ORD-B1',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
         ),
         items: [],
       );
@@ -406,7 +393,7 @@ void main() {
           branchId: 'BRANCH_2',
           channelId: 'ch-branch',
           orderNumber: 'ORD-B2',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
         ),
         items: [],
       );
@@ -486,7 +473,7 @@ void main() {
             businessId: 'BUS_A',
             branchId: 'BRANCH_1',
             invoiceNumber: 'INV-FAIL-01',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             createdBy: 'u-owner',
           ),
           items: [
@@ -538,7 +525,7 @@ void main() {
             branchId: 'BRANCH_1',
             customerId: const drift.Value('cust-fin'),
             invoiceNumber: 'INV-FIN-1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             grandTotal: const drift.Value(500.0),
             createdBy: 'u-owner',
           ),
@@ -548,7 +535,7 @@ void main() {
             businessId: 'BUS_A',
             customerId: 'cust-fin',
             salesInvoiceId: 'inv-fin-1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 500.0,
             baseOriginalAmount: 500.0,
             remainingAmount: 500.0,
@@ -563,7 +550,7 @@ void main() {
             branchId: 'BRANCH_1',
             customerId: const drift.Value('cust-fin'),
             invoiceNumber: 'INV-FIN-2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             grandTotal: const drift.Value(800.0),
             createdBy: 'u-owner',
           ),
@@ -573,7 +560,7 @@ void main() {
             businessId: 'BUS_A',
             customerId: 'cust-fin',
             salesInvoiceId: 'inv-fin-2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 800.0,
             baseOriginalAmount: 800.0,
             remainingAmount: 800.0,

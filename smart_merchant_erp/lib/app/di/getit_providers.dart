@@ -1,5 +1,5 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'injection.dart';
+import 'getit_instance.dart';
 
 // Repositories
 import '../../modules/catalog/domain/repositories/catalog_repository.dart';

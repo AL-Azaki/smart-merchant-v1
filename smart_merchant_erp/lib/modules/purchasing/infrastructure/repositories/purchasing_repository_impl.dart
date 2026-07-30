@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/purchasing_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/purchasing_dao.dart';
 
-@LazySingleton(as: PurchasingRepository)
 class PurchasingRepositoryImpl implements PurchasingRepository {
   final PurchasingDao _dao;
 

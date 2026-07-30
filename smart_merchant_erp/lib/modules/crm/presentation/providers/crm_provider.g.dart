@@ -6,7 +6,7 @@ part of 'crm_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$crmNotifierHash() => r'745f17d746b0dfe1ef95f68ddc835daed9427da3';
+String _$crmNotifierHash() => r'c17433baa6ee3c231390ae65c3209a361bef81a7';
 
 /// See also [CrmNotifier].
 @ProviderFor(CrmNotifier)

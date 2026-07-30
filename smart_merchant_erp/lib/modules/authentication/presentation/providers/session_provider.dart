@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/storage/app_database.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../database/seeders/qa_data_seeder.dart';
 
 part 'session_provider.g.dart';
@@ -88,7 +88,11 @@ class SessionNotifier extends _$SessionNotifier {
     }
   }
 
-  Future<void> _seedQaData(String businessId, String branchId, String userId) async {
+  Future<void> _seedQaData(
+    String businessId,
+    String branchId,
+    String userId,
+  ) async {
     try {
       final db = getIt<AppDatabase>();
       final seeder = QaDataSeeder(db);

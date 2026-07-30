@@ -5,25 +5,30 @@ import '../../../../../kernel/core/application_context.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_line.dart';
 import '../../../../../database/daos/catalog_dao.dart';
-import '../../../../../app/di/injection.dart';
+import '../../../../../app/di/getit_instance.dart';
 import 'package:intl/intl.dart';
 
-import 'package:injectable/injectable.dart';
-
-@injectable
 class SalesInvoiceDocumentMapper {
   final SalesDao _salesDao;
   final CoreDao _coreDao;
   final CatalogDao _catalogDao;
   final ApplicationContext _context;
 
-  SalesInvoiceDocumentMapper(this._salesDao, this._coreDao, this._catalogDao, this._context);
+  SalesInvoiceDocumentMapper(
+    this._salesDao,
+    this._coreDao,
+    this._catalogDao,
+    this._context,
+  );
 
   Future<CommercialDocumentData> mapToDocumentData(String invoiceId) async {
     final businessId = _context.currentBusinessId;
-    
+
     // 1. Fetch SalesInvoice with Items
-    final invoiceWithItems = await _salesDao.getInvoiceWithItemsById(invoiceId, businessId);
+    final invoiceWithItems = await _salesDao.getInvoiceWithItemsById(
+      invoiceId,
+      businessId,
+    );
     if (invoiceWithItems == null) {
       throw Exception('Sales Invoice not found for mapping.');
     }
@@ -47,9 +52,12 @@ class SalesInvoiceDocumentMapper {
     String customerName = 'عميل نقدي';
     String? customerPhone;
     String? customerAddress;
-    
+
     if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
-      final customer = await _salesDao.getCustomerById(invoice.customerId!, businessId);
+      final customer = await _salesDao.getCustomerById(
+        invoice.customerId!,
+        businessId,
+      );
       if (customer != null) {
         customerName = customer.customerName;
         customerPhone = customer.phone;
@@ -61,13 +69,19 @@ class SalesInvoiceDocumentMapper {
     final documentLines = <CommercialDocumentLine>[];
     for (final item in items) {
       // Need product details (name, etc.)
-      final productUnit = await _catalogDao.getProductUnitById(item.productUnitId, businessId);
+      final productUnit = await _catalogDao.getProductUnitById(
+        item.productUnitId,
+        businessId,
+      );
       String description = 'منتج غير معروف';
       String? barcode = productUnit?.barcode;
-      
+
       if (productUnit != null) {
-         final product = await _catalogDao.getProductById(productUnit.productId, businessId);
-         description = product?.productName ?? description;
+        final product = await _catalogDao.getProductById(
+          productUnit.productId,
+          businessId,
+        );
+        description = product?.productName ?? description;
       }
 
       documentLines.add(
@@ -90,67 +104,67 @@ class SalesInvoiceDocumentMapper {
     if (invoice.paymentStatus == 'Unpaid') {
       paymentMethod = 'آجل';
     } else if (invoice.paymentStatus == 'Partial') {
-       paymentMethod = 'نقداً / آجل';
+      paymentMethod = 'نقداً / آجل';
     }
 
     double paidAmount = 0.0;
     double remainingAmount = 0.0;
-    
+
     // We should lookup customer receivables to get real paid/remaining amounts
     if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
-       final receivablesList = await _salesDao.listReceivables(
-          CustomerReceivableFilter(
-            businessId: businessId, 
-            salesInvoiceId: invoice.id,
-          ),
-       );
-       if (receivablesList.isNotEmpty) {
-          final receivable = receivablesList.first;
-          paidAmount = receivable.paidAmount;
-          remainingAmount = receivable.remainingAmount;
-       } else {
-          // If no receivable, it implies fully paid cash sale
-          paidAmount = invoice.grandTotal;
-          remainingAmount = 0.0;
-       }
+      final receivablesList = await _salesDao.listReceivables(
+        CustomerReceivableFilter(
+          businessId: businessId,
+          salesInvoiceId: invoice.id,
+        ),
+      );
+      if (receivablesList.isNotEmpty) {
+        final receivable = receivablesList.first;
+        paidAmount = receivable.paidAmount;
+        remainingAmount = receivable.remainingAmount;
+      } else {
+        // If no receivable, it implies fully paid cash sale
+        paidAmount = invoice.grandTotal;
+        remainingAmount = 0.0;
+      }
     } else {
-       // Walk-in customer is always full cash
-       paidAmount = invoice.grandTotal;
-       remainingAmount = 0.0;
+      // Walk-in customer is always full cash
+      paidAmount = invoice.grandTotal;
+      remainingAmount = 0.0;
     }
 
     return CommercialDocumentData(
       documentType: 'فاتورة مبيعات',
       documentNumber: invoice.invoiceNumber,
       issueDate: invoice.invoiceDate,
-      
+
       businessName: businessName,
       businessPhone: businessPhone,
       businessAddress: businessAddress,
       taxNumber: taxNumber,
-      
+
       branchName: branchName,
-      
+
       customerOrSupplierName: customerName,
       customerOrSupplierPhone: customerPhone,
       customerOrSupplierAddress: customerAddress,
-      
+
       currencyCode: invoice.currencyId,
       currencySymbol: 'YER', // Optional: could lookup from Currencies table
-      
+
       paymentMethod: paymentMethod,
       paymentStatus: invoice.paymentStatus,
-      
+
       items: documentLines,
-      
+
       subtotal: invoice.subTotal,
       discount: invoice.discountTotal,
       tax: invoice.taxTotal,
       grandTotal: invoice.grandTotal,
-      
+
       paidAmount: paidAmount,
       remainingAmount: remainingAmount,
-      
+
       notes: invoice.notes,
       terms: 'البضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام',
     );

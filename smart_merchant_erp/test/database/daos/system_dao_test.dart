@@ -78,34 +78,8 @@ void main() {
             isDefault: const drift.Value(false),
           ),
         );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-usd',
-            currencyCode: 'USD',
-            currencyNameAr: 'دولار أمريكي',
-            currencyNameEn: 'US Dollar',
-            currencySymbol: '\$',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(3.75),
-            isBaseCurrency: const drift.Value(false),
-          ),
-        );
+    
+    
 
     // 2. Seed AccountTypes & ChartOfAccounts for ExpenseCategories and PaymentMethods
     await database
@@ -364,8 +338,8 @@ void main() {
             ExchangeRatesCompanion.insert(
               id: 'rate-jan',
               businessId: 'BUS_A',
-              sourceCurrencyId: 'curr-sar',
-              targetCurrencyId: 'curr-usd',
+              sourceCurrencyId: 'SAR',
+              targetCurrencyId: 'USD',
               effectiveDate: dateJan1,
               rate: 0.2666,
             ),
@@ -376,8 +350,8 @@ void main() {
             ExchangeRatesCompanion.insert(
               id: 'rate-jun',
               businessId: 'BUS_A',
-              sourceCurrencyId: 'curr-sar',
-              targetCurrencyId: 'curr-usd',
+              sourceCurrencyId: 'SAR',
+              targetCurrencyId: 'USD',
               effectiveDate: dateJun1,
               rate: 0.2667,
             ),
@@ -386,8 +360,8 @@ void main() {
           // Query latest rate as of May 15 (should return Jan 1 rate)
           final rateAsOfMay = await systemDao.getLatestExchangeRate(
             businessId: 'BUS_A',
-            sourceCurrencyId: 'curr-sar',
-            targetCurrencyId: 'curr-usd',
+            sourceCurrencyId: 'SAR',
+            targetCurrencyId: 'USD',
             asOfDate: DateTime(2026, 5, 15),
           );
           expect(rateAsOfMay, isNotNull);
@@ -397,8 +371,8 @@ void main() {
           // Query latest rate as of Jul 1 (should return Jun 1 rate)
           final rateAsOfJul = await systemDao.getLatestExchangeRate(
             businessId: 'BUS_A',
-            sourceCurrencyId: 'curr-sar',
-            targetCurrencyId: 'curr-usd',
+            sourceCurrencyId: 'SAR',
+            targetCurrencyId: 'USD',
             asOfDate: dateJul1,
           );
           expect(rateAsOfJul, isNotNull);
@@ -412,8 +386,8 @@ void main() {
           ExchangeRatesCompanion.insert(
             id: 'rate-upd',
             businessId: 'BUS_A',
-            sourceCurrencyId: 'curr-sar',
-            targetCurrencyId: 'curr-usd',
+            sourceCurrencyId: 'SAR',
+            targetCurrencyId: 'USD',
             effectiveDate: DateTime(2026, 7, 21),
             rate: 0.2700,
           ),
@@ -429,8 +403,8 @@ void main() {
           ExchangeRatesCompanion(
             id: const drift.Value('rate-upd'),
             businessId: const drift.Value('BUS_A'),
-            sourceCurrencyId: const drift.Value('curr-sar'),
-            targetCurrencyId: const drift.Value('curr-usd'),
+            sourceCurrencyId: const drift.Value('SAR'),
+            targetCurrencyId: const drift.Value('USD'),
             effectiveDate: drift.Value(DateTime(2026, 7, 21)),
             rate: const drift.Value(0.2680),
           ),
@@ -547,7 +521,7 @@ void main() {
           expenseCategoryId: 'ec-gen',
           expenseNumber: 'EXP-2026-001',
           paymentMethodId: 'pm-cash-01',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           amount: 500.00,
           baseAmount: 500.00,
           createdBy: 'u-owner',
@@ -583,7 +557,7 @@ void main() {
           expenseCategoryId: 'ec-gen',
           expenseNumber: 'EXP-2026-002',
           paymentMethodId: 'pm-cash-01',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           amount: 100.00,
           baseAmount: 100.00,
           createdBy: 'u-owner',
@@ -612,7 +586,7 @@ void main() {
           expenseCategoryId: 'ec-gen',
           expenseNumber: 'EXP-2026-003',
           paymentMethodId: 'pm-cash-01',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           amount: 250.00,
           baseAmount: 250.00,
           createdBy: 'u-owner',
@@ -647,7 +621,7 @@ void main() {
           expenseCategoryId: 'ec-gen',
           expenseNumber: 'EXP-ATOMIC-01',
           paymentMethodId: 'pm-cash-01',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           amount: 800.00,
           baseAmount: 800.00,
           createdBy: 'u-owner',
@@ -729,7 +703,7 @@ void main() {
             expenseCategoryId: 'ec-stream',
             expenseNumber: 'EXP-STR-01',
             paymentMethodId: 'pm-cash-01',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             amount: 300.00,
             baseAmount: 300.00,
             createdBy: 'u-owner',

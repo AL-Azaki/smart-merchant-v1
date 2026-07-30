@@ -1,16 +1,15 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/hr_dao.dart';
 import '../../domain/repositories/hr_repository.dart';
 import '../../application/services/employee_application_service.dart';
 
-part 'hr_provider.g.dart';
+final hrNotifierProvider = AutoDisposeNotifierProvider<HrNotifier, void>(() => HrNotifier());
 
-@riverpod
-class HrNotifier extends _$HrNotifier {
+class HrNotifier extends AutoDisposeNotifier<void> {
   @override
   void build() {
     return;
@@ -48,20 +47,23 @@ class HrNotifier extends _$HrNotifier {
   }
 }
 
-@riverpod
-Stream<List<Employee>> employeesList(EmployeesListRef ref) {
+final employeesListProvider = StreamProvider.autoDispose<List<Employee>>((ref) => _employeesList(ref));
+
+Stream<List<Employee>> _employeesList(Ref ref)  {
   final repo = getIt<HrRepository>();
   final context = getIt<ApplicationContext>();
   final businessId = context.currentBusinessId ?? '';
   if (businessId.isEmpty) return Stream.value([]);
-  
-  return repo.watchEmployees(EmployeeFilter(
-    businessId: businessId,
-  ));
+
+  return repo.watchEmployees(EmployeeFilter(businessId: businessId));
 }
 
-@riverpod
-Stream<EmployeeWithDetails?> employeeDetails(EmployeeDetailsRef ref, String id) async* {
+final employeeDetailsProvider = StreamProvider.autoDispose.family<EmployeeWithDetails?, String>((ref, id) => _employeeDetails(ref, id));
+
+Stream<EmployeeWithDetails?> _employeeDetails(
+  Ref ref,
+  String id,
+) async* {
   final repo = getIt<HrRepository>();
   final context = getIt<ApplicationContext>();
   final businessId = context.currentBusinessId ?? '';
@@ -69,14 +71,18 @@ Stream<EmployeeWithDetails?> employeeDetails(EmployeeDetailsRef ref, String id) 
     yield null;
     return;
   }
-  
+
   // watchEmployeeById only returns Employee, but we need details. Since watchEmployeeWithDetails is not available,
   // we'll yield the Future result repeatedly or just use a FutureProvider.
   // Actually, let's just make it a FutureProvider.
 }
 
-@riverpod
-Future<EmployeeWithDetails?> employeeDetailsFuture(EmployeeDetailsFutureRef ref, String id) {
+final employeeDetailsFutureProvider = FutureProvider.autoDispose.family<EmployeeWithDetails?, String>((ref, id) => _employeeDetailsFuture(ref, id));
+
+Future<EmployeeWithDetails?> _employeeDetailsFuture(
+  Ref ref,
+  String id,
+) {
   final repo = getIt<HrRepository>();
   final context = getIt<ApplicationContext>();
   final businessId = context.currentBusinessId ?? '';

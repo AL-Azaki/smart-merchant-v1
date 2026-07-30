@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -29,7 +28,6 @@ class AttachmentCommand {
   });
 }
 
-@injectable
 class DocumentApplicationService {
   final SystemRepository _systemRepository;
   final ApplicationContext _context;
@@ -37,7 +35,9 @@ class DocumentApplicationService {
 
   DocumentApplicationService(this._systemRepository, this._context);
 
-  Future<Either<Failure, String>> saveAttachment(AttachmentCommand command) async {
+  Future<Either<Failure, String>> saveAttachment(
+    AttachmentCommand command,
+  ) async {
     final businessId = _context.currentBusinessId;
     if (businessId == null) {
       return const Left(ValidationFailure('Business ID is required.'));

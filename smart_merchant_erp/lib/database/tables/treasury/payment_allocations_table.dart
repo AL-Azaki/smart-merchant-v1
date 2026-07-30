@@ -1,9 +1,15 @@
+import 'cash_registers_table.dart';
 import 'package:drift/drift.dart';
+import 'payments_table.dart';
+import '../accounting/chart_of_accounts_table.dart';
+import '../core/currencies_table.dart';
+import '../core/businesses_table.dart';
+import '../core/branches_table.dart';
 
 /// Drift table definition for `payment_allocations`.
 ///
 /// Purpose: Allocation/settlement records mapping a payment voucher against open financial documents (invoices, returns).
-/// Domain: DOMAIN 7 — FINANCE (Payments & Receipts)
+/// Domain: DOMAIN 7 â€” FINANCE (Payments & Receipts)
 /// Database Owner: SQLite (ERP)
 /// Offline Metadata: Requires sync tracking columns (`sync_status`, `version`, `device_id`)
 /// as payment allocations are executed locally inside SQLite (Source of Truth) to close open balances and settle receivables/payables.
@@ -16,7 +22,7 @@ class PaymentAllocations extends Table {
   @override
   String get tableName => 'payment_allocations';
 
-  /// Primary Key — UUID string stored as TEXT.
+  /// Primary Key â€” UUID string stored as TEXT.
   TextColumn get id => text()();
 
   /// Foreign Key linking to `businesses.id` (RESTRICT).
@@ -75,3 +81,4 @@ class PaymentAllocations extends Table {
     'CHECK (amount > 0)',
   ];
 }
+

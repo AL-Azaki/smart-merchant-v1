@@ -114,12 +114,14 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
             Expanded(
               child: customersAsync.when(
                 data: (customers) {
-                  final filtered = customers.where(
-                    (c) =>
-                        c.customerName.contains(searchQuery) ||
-                        (c.phone != null && c.phone!.contains(searchQuery)),
-                  ).toList();
-                  
+                  final filtered = customers
+                      .where(
+                        (c) =>
+                            c.customerName.contains(searchQuery) ||
+                            (c.phone != null && c.phone!.contains(searchQuery)),
+                      )
+                      .toList();
+
                   return ListView(
                     padding: const EdgeInsets.all(24),
                     children: [
@@ -165,15 +167,13 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                             subtitle: c.phone ?? 'بدون رقم',
                             icon: Icons.person_rounded,
                             iconColor: AppColors.success,
-                            balance: c.openingBalance, // Fallback to opening balance if real time balance is not loaded
+                            balance: c
+                                .openingBalance, // Fallback to opening balance if real time balance is not loaded
                             isSelected: posState.customerName == c.customerName,
                             onTap: () {
                               ref
                                   .read(posNotifierProvider.notifier)
-                                  .setCustomer(
-                                    c.id,
-                                    c.customerName,
-                                  );
+                                  .setCustomer(c.id, c.customerName);
                               Navigator.pop(context);
                             },
                           ),

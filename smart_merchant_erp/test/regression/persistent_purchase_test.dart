@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:get_it/get_it.dart';
 import 'package:path/path.dart' as p;
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/app/di/injection.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';

@@ -33,14 +33,15 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
         ? AppColors.surfaceDark
         : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    
+
     final customersAsync = ref.watch(customersNotifierProvider);
 
     return customersAsync.when(
       data: (customers) {
         final filteredCustomers = customers.where((c) {
           final q = _searchQuery.toLowerCase();
-          return c.customerName.toLowerCase().contains(q) || (c.phone?.contains(q) ?? false);
+          return c.customerName.toLowerCase().contains(q) ||
+              (c.phone?.contains(q) ?? false);
         }).toList();
 
         return Column(
@@ -74,9 +75,8 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                             children: [
                               Text(
                                 'العملاء',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
                               Text(
                                 '${customers.length} عميل',
@@ -167,11 +167,18 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.person_off_outlined, size: 48, color: Colors.grey),
+                            Icon(
+                              Icons.person_off_outlined,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                             SizedBox(height: 16),
                             Text(
                               'لا يوجد عملاء',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
                               'قم بإضافة عميل جديد لعرضه هنا.',
@@ -183,7 +190,8 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: filteredCustomers.length,
-                        separatorBuilder: (_, __) => Divider(color: borderColor),
+                        separatorBuilder: (_, __) =>
+                            Divider(color: borderColor),
                         itemBuilder: (context, index) {
                           final c = filteredCustomers[index];
                           return ListTile(
@@ -191,16 +199,32 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => CustomerDetailsView(customer: c),
+                                  builder: (context) =>
+                                      CustomerDetailsView(customer: c),
                                 ),
                               );
                             },
                             leading: CircleAvatar(
-                              backgroundColor: AppColors.primary.withOpacity(0.1),
-                              child: Text(c.customerName.substring(0, 1), style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
+                              ),
+                              child: Text(
+                                c.customerName.substring(0, 1),
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            title: Text(c.customerName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('${c.phone ?? 'لا يوجد هاتف'} - الرصيد: ${c.openingBalance} ${c.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}'),
+                            title: Text(
+                              c.customerName,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${c.phone ?? 'لا يوجد هاتف'} - الرصيد: ${c.openingBalance} ${c.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}',
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -211,7 +235,11 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                                       context: context,
                                       builder: (ctx) => Dialog(
                                         backgroundColor: Colors.transparent,
-                                        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                        insetPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 24,
+                                            ),
                                         child: ContactFormSheet(
                                           contact: {
                                             'id': c.id,
@@ -221,14 +249,22 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                                             'address': c.address,
                                             'credit_limit': c.creditLimit,
                                             'opening_balance': c.openingBalance,
-                                            'opening_balance_type': c.openingBalanceType,
-                                            'opening_balance_date': c.openingBalanceDate?.toIso8601String(),
+                                            'opening_balance_type':
+                                                c.openingBalanceType,
+                                            'opening_balance_date': c
+                                                .openingBalanceDate
+                                                ?.toIso8601String(),
                                           },
                                           isCustomer: true,
                                           onClose: () => Navigator.pop(ctx),
                                           onSave: (data) async {
-                                            final successId = await ref.read(crmNotifierProvider.notifier).saveCustomer(data);
-                                            if (successId != null && ctx.mounted) {
+                                            final successId = await ref
+                                                .read(
+                                                  crmNotifierProvider.notifier,
+                                                )
+                                                .saveCustomer(data);
+                                            if (successId != null &&
+                                                ctx.mounted) {
                                               Navigator.pop(ctx);
                                             }
                                           },

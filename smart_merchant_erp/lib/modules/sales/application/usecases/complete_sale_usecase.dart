@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
@@ -55,7 +54,6 @@ class CompleteSaleCommand {
   });
 }
 
-@injectable
 class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
   final SalesRepository _salesRepository;
   final InventoryRepository _inventoryRepository;
@@ -93,32 +91,66 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
     }
 
     // 0. Pre-Condition Guard: Validate Session Integrity Locally
-    final userCheck = await (_db.select(_db.usersTable)..where((t) => t.id.equals(userId))).getSingleOrNull();
+    final userCheck = await (_db.select(
+      _db.usersTable,
+    )..where((t) => t.id.equals(userId))).getSingleOrNull();
     if (userCheck == null) {
-      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (المستخدم غير موجود محلياً)'));
+      return const Left(
+        ValidationFailure(
+          'تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (المستخدم غير موجود محلياً)',
+        ),
+      );
     }
 
-    final businessCheck = await (_db.select(_db.businesses)..where((t) => t.id.equals(businessId))).getSingleOrNull();
+    final businessCheck = await (_db.select(
+      _db.businesses,
+    )..where((t) => t.id.equals(businessId))).getSingleOrNull();
     if (businessCheck == null) {
-      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (النشاط التجاري غير موجود محلياً)'));
+      return const Left(
+        ValidationFailure(
+          'تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (النشاط التجاري غير موجود محلياً)',
+        ),
+      );
     }
 
-    final branchCheck = await (_db.select(_db.branches)..where((t) => t.id.equals(branchId))).getSingleOrNull();
+    final branchCheck = await (_db.select(
+      _db.branches,
+    )..where((t) => t.id.equals(branchId))).getSingleOrNull();
     if (branchCheck == null) {
-      return const Left(ValidationFailure('تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (الفرع غير موجود محلياً)'));
+      return const Left(
+        ValidationFailure(
+          'تعذر إصدار الفاتورة بسبب عدم اكتمال بيانات جلسة العمل. (الفرع غير موجود محلياً)',
+        ),
+      );
     }
 
     // Validate Currency
-    final currencyCheck = await (_db.select(_db.currencies)..where((t) => t.id.equals(params.currencyId))).getSingleOrNull();
+    final currencyCheck = await (_db.select(
+      _db.currencies,
+    )..where((t) => t.id.equals(params.currencyId))).getSingleOrNull();
     if (currencyCheck == null) {
-      return Left(ValidationFailure('العملة المحددة غير مسجلة في قاعدة البيانات المحلية: ${params.currencyId}'));
+      return Left(
+        ValidationFailure(
+          'العملة المحددة غير مسجلة في قاعدة البيانات المحلية: ${params.currencyId}',
+        ),
+      );
     }
 
     // Validate Customer if provided
     if (params.customerId != null) {
-      final customerCheck = await (_db.select(_db.customers)..where((t) => t.id.equals(params.customerId!) & t.businessId.equals(businessId))).getSingleOrNull();
+      final customerCheck =
+          await (_db.select(_db.customers)..where(
+                (t) =>
+                    t.id.equals(params.customerId!) &
+                    t.businessId.equals(businessId),
+              ))
+              .getSingleOrNull();
       if (customerCheck == null) {
-        return Left(ValidationFailure('العميل المحدد غير مسجل في قاعدة البيانات المحلية (ID: ${params.customerId})'));
+        return Left(
+          ValidationFailure(
+            'العميل المحدد غير مسجل في قاعدة البيانات المحلية (ID: ${params.customerId})',
+          ),
+        );
       }
     }
 
@@ -179,13 +211,25 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           businessId,
         );
         if (warehouse == null) {
-          return const Left(ValidationFailure('Warehouse does not exist or does not belong to the active business.'));
+          return const Left(
+            ValidationFailure(
+              'Warehouse does not exist or does not belong to the active business.',
+            ),
+          );
         }
         if (warehouse.branchId != branchId) {
-          return const Left(ValidationFailure('Warehouse does not belong to the active branch context.'));
+          return const Left(
+            ValidationFailure(
+              'Warehouse does not belong to the active branch context.',
+            ),
+          );
         }
         if (!warehouse.isActive) {
-          return const Left(ValidationFailure('Warehouse is inactive and cannot be used for sales.'));
+          return const Left(
+            ValidationFailure(
+              'Warehouse is inactive and cannot be used for sales.',
+            ),
+          );
         }
         validatedWarehouses.add(item.warehouseId);
       }
@@ -210,7 +254,11 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       taxTotal += item.tax;
       totalCost += (item.quantity * itemCost);
 
-      itemsWithCost.add({'command': item, 'costPrice': itemCost, 'inventory': inventory});
+      itemsWithCost.add({
+        'command': item,
+        'costPrice': itemCost,
+        'inventory': inventory,
+      });
     }
 
     final grandTotal = subTotal - discountTotal + taxTotal;
@@ -290,7 +338,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       id: inventoryTransactionId,
       businessId: businessId,
       branchId: branchId,
-      warehouseId: (itemsWithCost.first['command'] as dynamic).warehouseId as String,
+      warehouseId: (itemsWithCost.first['command'] as CompleteSaleItemCommand).warehouseId,
       transactionDate: drift.Value(invoiceDate),
       transactionType: InventoryTransactionType.dispatch,
       movementDirection: InventoryMovementDirection.outbound,
@@ -348,9 +396,9 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           final inventory = map['inventory'] as Inventory;
           final newQuantity = inventory.quantity - item.quantity;
           await _inventoryRepository.updateInventory(
-            inventory.toCompanion(false).copyWith(
-              quantity: drift.Value(newQuantity),
-            ),
+            inventory
+                .toCompanion(false)
+                .copyWith(quantity: drift.Value(newQuantity)),
           );
         }
 

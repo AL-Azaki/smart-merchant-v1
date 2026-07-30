@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/hr_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/hr_dao.dart';
 
-@LazySingleton(as: HrRepository)
 class HrRepositoryImpl implements HrRepository {
   final HrDao _dao;
 

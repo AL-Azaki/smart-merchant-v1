@@ -6,7 +6,7 @@ part of 'permissions_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$modulesNotifierHash() => r'cf30790a75030e7416d08d999c02895af800104d';
+String _$modulesNotifierHash() => r'faaae0f043581b70f2d84c898723cd7a41e39882';
 
 /// Modules Provider controls the visibility of major system sections based on the Subscription Plan.
 ///

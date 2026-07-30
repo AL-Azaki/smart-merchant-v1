@@ -1,11 +1,9 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/auth_dao.dart';
 import '../data_sources/auth_local_data_source.dart';
 
-@LazySingleton(as: AuthRepository)
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDataSource _localDataSource;
   final AuthDao _authDao;
@@ -27,10 +25,9 @@ class AuthRepositoryImpl implements AuthRepository {
                       ? source
                       : throw ArgumentError('Expected valid data source')));
 
-  @factoryMethod
-  factory AuthRepositoryImpl.injectable(
-    AuthLocalDataSource local,
-  ) => AuthRepositoryImpl(local);
+
+  factory AuthRepositoryImpl.injectable(AuthLocalDataSource local) =>
+      AuthRepositoryImpl(local);
 
   @override
   Future<bool> login(String email, String password) async {

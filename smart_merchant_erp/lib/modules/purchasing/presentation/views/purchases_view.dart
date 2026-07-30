@@ -68,10 +68,7 @@ class _PurchasesViewState extends ConsumerState<PurchasesView>
         Expanded(
           child: TabBarView(
             controller: _tabController,
-            children: const [
-              PurchaseListView(),
-              PurchaseReturnsView(),
-            ],
+            children: const [PurchaseListView(), PurchaseReturnsView()],
           ),
         ),
       ],

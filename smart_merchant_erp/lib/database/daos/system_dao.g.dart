@@ -13,6 +13,7 @@ mixin _$SystemDaoMixin on DatabaseAccessor<AppDatabase> {
   $UsersTableTable get usersTable => attachedDatabase.usersTable;
   $BranchesTable get branches => attachedDatabase.branches;
   $ChartOfAccountsTable get chartOfAccounts => attachedDatabase.chartOfAccounts;
+  $BusinessesTable get businesses => attachedDatabase.businesses;
   $PaymentMethodsTable get paymentMethods => attachedDatabase.paymentMethods;
   $ArchiveDocumentsTable get archiveDocuments =>
       attachedDatabase.archiveDocuments;

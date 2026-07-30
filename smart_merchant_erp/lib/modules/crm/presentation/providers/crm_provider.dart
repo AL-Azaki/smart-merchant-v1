@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../sales/application/services/customer_application_service.dart';
 import '../../../purchasing/application/services/supplier_application_service.dart';
 
@@ -23,10 +23,16 @@ class CrmNotifier extends _$CrmNotifier {
         phone: data['phone']?.toString(),
         email: data['email']?.toString(),
         address: data['address']?.toString(),
-        creditLimit: data['credit_limit'] != null ? double.tryParse(data['credit_limit'].toString()) : null,
-        openingBalance: data['opening_balance'] != null ? double.tryParse(data['opening_balance'].toString()) : null,
+        creditLimit: data['credit_limit'] != null
+            ? double.tryParse(data['credit_limit'].toString())
+            : null,
+        openingBalance: data['opening_balance'] != null
+            ? double.tryParse(data['opening_balance'].toString())
+            : null,
         openingBalanceType: data['opening_balance_type']?.toString(),
-        openingBalanceDate: data['opening_balance_date'] != null ? DateTime.tryParse(data['opening_balance_date'].toString()) : null,
+        openingBalanceDate: data['opening_balance_date'] != null
+            ? DateTime.tryParse(data['opening_balance_date'].toString())
+            : null,
       );
       final result = await service.saveCustomer(command);
       return result.fold((l) => null, (r) => r);
@@ -46,10 +52,16 @@ class CrmNotifier extends _$CrmNotifier {
         phone: data['phone']?.toString(),
         email: data['email']?.toString(),
         address: data['address']?.toString(),
-        creditLimit: data['credit_limit'] != null ? double.tryParse(data['credit_limit'].toString()) : null,
-        openingBalance: data['opening_balance'] != null ? double.tryParse(data['opening_balance'].toString()) : null,
+        creditLimit: data['credit_limit'] != null
+            ? double.tryParse(data['credit_limit'].toString())
+            : null,
+        openingBalance: data['opening_balance'] != null
+            ? double.tryParse(data['opening_balance'].toString())
+            : null,
         openingBalanceType: data['opening_balance_type']?.toString(),
-        openingBalanceDate: data['opening_balance_date'] != null ? DateTime.tryParse(data['opening_balance_date'].toString()) : null,
+        openingBalanceDate: data['opening_balance_date'] != null
+            ? DateTime.tryParse(data['opening_balance_date'].toString())
+            : null,
       );
       final result = await service.saveSupplier(command);
       return result.fold((l) => null, (r) => r);

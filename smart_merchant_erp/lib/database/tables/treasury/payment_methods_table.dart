@@ -1,9 +1,14 @@
+import 'cash_registers_table.dart';
 import 'package:drift/drift.dart';
+import '../accounting/chart_of_accounts_table.dart';
+import '../core/currencies_table.dart';
+import '../core/businesses_table.dart';
+import '../core/branches_table.dart';
 
 /// Drift table definition for `payment_methods`.
 ///
 /// Purpose: Payment method definitions linked to a chart of account (e.g., Cash, Bank, Card, DigitalWallet).
-/// Domain: DOMAIN 4 — FINANCE (Structure & Cash/Bank)
+/// Domain: DOMAIN 4 â€” FINANCE (Structure & Cash/Bank)
 /// Database Owner: SQLite (ERP)
 /// Offline Metadata: Requires sync tracking columns (`sync_status`, `version`, `device_id`)
 /// as payment methods direct all POS receipts and treasury payouts locally in SQLite (Source of Truth) and sync bidirectionally.
@@ -12,7 +17,7 @@ class PaymentMethods extends Table {
   @override
   String get tableName => 'payment_methods';
 
-  /// Primary Key — UUID string stored as TEXT.
+  /// Primary Key â€” UUID string stored as TEXT.
   TextColumn get id => text()();
 
   /// Foreign Key linking to `businesses.id` (RESTRICT).
@@ -65,3 +70,4 @@ class PaymentMethods extends Table {
     'CHECK (payment_type IN (\'Cash\', \'Bank\', \'Card\', \'DigitalWallet\', \'Other\'))',
   ];
 }
+

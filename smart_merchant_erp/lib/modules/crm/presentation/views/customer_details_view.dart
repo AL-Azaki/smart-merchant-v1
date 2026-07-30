@@ -7,7 +7,7 @@ import '../../../sales/presentation/providers/sales_provider.dart';
 import '../../../sales/presentation/providers/customer_provider.dart';
 import '../../../sales/presentation/mappers/sales_invoice_document_mapper.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 
 class CustomerDetailsView extends ConsumerStatefulWidget {
   final Customer customer;
@@ -15,10 +15,12 @@ class CustomerDetailsView extends ConsumerStatefulWidget {
   const CustomerDetailsView({super.key, required this.customer});
 
   @override
-  ConsumerState<CustomerDetailsView> createState() => _CustomerDetailsViewState();
+  ConsumerState<CustomerDetailsView> createState() =>
+      _CustomerDetailsViewState();
 }
 
-class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with SingleTickerProviderStateMixin {
+class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -36,11 +38,15 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(widget.customer.customerName),
         bottom: TabBar(
@@ -82,7 +88,10 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('المعلومات الأساسية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'المعلومات الأساسية',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   ListTile(
                     leading: const Icon(Icons.phone),
@@ -100,68 +109,113 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
           ),
           const SizedBox(height: 16),
           // Financial Info
-          ref.watch(customerBalanceProvider(widget.customer.id)).when(
-            data: (balance) {
-              if (balance == null) return const Text('لا تتوفر بيانات مالية');
-              return Card(
-                color: surfaceColor,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  side: BorderSide(color: borderColor),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('المعلومات المالية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 12),
-                      Row(
+          ref
+              .watch(customerBalanceProvider(widget.customer.id))
+              .when(
+                data: (balance) {
+                  if (balance == null)
+                    return const Text('لا تتوفر بيانات مالية');
+                  return Card(
+                    color: surfaceColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: borderColor),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: _buildInfoBox('الرصيد المستحق (الافتتاحي)', '${balance.openingBalance} ${balance.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}', Colors.red, surfaceColor, borderColor),
+                          const Text(
+                            'المعلومات المالية',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildInfoBox('الحد الائتماني', balance.creditLimit.toStringAsFixed(2), Colors.blue, surfaceColor, borderColor),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoBox(
+                                  'الرصيد المستحق (الافتتاحي)',
+                                  '${balance.openingBalance} ${balance.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}',
+                                  Colors.red,
+                                  surfaceColor,
+                                  borderColor,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildInfoBox(
+                                  'الحد الائتماني',
+                                  balance.creditLimit.toStringAsFixed(2),
+                                  Colors.blue,
+                                  surfaceColor,
+                                  borderColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoBox(
+                                  'إجمالي المبيعات (الفواتير)',
+                                  balance.totalReceivables.toStringAsFixed(2),
+                                  Colors.green,
+                                  surfaceColor,
+                                  borderColor,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _buildInfoBox(
+                                  'إجمالي المدفوعات',
+                                  balance.totalPaid.toStringAsFixed(2),
+                                  Colors.purple,
+                                  surfaceColor,
+                                  borderColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildInfoBox(
+                                  'الرصيد المتبقي',
+                                  balance.totalRemaining.toStringAsFixed(2),
+                                  Colors.orange,
+                                  surfaceColor,
+                                  borderColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoBox('إجمالي المبيعات (الفواتير)', balance.totalReceivables.toStringAsFixed(2), Colors.green, surfaceColor, borderColor),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: _buildInfoBox('إجمالي المدفوعات', balance.totalPaid.toStringAsFixed(2), Colors.purple, surfaceColor, borderColor),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildInfoBox('الرصيد المتبقي', balance.totalRemaining.toStringAsFixed(2), Colors.orange, surfaceColor, borderColor),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, st) => Text('خطأ: $e'),
-          ),
+                    ),
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, st) => Text('خطأ: $e'),
+              ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoBox(String title, String value, Color color, Color surfaceColor, Color borderColor) {
+  Widget _buildInfoBox(
+    String title,
+    String value,
+    Color color,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -172,18 +226,22 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
   }
 
   Widget _buildStatementTab(Color surfaceColor, Color borderColor) {
-    return const Center(
-      child: Text('لا توجد حركات مالية حتى الآن'),
-    );
+    return const Center(child: Text('لا توجد حركات مالية حتى الآن'));
   }
 
   Widget _buildInvoicesTab(Color surfaceColor, Color borderColor) {
@@ -191,7 +249,9 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
 
     return invoicesAsync.when(
       data: (invoices) {
-        final customerInvoices = invoices.where((i) => i.customerId == widget.customer.id).toList();
+        final customerInvoices = invoices
+            .where((i) => i.customerId == widget.customer.id)
+            .toList();
 
         if (customerInvoices.isEmpty) {
           return const Center(
@@ -214,7 +274,9 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
                 invoice.invoiceNumber,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              subtitle: Text('${invoice.invoiceDate.toString().split(' ')[0]} - الحالة: ${invoice.paymentStatus}'),
+              subtitle: Text(
+                '${invoice.invoiceDate.toString().split(' ')[0]} - الحالة: ${invoice.paymentStatus}',
+              ),
               trailing: Text(
                 '${invoice.grandTotal.toStringAsFixed(2)} YER',
                 style: const TextStyle(
@@ -226,7 +288,8 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
                 showDialog(
                   context: context,
                   barrierDismissible: false,
-                  builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                  builder: (ctx) =>
+                      const Center(child: CircularProgressIndicator()),
                 );
                 try {
                   final mapper = getIt<SalesInvoiceDocumentMapper>();
@@ -236,13 +299,16 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView> with 
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => CommercialDocumentPreviewScreen(document: docData),
+                      builder: (_) =>
+                          CommercialDocumentPreviewScreen(document: docData),
                     ),
                   );
                 } catch (e) {
                   if (!context.mounted) return;
                   Navigator.of(context, rootNavigator: true).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 }
               },
             );

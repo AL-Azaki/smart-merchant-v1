@@ -7,10 +7,11 @@ import '../providers/purchasing_provider.dart';
 import 'package:intl/intl.dart';
 
 import '../widgets/purchase_invoice_modal.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../mappers/purchase_invoice_document_mapper.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
-import '../../../../kernel/storage/app_database.dart' show PurchaseInvoice, Supplier;
+import '../../../../kernel/storage/app_database.dart'
+    show PurchaseInvoice, Supplier;
 
 class PurchaseListView extends ConsumerStatefulWidget {
   const PurchaseListView({super.key});
@@ -37,9 +38,9 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error loading document: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error loading document: $e')));
       }
     }
   }
@@ -47,7 +48,9 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     final invoicesAsync = ref.watch(purchaseInvoicesNotifierProvider);
@@ -58,13 +61,18 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
       children: [
         // Actions
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           color: surfaceColor,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 500;
               return Align(
-                alignment: isNarrow ? Alignment.center : AlignmentDirectional.centerEnd,
+                alignment: isNarrow
+                    ? Alignment.center
+                    : AlignmentDirectional.centerEnd,
                 child: SizedBox(
                   width: isNarrow ? constraints.maxWidth : 250,
                   child: PrimaryButton(
@@ -114,39 +122,35 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
                 initialValue: _statusFilter,
                 onSelected: (value) => setState(() => _statusFilter = value),
                 offset: const Offset(0, 50),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 itemBuilder: (context) => const [
-                  PopupMenuItem(
-                    value: null,
-                    child: Text('الكل'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Draft',
-                    child: Text('مسودة'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Posted',
-                    child: Text('مرحلة'),
-                  ),
-                  PopupMenuItem(
-                    value: 'Cancelled',
-                    child: Text('ملغاة'),
-                  ),
+                  PopupMenuItem(value: null, child: Text('الكل')),
+                  PopupMenuItem(value: 'Draft', child: Text('مسودة')),
+                  PopupMenuItem(value: 'Posted', child: Text('مرحلة')),
+                  PopupMenuItem(value: 'Cancelled', child: Text('ملغاة')),
                 ],
                 child: Container(
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    color: _statusFilter == null ? surfaceColor : AppColors.primary.withOpacity(0.1),
+                    color: _statusFilter == null
+                        ? surfaceColor
+                        : AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _statusFilter == null ? borderColor : AppColors.primary,
+                      color: _statusFilter == null
+                          ? borderColor
+                          : AppColors.primary,
                     ),
                   ),
                   child: Icon(
                     Icons.filter_list,
-                    color: _statusFilter == null 
-                        ? (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)
+                    color: _statusFilter == null
+                        ? (isDark
+                              ? AppColors.textPrimaryDark
+                              : AppColors.textPrimaryLight)
                         : AppColors.primary,
                   ),
                 ),
@@ -163,8 +167,12 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
               if (_searchQuery.isNotEmpty) {
                 final sq = _searchQuery.toLowerCase();
                 filtered = filtered.where((i) {
-                  final sName = _getSupplierName(i.supplierId, suppliers).toLowerCase();
-                  return i.invoiceNumber.toLowerCase().contains(sq) || sName.contains(sq);
+                  final sName = _getSupplierName(
+                    i.supplierId,
+                    suppliers,
+                  ).toLowerCase();
+                  return i.invoiceNumber.toLowerCase().contains(sq) ||
+                      sName.contains(sq);
                 }).toList();
               }
               if (_statusFilter != null) {
@@ -261,14 +269,42 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
         child: DataTable(
           showCheckboxColumn: false,
           headingRowColor: WidgetStateProperty.all(
-            isDark ? AppColors.surfaceDark.withOpacity(0.5) : const Color(0xFFF8FAFC),
+            isDark
+                ? AppColors.surfaceDark.withOpacity(0.5)
+                : const Color(0xFFF8FAFC),
           ),
           columns: const [
-            DataColumn(label: Text('رقم الفاتورة', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('المورد', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الحالة', style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text('الإجمالي', style: TextStyle(fontWeight: FontWeight.bold)), numeric: true),
+            DataColumn(
+              label: Text(
+                'رقم الفاتورة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'التاريخ',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'المورد',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'الحالة',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            DataColumn(
+              label: Text(
+                'الإجمالي',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              numeric: true,
+            ),
           ],
           rows: invoices.map((inv) {
             final sName = _getSupplierName(inv.supplierId, suppliers);
@@ -276,14 +312,26 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
             return DataRow(
               onSelectChanged: (_) => _openInvoice(context, inv),
               cells: [
-                DataCell(Text(inv.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold))),
-                DataCell(Text(DateFormat('yyyy-MM-dd').format(inv.purchaseDate))),
+                DataCell(
+                  Text(
+                    inv.invoiceNumber,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                DataCell(
+                  Text(DateFormat('yyyy-MM-dd').format(inv.purchaseDate)),
+                ),
                 DataCell(Text(sName)),
                 DataCell(
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: isPosted ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                      color: isPosted
+                          ? Colors.green.withOpacity(0.1)
+                          : Colors.orange.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
@@ -296,10 +344,15 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
                     ),
                   ),
                 ),
-                DataCell(Text(
-                  '${NumberFormat('#,##0.00').format(inv.grandTotal)} ر.ي',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                )),
+                DataCell(
+                  Text(
+                    '${NumberFormat('#,##0.00').format(inv.grandTotal)} ر.ي',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
               ],
             );
           }).toList(),
@@ -316,7 +369,8 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
   ) {
     return ListView.separated(
       itemCount: invoices.length,
-      separatorBuilder: (context, index) => Divider(height: 1, color: borderColor),
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: borderColor),
       itemBuilder: (context, index) {
         final invoice = invoices[index];
         final sName = _getSupplierName(invoice.supplierId, suppliers);
@@ -335,15 +389,23 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
                     Expanded(
                       child: Text(
                         invoice.invoiceNumber,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
-                        color: isPosted ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                        color: isPosted
+                            ? Colors.green.withOpacity(0.1)
+                            : Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -360,18 +422,28 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
                 const SizedBox(height: 12),
                 Row(
                   children: [
-                    Icon(Icons.business, size: 16, color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                    Icon(
+                      Icons.business,
+                      size: 16,
+                      color: isDark ? Colors.grey[400] : Colors.grey[600],
+                    ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         sName,
-                        style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 14),
+                        style: TextStyle(
+                          color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          fontSize: 14,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       DateFormat('yyyy-MM-dd').format(invoice.purchaseDate),
-                      style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
@@ -379,7 +451,12 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('الإجمالي', style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600])),
+                    Text(
+                      'الإجمالي',
+                      style: TextStyle(
+                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                      ),
+                    ),
                     Text(
                       '${NumberFormat('#,##0.00').format(invoice.grandTotal)} ر.ي',
                       style: const TextStyle(
@@ -397,6 +474,4 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
       },
     );
   }
-
-
 }

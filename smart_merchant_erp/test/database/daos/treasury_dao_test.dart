@@ -76,20 +76,7 @@ void main() {
             isDefault: const drift.Value(false),
           ),
         );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
 
     // Seed AccountTypes
     await database
@@ -148,7 +135,7 @@ void main() {
             branchId: 'BRANCH_1',
             customerId: const drift.Value('cust-1'),
             invoiceNumber: 'INV-1001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             subTotal: const drift.Value(1000.0),
             grandTotal: const drift.Value(1000.0),
             baseSubTotal: const drift.Value(1000.0),
@@ -164,7 +151,7 @@ void main() {
             businessId: 'BUS_A',
             customerId: 'cust-1',
             salesInvoiceId: 'inv-1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 1000.0,
             baseOriginalAmount: 1000.0,
             paidAmount: const drift.Value(0.0),
@@ -190,7 +177,7 @@ void main() {
             id: 'acc-bank-1',
             businessId: 'BUS_A',
             branchId: const drift.Value('BRANCH_1'),
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             bankName: 'Riyad Bank',
             accountNumber: 'SA100010001000',
             currentBalance: const drift.Value(50000.0),
@@ -224,7 +211,7 @@ void main() {
             id: 'reg-cash-1',
             businessId: 'BUS_A',
             branchId: 'BRANCH_1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             registerName: 'Counter 1 Register',
             currentBalance: const drift.Value(2000.0),
             status: const drift.Value('Open'),
@@ -275,7 +262,7 @@ void main() {
             paymentNumber: 'RCP-2026-0001',
             paymentMethodId: 'pm-cash',
             chartOfAccountId: 'coa-cash',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             amount: 500.0,
             baseAmount: 500.0,
             paymentType: 'Receipt',
@@ -362,7 +349,7 @@ void main() {
           BankAccountsCompanion.insert(
             id: 'bank-bus-a',
             businessId: 'BUS_A',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             bankName: 'Bank Alpha',
             accountNumber: '1111111111',
           ),
@@ -371,7 +358,7 @@ void main() {
           BankAccountsCompanion.insert(
             id: 'bank-bus-b',
             businessId: 'BUS_B',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             bankName: 'Bank Beta',
             accountNumber: '2222222222',
           ),
@@ -410,7 +397,7 @@ void main() {
             id: 'reg-b1',
             businessId: 'BUS_A',
             branchId: 'BRANCH_1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             registerName: 'Branch 1 Reg',
           ),
         );
@@ -419,7 +406,7 @@ void main() {
             id: 'reg-b2',
             businessId: 'BUS_A',
             branchId: 'BRANCH_2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             registerName: 'Branch 2 Reg',
           ),
         );
@@ -445,7 +432,7 @@ void main() {
           BankAccountsCompanion.insert(
             id: 'acc-atomic-bank',
             businessId: 'BUS_A',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             bankName: 'Atomic Bank',
             accountNumber: 'SA99999999',
             currentBalance: const drift.Value(10000.0),
@@ -471,7 +458,7 @@ void main() {
             paymentNumber: 'RCP-2026-0099',
             paymentMethodId: 'pm-bank',
             chartOfAccountId: 'coa-bank',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             amount: 400.0,
             baseAmount: 400.0,
             paymentType: 'Receipt',
@@ -545,7 +532,7 @@ void main() {
               paymentNumber: 'RCP-2026-0100',
               paymentMethodId: 'pm-bank',
               chartOfAccountId: 'coa-bank',
-              currencyId: 'curr-sar',
+              currencyId: 'SAR',
               amount: 200.0,
               baseAmount: 200.0,
               paymentType: 'Receipt',
@@ -585,7 +572,7 @@ void main() {
         BankAccountsCompanion.insert(
           id: 'acc-sync-1',
           businessId: 'BUS_A',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           bankName: 'Sync Bank',
           accountNumber: 'SA88888888',
         ),
@@ -611,7 +598,7 @@ void main() {
             id: 'reg-stream-1',
             businessId: 'BUS_A',
             branchId: 'BRANCH_1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             registerName: 'Stream Reg',
             currentBalance: const drift.Value(100.0),
           ),

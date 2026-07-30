@@ -4,7 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../app/config/api_client.dart';
 import '../../../../app/config/app_environment.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/secure_storage/secure_storage_contract.dart';
 import '../../infrastructure/api/auth_remote_api_client.dart';
 import '../../infrastructure/dto/auth_dtos.dart';
@@ -38,9 +38,9 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<void> _initialize() async {
-    // Wait for a brief moment to ensure DI is fully ready and to show splash screen naturally
+    // Wait for a brief moment to ensure DI is fully ready and to
     await Future.delayed(const Duration(milliseconds: 500));
-    
+
     if (AppEnvironment.isQaBypassEnabled) {
       _bootstrapQaSession();
       return;
@@ -112,7 +112,7 @@ class AuthNotifier extends _$AuthNotifier {
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
       );
-      
+
       await _hydrateLocalSessionData(bootstrapResponse);
 
       // Cache for offline support
@@ -245,7 +245,9 @@ class AuthNotifier extends _$AuthNotifier {
       debugPrint('REGISTER_API_EXCEPTION: ${e.message}');
       state = AuthStatus.unauthenticated;
       if (e.type == ApiExceptionType.validation) {
-        return LoginResult.failure(e.validationErrors?.values.first.first ?? e.message);
+        return LoginResult.failure(
+          e.validationErrors?.values.first.first ?? e.message,
+        );
       }
       return LoginResult.failure(e.message);
     } catch (e) {
@@ -279,14 +281,23 @@ class AuthNotifier extends _$AuthNotifier {
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
       );
-      
+
       await _hydrateLocalSessionData(bootstrapResponse);
 
       // Cache for offline support
-      await _secureStorage.write(StorageKeys.lastSessionBusinessId, bootstrapResponse.activeBusiness.id);
-      await _secureStorage.write(StorageKeys.lastSessionUserId, bootstrapResponse.user.id);
+      await _secureStorage.write(
+        StorageKeys.lastSessionBusinessId,
+        bootstrapResponse.activeBusiness.id,
+      );
+      await _secureStorage.write(
+        StorageKeys.lastSessionUserId,
+        bootstrapResponse.user.id,
+      );
       if (bootstrapResponse.activeBranch?.id != null) {
-        await _secureStorage.write(StorageKeys.lastSessionBranchId, bootstrapResponse.activeBranch!.id);
+        await _secureStorage.write(
+          StorageKeys.lastSessionBranchId,
+          bootstrapResponse.activeBranch!.id,
+        );
       } else {
         await _secureStorage.delete(StorageKeys.lastSessionBranchId);
       }
@@ -336,22 +347,22 @@ class AuthNotifier extends _$AuthNotifier {
     try {
       state = AuthStatus.authenticating;
       await _authApi.setupBusiness(setupData);
-      
+
       // Refresh bootstrap to get updated business context
       final deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
       final bootstrapResponse = await _authApi.bootstrap(
         BootstrapRequestDto(deviceUuid: deviceUuid),
       );
-      
+
       final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
       sessionNotifier.setSession(
         businessId: bootstrapResponse.activeBusiness.id,
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
       );
-      
+
       await _hydrateLocalSessionData(bootstrapResponse);
-      
+
       // Update state
       if (bootstrapResponse.subscription != null) {
         final subStatus = bootstrapResponse.subscription!.status;
@@ -386,64 +397,80 @@ class AuthNotifier extends _$AuthNotifier {
       final db = getIt<AppDatabase>();
       await db.transaction(() async {
         // Upsert User
-        await db.into(db.usersTable).insertOnConflictUpdate(
-          UsersTableCompanion.insert(
-            id: drift.Value(bootstrap.user.id),
-            email: bootstrap.user.email,
-            passwordHash: '',
-            firstName: bootstrap.user.fullName.split(' ').first,
-            lastName: bootstrap.user.fullName.split(' ').length > 1 ? bootstrap.user.fullName.split(' ').sublist(1).join(' ') : '',
-            isActive: drift.Value(bootstrap.user.isActive),
-          ),
-        );
-        
+        await db
+            .into(db.usersTable)
+            .insertOnConflictUpdate(
+              UsersTableCompanion.insert(
+                id: drift.Value(bootstrap.user.id),
+                email: bootstrap.user.email,
+                passwordHash: '',
+                firstName: bootstrap.user.fullName.split(' ').first,
+                lastName: bootstrap.user.fullName.split(' ').length > 1
+                    ? bootstrap.user.fullName.split(' ').sublist(1).join(' ')
+                    : '',
+                isActive: drift.Value(bootstrap.user.isActive),
+              ),
+            );
+
         // Upsert Default Currency 'YER' (Required for Sales Invoices FK)
-        await db.into(db.currencies).insertOnConflictUpdate(
-          CurrenciesCompanion.insert(
-            id: 'YER',
-            currencyCode: 'YER',
-            currencyNameAr: 'ريال يمني',
-            currencyNameEn: 'Yemeni Rial',
-            currencySymbol: '﷼',
-            isBaseCurrency: const drift.Value(true),
-            isActive: const drift.Value(true),
-          ),
-        );
+        await db
+            .into(db.currencies)
+            .insertOnConflictUpdate(
+              CurrenciesCompanion.insert(
+                id: 'YER',
+                currencyCode: 'YER',
+                currencyNameAr: 'ريال يمني',
+                currencyNameEn: 'Yemeni Rial',
+                currencySymbol: '﷼',
+                isBaseCurrency: const drift.Value(true),
+                isActive: const drift.Value(true),
+              ),
+            );
 
         // Create a dummy account if needed for businesses
         final dummyAccountId = 'system-account-${bootstrap.user.id}';
-        await db.into(db.accountsTable).insertOnConflictUpdate(
-          AccountsTableCompanion.insert(
-            id: drift.Value(dummyAccountId),
-            ownerId: bootstrap.user.id,
-            businessName: bootstrap.activeBusiness.businessName,
-            businessType: bootstrap.activeBusiness.businessType ?? 'Retail',
-            defaultCurrency: 'YER',
-          ),
-        );
+        await db
+            .into(db.accountsTable)
+            .insertOnConflictUpdate(
+              AccountsTableCompanion.insert(
+                id: drift.Value(dummyAccountId),
+                ownerId: bootstrap.user.id,
+                businessName: bootstrap.activeBusiness.businessName,
+                businessType: bootstrap.activeBusiness.businessType ?? 'Retail',
+                defaultCurrency: 'YER',
+              ),
+            );
 
         // Upsert Business
-        await db.into(db.businesses).insertOnConflictUpdate(
-          BusinessesCompanion.insert(
-            id: bootstrap.activeBusiness.id,
-            accountId: dummyAccountId,
-            businessName: bootstrap.activeBusiness.businessName,
-            businessType: drift.Value(bootstrap.activeBusiness.businessType),
-            status: drift.Value(bootstrap.activeBusiness.status ?? 'Active'),
-          ),
-        );
+        await db
+            .into(db.businesses)
+            .insertOnConflictUpdate(
+              BusinessesCompanion.insert(
+                id: bootstrap.activeBusiness.id,
+                accountId: dummyAccountId,
+                businessName: bootstrap.activeBusiness.businessName,
+                businessType: drift.Value(
+                  bootstrap.activeBusiness.businessType,
+                ),
+                status: drift.Value(
+                  bootstrap.activeBusiness.status ?? 'Active',
+                ),
+              ),
+            );
 
         // Upsert Branch
         if (bootstrap.activeBranch != null) {
-          await db.into(db.branches).insertOnConflictUpdate(
-            BranchesCompanion.insert(
-              id: bootstrap.activeBranch!.id,
-              businessId: bootstrap.activeBusiness.id,
-              branchName: bootstrap.activeBranch!.branchName,
-              branchCode: bootstrap.activeBranch!.branchCode ?? 'MAIN',
-              isActive: drift.Value(bootstrap.activeBranch!.isActive),
-            ),
-          );
+          await db
+              .into(db.branches)
+              .insertOnConflictUpdate(
+                BranchesCompanion.insert(
+                  id: bootstrap.activeBranch!.id,
+                  businessId: bootstrap.activeBusiness.id,
+                  branchName: bootstrap.activeBranch!.branchName,
+                  branchCode: bootstrap.activeBranch!.branchCode ?? 'MAIN',
+                  isActive: drift.Value(bootstrap.activeBranch!.isActive),
+                ),
+              );
         }
       });
     } catch (e) {

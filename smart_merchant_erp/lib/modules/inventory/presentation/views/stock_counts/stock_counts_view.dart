@@ -15,7 +15,9 @@ class StockCountsView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(stockCountsNotifierProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Column(
@@ -54,7 +56,9 @@ class StockCountsView extends ConsumerWidget {
                       Text(
                         'جرد المخزون الفعلي',
                         style: TextStyle(
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                       ),
                     ],
@@ -68,8 +72,13 @@ class StockCountsView extends ConsumerWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
@@ -91,18 +100,27 @@ class StockCountsView extends ConsumerWidget {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.inventory_outlined, size: 48, color: Colors.grey),
+                        Icon(
+                          Icons.inventory_outlined,
+                          size: 48,
+                          color: Colors.grey,
+                        ),
                         SizedBox(height: 16),
                         Text(
                           'لا يوجد جلسات جرد سابقة',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ],
                     ),
                   );
                 }
                 return RefreshIndicator(
-                  onRefresh: () => ref.read(stockCountsNotifierProvider.notifier).refreshCounts(),
+                  onRefresh: () => ref
+                      .read(stockCountsNotifierProvider.notifier)
+                      .refreshCounts(),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: counts.length,
@@ -143,7 +161,9 @@ class StockCountsView extends ConsumerWidget {
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: isDraft ? AppColors.warning.withOpacity(0.1) : AppColors.success.withOpacity(0.1),
+            color: isDraft
+                ? AppColors.warning.withOpacity(0.1)
+                : AppColors.success.withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Text(

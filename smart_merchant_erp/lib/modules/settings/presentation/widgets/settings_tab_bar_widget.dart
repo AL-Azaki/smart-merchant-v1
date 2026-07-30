@@ -44,7 +44,10 @@ class SettingsTabBarWidget extends StatelessWidget {
           return InkWell(
             onTap: () => onTabSelected(index),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
@@ -60,17 +63,23 @@ class SettingsTabBarWidget extends StatelessWidget {
                     size: 20,
                     color: isSelected
                         ? AppColors.primary
-                        : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                        : (isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight),
                   ),
                   const SizedBox(width: AppSpacing.xs + 2),
                   Text(
                     tab.title,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
                       color: isSelected
                           ? AppColors.primary
-                          : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                          : (isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight),
                     ),
                   ),
                 ],

@@ -1,23 +1,18 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../app/di/injection.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../database/daos/system_dao.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../system/application/services/archive_document_service.dart';
 
-part 'archive_provider.g.dart';
+final archiveFilterStateProvider = AutoDisposeNotifierProvider<ArchiveFilterState, ArchiveDocumentFilter>(() => ArchiveFilterState());
 
-@riverpod
-class ArchiveFilterState extends _$ArchiveFilterState {
+class ArchiveFilterState extends AutoDisposeNotifier<ArchiveDocumentFilter> {
   @override
   ArchiveDocumentFilter build() {
     return const ArchiveDocumentFilter(businessId: '');
   }
 
-  void updateFilter({
-    String? category,
-    String? searchQuery,
-    bool? isExpired,
-  }) {
+  void updateFilter({String? category, String? searchQuery, bool? isExpired}) {
     state = ArchiveDocumentFilter(
       businessId: state.businessId,
       category: category ?? state.category,
@@ -37,8 +32,9 @@ class ArchiveFilterState extends _$ArchiveFilterState {
   }
 }
 
-@riverpod
-Stream<List<ArchiveDocument>> archiveDocuments(ArchiveDocumentsRef ref) {
+final archiveDocumentsProvider = StreamProvider.autoDispose<List<ArchiveDocument>>((ref) => _archiveDocuments(ref));
+
+Stream<List<ArchiveDocument>> _archiveDocuments(Ref ref)  {
   final filter = ref.watch(archiveFilterStateProvider);
   if (filter.businessId.isEmpty) {
     return Stream.value([]);
@@ -47,8 +43,9 @@ Stream<List<ArchiveDocument>> archiveDocuments(ArchiveDocumentsRef ref) {
   return service.watchDocuments(filter);
 }
 
-@riverpod
-class ArchiveStats extends _$ArchiveStats {
+final archiveStatsProvider = AutoDisposeNotifierProvider<ArchiveStats, Map<String, int>>(() => ArchiveStats());
+
+class ArchiveStats extends AutoDisposeNotifier<Map<String, int>> {
   @override
   Map<String, int> build() {
     final docs = ref.watch(archiveDocumentsProvider).valueOrNull ?? [];

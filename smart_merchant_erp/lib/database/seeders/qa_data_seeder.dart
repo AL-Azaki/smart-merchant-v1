@@ -128,7 +128,9 @@ class QaDataSeeder {
         {'id': 'coa-ap', 'code': '2001', 'name': 'Accounts Payable', 'type': 2, 'balance': 'Credit'},
         {'id': 'coa-tax', 'code': '2101', 'name': 'Tax Payable', 'type': 2, 'balance': 'Credit'},
         {'id': 'coa-sales', 'code': '4001', 'name': 'Sales Revenue', 'type': 4, 'balance': 'Credit'},
+        {'id': 'coa-inv-gain', 'code': '4101', 'name': 'Inventory Gain', 'type': 4, 'balance': 'Credit'},
         {'id': 'coa-cogs', 'code': '5001', 'name': 'Cost of Goods Sold', 'type': 5, 'balance': 'Debit'},
+        {'id': 'coa-inv-loss', 'code': '5101', 'name': 'Inventory Loss', 'type': 5, 'balance': 'Debit'},
       ];
 
       for (var account in coa) {
@@ -152,6 +154,8 @@ class QaDataSeeder {
         {'key': 'accounts_payable', 'acc_id': 'coa-ap', 'name': 'Accounts Payable'},
         {'key': 'sales_revenue', 'acc_id': 'coa-sales', 'name': 'Sales Revenue'},
         {'key': 'inventory_asset', 'acc_id': 'coa-inv', 'name': 'Inventory Asset'},
+        {'key': 'inventory_adjustment_loss', 'acc_id': 'coa-inv-loss', 'name': 'Inventory Loss'},
+        {'key': 'inventory_adjustment_gain', 'acc_id': 'coa-inv-gain', 'name': 'Inventory Gain'},
         {'key': 'cost_of_goods_sold', 'acc_id': 'coa-cogs', 'name': 'Cost of Goods Sold'},
         {'key': 'tax_payable', 'acc_id': 'coa-tax', 'name': 'Tax Payable'},
       ];

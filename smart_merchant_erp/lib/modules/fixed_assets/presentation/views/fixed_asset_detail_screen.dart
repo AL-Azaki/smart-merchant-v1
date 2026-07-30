@@ -15,10 +15,12 @@ class FixedAssetDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<FixedAssetDetailScreen> createState() => _FixedAssetDetailScreenState();
+  ConsumerState<FixedAssetDetailScreen> createState() =>
+      _FixedAssetDetailScreenState();
 }
 
-class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen> with SingleTickerProviderStateMixin {
+class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -36,8 +38,12 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final bgColor = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
+    final bgColor = isDark
+        ? AppColors.backgroundDark
+        : AppColors.backgroundLight;
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -51,7 +57,9 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
           IconButton(
             icon: const Icon(Icons.edit),
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Edit coming soon')));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Edit coming soon')));
             },
           ),
         ],
@@ -93,10 +101,26 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
         mainAxisSpacing: 16,
         childAspectRatio: 2.5,
         children: [
-          _buildInfoCard('تكلفة الشراء الأصلية', '${widget.asset.acquisitionCost.toStringAsFixed(0)} YER', surfaceColor),
-          _buildInfoCard('مجمع الإهلاك', '${(widget.asset.acquisitionCost * 0.45).toStringAsFixed(0)} YER', surfaceColor),
-          _buildInfoCard('صافي القيمة الدفترية', '${(widget.asset.acquisitionCost * 0.55).toStringAsFixed(0)} YER', surfaceColor),
-          _buildInfoCard('العمر الإنتاجي المتبقي', '${widget.asset.usefulLife} أشهر', surfaceColor),
+          _buildInfoCard(
+            'تكلفة الشراء الأصلية',
+            '${widget.asset.acquisitionCost.toStringAsFixed(0)} YER',
+            surfaceColor,
+          ),
+          _buildInfoCard(
+            'مجمع الإهلاك',
+            '${(widget.asset.acquisitionCost * 0.45).toStringAsFixed(0)} YER',
+            surfaceColor,
+          ),
+          _buildInfoCard(
+            'صافي القيمة الدفترية',
+            '${(widget.asset.acquisitionCost * 0.55).toStringAsFixed(0)} YER',
+            surfaceColor,
+          ),
+          _buildInfoCard(
+            'العمر الإنتاجي المتبقي',
+            '${widget.asset.usefulLife} أشهر',
+            surfaceColor,
+          ),
           _buildInfoCard('إجمالي عمليات الصيانة', '0', surfaceColor),
           _buildInfoCard('نسبة الإهلاك السنوي', '15%', surfaceColor),
         ],
@@ -114,14 +138,29 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('تفاصيل الشراء والمالية', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'تفاصيل الشراء والمالية',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildDetailItem('تاريخ الشراء', widget.asset.acquisitionDate.toIso8601String().split('T').first),
-                  _buildDetailItem('الحساب المحاسبي للأصل', '120100 - آلات ومعدات'),
-                  _buildDetailItem('حساب مجمع الإهلاك', '120199 - مجمع إهلاك آلات ومعدات'),
+                  _buildDetailItem(
+                    'تاريخ الشراء',
+                    widget.asset.acquisitionDate
+                        .toIso8601String()
+                        .split('T')
+                        .first,
+                  ),
+                  _buildDetailItem(
+                    'الحساب المحاسبي للأصل',
+                    '120100 - آلات ومعدات',
+                  ),
+                  _buildDetailItem(
+                    'حساب مجمع الإهلاك',
+                    '120199 - مجمع إهلاك آلات ومعدات',
+                  ),
                 ],
               ),
             ],
@@ -132,23 +171,35 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
   }
 
   Widget _buildDepreciationTab(Color surfaceColor) {
-    return const Center(child: Text('جدول الإهلاك (CAPABILITY GAP - No Depreciation Service yet)'));
+    return const Center(
+      child: Text(
+        'جدول الإهلاك (CAPABILITY GAP - No Depreciation Service yet)',
+      ),
+    );
   }
 
   Widget _buildMaintenanceTab(Color surfaceColor) {
-    return const Center(child: Text('سجل الصيانة (CAPABILITY GAP - No Maintenance Service yet)'));
+    return const Center(
+      child: Text('سجل الصيانة (CAPABILITY GAP - No Maintenance Service yet)'),
+    );
   }
 
   Widget _buildMovementsTab(Color surfaceColor) {
-    return const Center(child: Text('الحركات (CAPABILITY GAP - No Movement Tracking yet)'));
+    return const Center(
+      child: Text('الحركات (CAPABILITY GAP - No Movement Tracking yet)'),
+    );
   }
 
   Widget _buildAttachmentsTab(Color surfaceColor) {
-    return const Center(child: Text('المرفقات (CAPABILITY GAP - No Attachment Service yet)'));
+    return const Center(
+      child: Text('المرفقات (CAPABILITY GAP - No Attachment Service yet)'),
+    );
   }
 
   Widget _buildNotesTab(Color surfaceColor) {
-    return const Center(child: Text('الملاحظات (CAPABILITY GAP - No Note Service yet)'));
+    return const Center(
+      child: Text('الملاحظات (CAPABILITY GAP - No Note Service yet)'),
+    );
   }
 
   Widget _buildInfoCard(String title, String value, Color surfaceColor) {
@@ -163,9 +214,19 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -175,9 +236,19 @@ class _FixedAssetDetailScreenState extends ConsumerState<FixedAssetDetailScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: const TextStyle(fontSize: 14, color: Colors.grey, fontWeight: FontWeight.bold)),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

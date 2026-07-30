@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:smart_merchant_erp/app/di/injection.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/modules/authentication/presentation/providers/auth_provider.dart';
 import 'package:smart_merchant_erp/app/config/app_environment.dart';
 import 'package:smart_merchant_erp/app/config/api_client.dart';

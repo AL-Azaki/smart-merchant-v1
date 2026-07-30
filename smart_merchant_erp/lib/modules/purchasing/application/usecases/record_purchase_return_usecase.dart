@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
@@ -52,7 +51,6 @@ class RecordPurchaseReturnCommand {
   });
 }
 
-@injectable
 class RecordPurchaseReturnUseCase
     implements UseCase<String, RecordPurchaseReturnCommand> {
   final PurchasingRepository _purchasingRepository;
@@ -113,7 +111,9 @@ class RecordPurchaseReturnUseCase
     double totalAmount = 0.0;
     for (final item in params.items) {
       if (item.quantity <= 0) {
-        return const Left(ValidationFailure('Quantity must be greater than 0.'));
+        return const Left(
+          ValidationFailure('Quantity must be greater than 0.'),
+        );
       }
       if (item.unitPrice < 0) {
         return const Left(ValidationFailure('Unit price cannot be negative.'));
@@ -259,32 +259,36 @@ class RecordPurchaseReturnUseCase
         // This simulates applying a credit note or a direct reduction to the supplier's payable
         // We find the outstanding payables for this invoice if any
         final payables = await _purchasingRepository.listPayables(
-          SupplierPayableFilter(businessId: businessId, purchaseInvoiceId: params.purchaseInvoiceId)
+          SupplierPayableFilter(
+            businessId: businessId,
+            purchaseInvoiceId: params.purchaseInvoiceId,
+          ),
         );
-        
+
         if (payables.isNotEmpty) {
-           final payable = payables.first;
-           // We create a PayableEntry of type 'Adjustment'
-           final adjustmentEntry = PayableEntriesCompanion.insert(
-             id: _uuid.v4(),
-             businessId: businessId,
-             supplierPayableId: payable.id,
-             amount: totalAmount,
-             baseAmount: baseTotal,
-             entryType: const drift.Value('Adjustment'),
-             createdBy: userId,
-           );
-           await _purchasingRepository.recordPayableEntry(
-             entry: adjustmentEntry,
-             supplierPayableId: payable.id,
-             businessId: businessId,
-           );
+          final payable = payables.first;
+          // We create a PayableEntry of type 'Adjustment'
+          final adjustmentEntry = PayableEntriesCompanion.insert(
+            id: _uuid.v4(),
+            businessId: businessId,
+            supplierPayableId: payable.id,
+            amount: totalAmount,
+            baseAmount: baseTotal,
+            entryType: const drift.Value('Adjustment'),
+            createdBy: userId,
+          );
+          await _purchasingRepository.recordPayableEntry(
+            entry: adjustmentEntry,
+            supplierPayableId: payable.id,
+            businessId: businessId,
+          );
         }
 
         // 3. Record Inventory Outbound Transaction & Update Stock
         await _inventoryRepository.recordTransactionWithLines(
           transaction: inventoryTxCompanion,
-          lines: inventoryLineCompanions.cast<InventoryTransactionLinesCompanion>(),
+          lines: inventoryLineCompanions
+              .cast<InventoryTransactionLinesCompanion>(),
         );
 
         // 4. Post Journal Entry

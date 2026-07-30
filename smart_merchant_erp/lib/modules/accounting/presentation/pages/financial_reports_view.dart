@@ -6,10 +6,6 @@ class FinancialReportsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: FinancialReportsTab(),
-      ),
-    );
+    return const Scaffold(body: SafeArea(child: FinancialReportsTab()));
   }
 }

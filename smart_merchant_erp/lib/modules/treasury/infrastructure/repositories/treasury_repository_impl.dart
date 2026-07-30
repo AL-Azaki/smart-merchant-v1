@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/treasury_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/treasury_dao.dart';
 
-@LazySingleton(as: TreasuryRepository)
 class TreasuryRepositoryImpl implements TreasuryRepository {
   final TreasuryDao _dao;
 

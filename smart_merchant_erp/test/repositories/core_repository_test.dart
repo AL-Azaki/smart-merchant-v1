@@ -35,15 +35,7 @@ void main() {
       expect(type, isNotNull);
       expect(type!.nameEn, 'Assets');
 
-      await repository.insertCurrency(
-        CurrenciesCompanion.insert(
-          id: 'YER',
-          currencyCode: 'YER',
-          currencyNameEn: 'Yemeni Rial',
-          currencyNameAr: 'ريال يمني',
-          currencySymbol: '﷼',
-        ),
-      );
+      
       final currency = await repository.getCurrencyByCode('YER');
       expect(currency?.currencyNameEn, 'Yemeni Rial');
     });

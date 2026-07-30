@@ -44,7 +44,9 @@ class SettingsFormFieldWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+              color: isDark
+                  ? AppColors.textPrimaryDark
+                  : AppColors.textPrimaryLight,
               fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
             ),
             children: [
@@ -71,13 +73,17 @@ class SettingsFormFieldWidget extends StatelessWidget {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+            color: isDark
+                ? AppColors.textPrimaryDark
+                : AppColors.textPrimaryLight,
           ),
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
               fontSize: 14,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
             ),
             filled: true,
             fillColor: surface,
@@ -89,14 +95,18 @@ class SettingsFormFieldWidget extends StatelessWidget {
                 ? Icon(
                     prefixIcon,
                     size: 20,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   )
                 : null,
             suffixIcon: suffixIcon != null
                 ? Icon(
                     suffixIcon,
                     size: 20,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                   )
                 : null,
             enabledBorder: OutlineInputBorder(
@@ -105,7 +115,10 @@ class SettingsFormFieldWidget extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 1.8,
+              ),
             ),
           ),
         ),

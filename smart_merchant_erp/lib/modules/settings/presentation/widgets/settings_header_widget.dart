@@ -21,7 +21,10 @@ class SettingsHeaderWidget extends StatelessWidget {
     final border = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.lg,
+      ),
       decoration: BoxDecoration(
         color: surface,
         border: Border(bottom: BorderSide(color: border, width: 1.5)),
@@ -43,14 +46,18 @@ class SettingsHeaderWidget extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                  color: isDark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 ),
                 child: Icon(
                   Directionality.of(context) == TextDirection.rtl
                       ? Icons.arrow_forward_rounded
                       : Icons.arrow_back_rounded,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
               ),
             ),
@@ -81,7 +88,9 @@ class SettingsHeaderWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
                 ),
                 if (description.isNotEmpty) ...[
@@ -91,7 +100,9 @@ class SettingsHeaderWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
-                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
                     ),
                   ),
                 ],

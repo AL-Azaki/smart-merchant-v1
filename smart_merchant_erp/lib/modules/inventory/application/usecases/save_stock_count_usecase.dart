@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../database/enums/stock_count_status.dart';
 import '../../../../kernel/core/application_context.dart';
@@ -36,7 +35,6 @@ class SaveStockCountCommand {
   });
 }
 
-@injectable
 class SaveStockCountUseCase {
   final InventoryRepository _repository;
   final ApplicationContext _context;
@@ -49,7 +47,12 @@ class SaveStockCountUseCase {
     final branchId = _context.currentBranchId;
     final userId = _context.currentUserId;
 
-    if (businessId == null || businessId.isEmpty || branchId == null || branchId.isEmpty || userId == null || userId.isEmpty) {
+    if (businessId == null ||
+        businessId.isEmpty ||
+        branchId == null ||
+        branchId.isEmpty ||
+        userId == null ||
+        userId.isEmpty) {
       throw Exception('Missing application context.');
     }
 
@@ -61,9 +64,12 @@ class SaveStockCountUseCase {
       businessId: businessId!,
       branchId: branchId!,
       warehouseId: command.warehouseId,
-      countNumber: 'SC-${DateTime.now().millisecondsSinceEpoch}', // Basic sequence
+      countNumber:
+          'SC-${DateTime.now().millisecondsSinceEpoch}', // Basic sequence
       status: const Value(StockCountStatus.draft),
-      notes: command.notes != null ? Value(command.notes!) : const Value.absent(),
+      notes: command.notes != null
+          ? Value(command.notes!)
+          : const Value.absent(),
       createdBy: userId!,
       createdAt: Value(DateTime.now()),
     );
@@ -83,17 +89,16 @@ class SaveStockCountUseCase {
     }).toList();
 
     if (isNew) {
-      await _repository.recordStockCountWithItems(
-        header: header,
-        items: lines,
-      );
+      await _repository.recordStockCountWithItems(header: header, items: lines);
     } else {
       await _repository.updateDraftStockCountWithItems(
         id: countId,
         businessId: businessId,
         header: StockCountsCompanion(
           warehouseId: Value(command.warehouseId),
-          notes: command.notes != null ? Value(command.notes!) : const Value.absent(),
+          notes: command.notes != null
+              ? Value(command.notes!)
+              : const Value.absent(),
           updatedAt: Value(DateTime.now()),
         ),
         items: lines,

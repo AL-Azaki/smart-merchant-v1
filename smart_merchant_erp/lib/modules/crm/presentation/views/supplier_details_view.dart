@@ -4,7 +4,7 @@ import '../../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../purchasing/presentation/providers/purchasing_provider.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../purchasing/presentation/mappers/purchase_invoice_document_mapper.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
 
@@ -14,10 +14,12 @@ class SupplierDetailsView extends ConsumerStatefulWidget {
   const SupplierDetailsView({super.key, required this.supplier});
 
   @override
-  ConsumerState<SupplierDetailsView> createState() => _SupplierDetailsViewState();
+  ConsumerState<SupplierDetailsView> createState() =>
+      _SupplierDetailsViewState();
 }
 
-class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with SingleTickerProviderStateMixin {
+class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -35,11 +37,15 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       appBar: AppBar(
         title: Text(widget.supplier.supplierName),
         bottom: TabBar(
@@ -81,12 +87,17 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('المعلومات الأساسية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'المعلومات الأساسية',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   ListTile(
                     leading: const Icon(Icons.badge_outlined),
                     title: const Text('الشخص المسؤول'),
-                    subtitle: Text(widget.supplier.contactPerson ?? 'غير متوفر'),
+                    subtitle: Text(
+                      widget.supplier.contactPerson ?? 'غير متوفر',
+                    ),
                   ),
                   ListTile(
                     leading: const Icon(Icons.phone),
@@ -96,7 +107,9 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
                   ListTile(
                     leading: const Icon(Icons.location_on),
                     title: const Text('العنوان'),
-                    subtitle: Text(widget.supplier.supplierAddress ?? 'غير متوفر'),
+                    subtitle: Text(
+                      widget.supplier.supplierAddress ?? 'غير متوفر',
+                    ),
                   ),
                 ],
               ),
@@ -116,16 +129,31 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('المعلومات المالية', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    'المعلومات المالية',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
                       Expanded(
-                        child: _buildInfoBox('الرصيد المستحق (الافتتاحي)', '${widget.supplier.openingBalance} ${widget.supplier.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}', Colors.red, surfaceColor, borderColor),
+                        child: _buildInfoBox(
+                          'الرصيد المستحق (الافتتاحي)',
+                          '${widget.supplier.openingBalance} ${widget.supplier.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}',
+                          Colors.red,
+                          surfaceColor,
+                          borderColor,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: _buildInfoBox('الحد الائتماني', widget.supplier.creditLimit.toStringAsFixed(2), Colors.blue, surfaceColor, borderColor),
+                        child: _buildInfoBox(
+                          'الحد الائتماني',
+                          widget.supplier.creditLimit.toStringAsFixed(2),
+                          Colors.blue,
+                          surfaceColor,
+                          borderColor,
+                        ),
                       ),
                     ],
                   ),
@@ -135,7 +163,10 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
                       padding: EdgeInsets.all(16.0),
                       child: Text(
                         'SUPPLIER BALANCE METRICS: CAPABILITY GAP',
-                        style: TextStyle(color: Colors.orange, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -148,7 +179,13 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
     );
   }
 
-  Widget _buildInfoBox(String title, String value, Color color, Color surfaceColor, Color borderColor) {
+  Widget _buildInfoBox(
+    String title,
+    String value,
+    Color color,
+    Color surfaceColor,
+    Color borderColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -159,9 +196,15 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
         ],
       ),
     );
@@ -171,7 +214,11 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
     return const Center(
       child: Text(
         'SUPPLIER ACCOUNT STATEMENT: CAPABILITY GAP',
-        style: TextStyle(fontSize: 16, color: Colors.orange, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.orange,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -181,7 +228,9 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
 
     return invoicesAsync.when(
       data: (invoices) {
-        final supplierInvoices = invoices.where((i) => i.supplierId == widget.supplier.id).toList();
+        final supplierInvoices = invoices
+            .where((i) => i.supplierId == widget.supplier.id)
+            .toList();
 
         if (supplierInvoices.isEmpty) {
           return const Center(
@@ -207,13 +256,16 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => CommercialDocumentPreviewScreen(document: document),
+                        builder: (_) =>
+                            CommercialDocumentPreviewScreen(document: document),
                       ),
                     );
                   }
                 } catch (e) {
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error loading document: $e')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Error loading document: $e')),
+                    );
                   }
                 }
               },
@@ -222,7 +274,9 @@ class _SupplierDetailsViewState extends ConsumerState<SupplierDetailsView> with 
                 invoice.invoiceNumber,
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              subtitle: Text('${invoice.purchaseDate.toString().split(' ')[0]} - الحالة: ${invoice.paymentStatus}'),
+              subtitle: Text(
+                '${invoice.purchaseDate.toString().split(' ')[0]} - الحالة: ${invoice.paymentStatus}',
+              ),
               trailing: Text(
                 '${invoice.grandTotal.toStringAsFixed(2)}',
                 style: const TextStyle(

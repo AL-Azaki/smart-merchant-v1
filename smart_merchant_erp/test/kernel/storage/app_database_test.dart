@@ -20,7 +20,7 @@ void main() {
   group('Drift ORM Foundation Test Suite (72 Domain Tables) -', () {
     test('Test A: Database Initialization & Schema Creation', () async {
       expect(database, isNotNull);
-      expect(database.schemaVersion, equals(1));
+      expect(database.schemaVersion, equals(5));
 
       // Verify tables across all 10 domains can be queried cleanly without 'no such table' errors
       final businesses = await database.select(database.businesses).get();
@@ -33,7 +33,7 @@ void main() {
       expect(products, isEmpty);
 
       final currencies = await database.select(database.currencies).get();
-      expect(currencies, isEmpty);
+      expect(currencies.isNotEmpty, isTrue);
 
       final invoices = await database.select(database.salesInvoices).get();
       expect(invoices, isEmpty);
@@ -41,20 +41,8 @@ void main() {
 
     test('Test B: Basic CRUD & Data Type Verification', () async {
       // 1. Insert a Currency (Core Domain)
-      final currencyId = 'curr-sar-001';
-      await database
-          .into(database.currencies)
-          .insert(
-            CurrenciesCompanion.insert(
-              id: currencyId,
-              currencyCode: 'SAR',
-              currencyNameAr: 'ريال سعودي',
-              currencyNameEn: 'Saudi Riyal',
-              currencySymbol: 'ر.س',
-              decimalPlaces: const drift.Value(2),
-              exchangeRate: const drift.Value(1.0),
-            ),
-          );
+      final currencyId = 'SAR';
+      
 
       // 2. Read back
       var fetchedCurr = await (database.select(
@@ -297,17 +285,7 @@ void main() {
                 businessName: 'Sync Store',
               ),
             );
-        await database
-            .into(database.currencies)
-            .insert(
-              CurrenciesCompanion.insert(
-                id: 'curr-sar',
-                currencyCode: 'SAR',
-                currencyNameAr: 'ريال',
-                currencyNameEn: 'Riyal',
-                currencySymbol: 'SR',
-              ),
-            );
+        
 
         final branchA = 'branch-a';
         final branchB = 'branch-b';
@@ -359,7 +337,7 @@ void main() {
                 businessId: bizId,
                 branchId: branchA,
                 invoiceNumber: 'INV-0001',
-                currencyId: 'curr-sar',
+                currencyId: 'SAR',
                 createdBy: 'u-sync',
               ),
             );
@@ -374,7 +352,7 @@ void main() {
                   businessId: bizId,
                   branchId: branchA,
                   invoiceNumber: 'INV-0001',
-                  currencyId: 'curr-sar',
+                  currencyId: 'SAR',
                   createdBy: 'u-sync',
                 ),
               ),
@@ -397,7 +375,7 @@ void main() {
                 businessId: bizId,
                 branchId: branchB,
                 invoiceNumber: 'INV-0001',
-                currencyId: 'curr-sar',
+                currencyId: 'SAR',
                 createdBy: 'u-sync',
               ),
             );

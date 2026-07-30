@@ -1,27 +1,26 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../../app/di/injection.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../application/usecases/get_stock_counts_usecase.dart';
 import '../../application/usecases/get_stock_count_details_usecase.dart';
 import '../../application/usecases/save_stock_count_usecase.dart';
 import '../../application/usecases/post_stock_count_usecase.dart';
 
-part 'stock_counts_provider.g.dart';
+final stockCountsNotifierProvider = AutoDisposeStreamNotifierProvider<StockCountsNotifier, List<StockCount>>(() => StockCountsNotifier());
 
-@riverpod
-class StockCountsNotifier extends _$StockCountsNotifier {
+class StockCountsNotifier extends AutoDisposeStreamNotifier<List<StockCount>> {
   late final GetStockCountsUseCase _getCountsUseCase;
   late final GetStockCountDetailsUseCase _getDetailsUseCase;
   late final SaveStockCountUseCase _saveUseCase;
   late final PostStockCountUseCase _postUseCase;
 
   @override
-  FutureOr<List<StockCount>> build() async {
+  Stream<List<StockCount>> build() async* {
     _getCountsUseCase = getIt<GetStockCountsUseCase>();
     _getDetailsUseCase = getIt<GetStockCountDetailsUseCase>();
     _saveUseCase = getIt<SaveStockCountUseCase>();
     _postUseCase = getIt<PostStockCountUseCase>();
-    return _fetchCounts();
+    yield await _fetchCounts();
   }
 
   Future<List<StockCount>> _fetchCounts() async {

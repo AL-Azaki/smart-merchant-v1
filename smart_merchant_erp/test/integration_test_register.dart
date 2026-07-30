@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_merchant_erp/app/config/api_client.dart';
 import 'package:smart_merchant_erp/app/config/app_environment.dart';
-import 'package:smart_merchant_erp/app/di/injection.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/kernel/storage/secure_storage/secure_storage_contract.dart';
 import 'package:smart_merchant_erp/modules/authentication/infrastructure/api/auth_remote_api_client.dart';
 import 'package:smart_merchant_erp/modules/authentication/presentation/providers/auth_provider.dart';
@@ -23,6 +23,7 @@ class MockSecureStorage implements SecureStorageContract {
 class TestEnvironment implements AppEnvironment {
   @override String get baseUrl => 'http://127.0.0.1:8000/api';
   @override String get environment => 'test';
+  @override String get envName => 'Test';
   @override bool get isProduction => false;
   @override Duration get connectTimeout => const Duration(seconds: 10);
   @override Duration get receiveTimeout => const Duration(seconds: 10);

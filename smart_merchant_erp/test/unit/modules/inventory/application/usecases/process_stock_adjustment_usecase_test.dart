@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:smart_merchant_erp/app/di/injection.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/transaction_runner.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';

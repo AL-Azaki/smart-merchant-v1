@@ -155,7 +155,9 @@ class SettingsControlCenterView extends StatelessWidget {
     final groups = _getSettingsGroups();
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Column(
         children: [
           // Header Bar

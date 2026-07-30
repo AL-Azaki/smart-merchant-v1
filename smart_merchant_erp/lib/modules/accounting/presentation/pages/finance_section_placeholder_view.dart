@@ -21,7 +21,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: SafeArea(
         child: Column(
           children: [
@@ -35,7 +37,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                 color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                 border: Border(
                   bottom: BorderSide(
-                    color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                    color: isDark
+                        ? AppColors.borderDark
+                        : AppColors.borderLight,
                   ),
                 ),
               ),
@@ -45,7 +49,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(),
                     icon: Icon(
                       Icons.arrow_back_rounded,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
                     ),
                     tooltip: 'عودة',
                   ),
@@ -56,11 +62,7 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                       color: themeColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                     ),
-                    child: Icon(
-                      icon,
-                      color: themeColor,
-                      size: 24,
-                    ),
+                    child: Icon(icon, color: themeColor, size: 24),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
@@ -72,14 +74,18 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w900,
-                            color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                            color: isDark
+                                ? AppColors.textPrimaryDark
+                                : AppColors.textPrimaryLight,
                           ),
                         ),
                         Text(
                           subtitle,
                           style: TextStyle(
                             fontSize: 12,
-                            color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
                           ),
                         ),
                       ],
@@ -101,10 +107,16 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                         width: double.infinity,
                         padding: const EdgeInsets.all(AppSpacing.xxl),
                         decoration: BoxDecoration(
-                          color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                          color: isDark
+                              ? AppColors.surfaceDark
+                              : AppColors.surfaceLight,
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusXl,
+                          ),
                           border: Border.all(
-                            color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                            color: isDark
+                                ? AppColors.borderDark
+                                : AppColors.borderLight,
                           ),
                         ),
                         child: Column(
@@ -116,11 +128,7 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                                 color: themeColor.withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(
-                                icon,
-                                size: 56,
-                                color: themeColor,
-                              ),
+                              child: Icon(icon, size: 56, color: themeColor),
                             ),
                             const SizedBox(height: AppSpacing.lg),
                             Text(
@@ -128,7 +136,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w900,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.sm),
@@ -137,7 +147,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.xl),
@@ -147,10 +159,16 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                                 vertical: AppSpacing.md,
                               ),
                               decoration: BoxDecoration(
-                                color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                color: isDark
+                                    ? AppColors.backgroundDark
+                                    : AppColors.backgroundLight,
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusLg,
+                                ),
                                 border: Border.all(
-                                  color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                                  color: isDark
+                                      ? AppColors.borderDark
+                                      : AppColors.borderLight,
                                 ),
                               ),
                               child: Row(
@@ -159,7 +177,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                                   Icon(
                                     Icons.build_circle_outlined,
                                     size: 18,
-                                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                    color: isDark
+                                        ? AppColors.textSecondaryDark
+                                        : AppColors.textSecondaryLight,
                                   ),
                                   const SizedBox(width: AppSpacing.xs + 2),
                                   Text(
@@ -167,7 +187,9 @@ class FinanceSectionPlaceholderView extends StatelessWidget {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                      color: isDark
+                                          ? AppColors.textSecondaryDark
+                                          : AppColors.textSecondaryLight,
                                     ),
                                   ),
                                 ],

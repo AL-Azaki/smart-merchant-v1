@@ -86,20 +86,7 @@ void main() {
           ),
         );
 
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
 
     await database
         .into(database.warehouses)
@@ -184,7 +171,7 @@ void main() {
             supplierId: 'sup-01',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-2026-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             subTotal: const drift.Value(1000.0),
             grandTotal: const drift.Value(1000.0),
             baseSubTotal: const drift.Value(1000.0),
@@ -211,7 +198,7 @@ void main() {
             businessId: 'BUS_A',
             supplierId: 'sup-01',
             purchaseInvoiceId: 'pinv-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 1000.0,
             baseOriginalAmount: 1000.0,
             paidAmount: const drift.Value(200.0),
@@ -258,7 +245,7 @@ void main() {
             branchId: 'BRANCH_1',
             purchaseInvoiceId: 'pinv-001',
             returnNumber: 'PRET-2026-001',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             totalAmount: const drift.Value(100.0),
             baseTotalAmount: const drift.Value(100.0),
             status: const drift.Value('Posted'),
@@ -346,7 +333,7 @@ void main() {
             supplierId: 'sup-br',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-B1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             createdBy: 'u-owner',
           ),
           items: [],
@@ -359,7 +346,7 @@ void main() {
             supplierId: 'sup-br',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-B2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             createdBy: 'u-owner',
           ),
           items: [],
@@ -450,7 +437,7 @@ void main() {
             supplierId: 'sup-trans',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-FAIL-01',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             createdBy: 'u-owner',
           ),
           items: [
@@ -503,7 +490,7 @@ void main() {
             supplierId: 'sup-fin',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-FIN-1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             grandTotal: const drift.Value(1000.0),
             createdBy: 'u-owner',
           ),
@@ -513,7 +500,7 @@ void main() {
             businessId: 'BUS_A',
             supplierId: 'sup-fin',
             purchaseInvoiceId: 'pinv-fin-1',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 1000.0,
             baseOriginalAmount: 1000.0,
             remainingAmount: 1000.0,
@@ -529,7 +516,7 @@ void main() {
             supplierId: 'sup-fin',
             warehouseId: 'wh-01',
             invoiceNumber: 'PINV-FIN-2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             grandTotal: const drift.Value(1500.0),
             createdBy: 'u-owner',
           ),
@@ -539,7 +526,7 @@ void main() {
             businessId: 'BUS_A',
             supplierId: 'sup-fin',
             purchaseInvoiceId: 'pinv-fin-2',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             originalAmount: 1500.0,
             baseOriginalAmount: 1500.0,
             remainingAmount: 1500.0,

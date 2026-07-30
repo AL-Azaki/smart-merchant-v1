@@ -155,4 +155,3 @@ class _SalesLayoutState extends State<SalesLayout>
     );
   }
 }
-

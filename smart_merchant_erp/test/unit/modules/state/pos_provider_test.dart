@@ -4,8 +4,16 @@ import 'package:dartz/dartz.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:smart_merchant_erp/kernel/error/failures.dart';
 import 'package:smart_merchant_erp/modules/sales/presentation/providers/pos_provider.dart';
+import 'package:smart_merchant_erp/modules/authentication/presentation/providers/session_provider.dart';
 import 'package:smart_merchant_erp/modules/sales/application/usecases/complete_sale_usecase.dart';
+import 'package:smart_merchant_erp/kernel/core/application_context.dart';
+import 'package:get_it/get_it.dart';
+import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
+import 'package:smart_merchant_erp/modules/inventory/application/services/warehouse_context_service.dart';
 import 'package:smart_merchant_erp/app/di/getit_providers.dart';
+
+import 'package:smart_merchant_erp/modules/inventory/domain/repositories/inventory_repository.dart';
+class MockInventoryRepository extends Mock implements InventoryRepository {}
 
 class MockCompleteSaleUseCase extends Mock implements CompleteSaleUseCase {}
 
@@ -19,13 +27,38 @@ void main() {
   });
 
   setUp(() {
+    GetIt.I.reset();
+    final mockInv = MockInventoryRepository();
+    when(() => mockInv.getDefaultWarehouseByBranch(any(), any())).thenAnswer((_) async => const Warehouse(
+      id: 'WH_1',
+      businessId: 'BUS_A',
+      branchId: 'BRANCH_1',
+      warehouseName: 'Main WH',
+      warehouseCode: 'WH-01',
+      isDefault: true,
+      isActive: true,
+      syncStatus: 'synced',
+      version: 1,
+    ));
+
+    final holder = SessionHolder();
+    holder.setSession(businessId: 'BUS_A', branchId: 'BRANCH_1', userId: 'u-owner');
+    GetIt.I.registerSingleton<SessionHolder>(holder);
+    GetIt.I.registerSingleton<WarehouseContextService>(WarehouseContextService(mockInv));
+
     mockUseCase = MockCompleteSaleUseCase();
   });
 
   ProviderContainer createContainer() {
-    return ProviderContainer(
+    final container = ProviderContainer(
       overrides: [completeSaleUseCaseProvider.overrideWithValue(mockUseCase)],
     );
+    container.read(sessionNotifierProvider.notifier).setSession(
+      businessId: 'BUS_A',
+      branchId: 'BRANCH_1',
+      userId: 'u-owner',
+    );
+    return container;
   }
 
   test('Adding products updates cart and totals correctly', () {

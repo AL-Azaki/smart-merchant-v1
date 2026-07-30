@@ -2,7 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:smart_merchant_erp/app/di/injection.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/transaction_runner.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';
@@ -15,11 +15,14 @@ import 'package:smart_merchant_erp/database/daos/accounting_dao.dart';
 import 'package:smart_merchant_erp/database/daos/core_dao.dart';
 import 'package:smart_merchant_erp/modules/sales/domain/repositories/sales_repository.dart';
 import 'package:smart_merchant_erp/modules/inventory/domain/repositories/inventory_repository.dart';
+import 'package:smart_merchant_erp/modules/treasury/domain/repositories/treasury_repository.dart';
 import 'package:drift/native.dart';
 import 'package:smart_merchant_erp/modules/sales/infrastructure/repositories/sales_repository_impl.dart';
 import 'package:smart_merchant_erp/modules/inventory/infrastructure/repositories/inventory_repository_impl.dart';
 import 'package:smart_merchant_erp/modules/accounting/infrastructure/repositories/accounting_repository_impl.dart';
+import 'package:smart_merchant_erp/modules/treasury/infrastructure/repositories/treasury_repository_impl.dart';
 import 'package:smart_merchant_erp/modules/core/infrastructure/repositories/core_repository_impl.dart';
+import 'package:smart_merchant_erp/database/daos/treasury_dao.dart';
 import 'package:drift/drift.dart' as drift;
 
 // To perform real database transaction checks, we use a real in-memory SQLite database
@@ -29,6 +32,7 @@ void main() {
   late SalesRepository salesRepository;
   late InventoryRepository inventoryRepository;
   late AccountingRepository accountingRepository;
+  late TreasuryRepository treasuryRepository;
   late AccountingApplicationService accountingService;
   late ApplicationContext context;
   late String warehouseId;
@@ -45,6 +49,7 @@ void main() {
     salesRepository = SalesRepositoryImpl(SalesDao(db));
     inventoryRepository = InventoryRepositoryImpl(InventoryDao(db));
     accountingRepository = AccountingRepositoryImpl(AccountingDao(db));
+    treasuryRepository = TreasuryRepositoryImpl(TreasuryDao(db));
 
     // Seed required master data for foreign keys to pass
     businessId = const Uuid().v4();
@@ -74,22 +79,83 @@ void main() {
       accountingService,
       context,
       transactionRunner,
+      db,
     );
 
-    // Seed Currency
-    await db
-        .into(db.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: currencyId,
-            currencyCode: 'USD',
-            currencyNameAr: 'USD',
-            currencyNameEn: 'USD',
-            currencySymbol: '\$',
-            decimalPlaces: drift.Value(2),
-          ),
-        );
+        // Seed Currency
+    await db.into(db.currencies).insert(
+      CurrenciesCompanion.insert(
+        id: currencyId,
+        currencyCode: 'TST',
+        currencyNameAr: 'Test',
+        currencyNameEn: 'Test',
+        currencySymbol: 'T',
+        isActive: const drift.Value(true),
+      )
+    );
+    
 
+    
+    
+    // Seed Customer
+    await db.into(db.customers).insert(
+      CustomersCompanion.insert(
+        id: customerId,
+        businessId: businessId,
+        customerName: 'Test Customer',
+        isActive: const drift.Value(true),
+      )
+    );
+    // Seed Context Data
+    await db.into(db.accountsTable).insert(
+      AccountsTableCompanion.insert(
+        id: const drift.Value('acc-test'),
+        ownerId: 'test-user',
+        businessName: 'Test Account',
+        businessType: 'test',
+        defaultCurrency: 'YER',
+      )
+    );
+    await db.into(db.businesses).insert(
+      BusinessesCompanion.insert(
+        id: businessId,
+        accountId: 'acc-test',
+        businessName: 'Test Biz',
+        status: const drift.Value('Active'),
+      )
+    );
+    await db.into(db.usersTable).insert(
+      UsersTableCompanion.insert(
+        id: drift.Value(context.currentUserId),
+        email: 'test@example.com',
+        passwordHash: 'hash',
+        firstName: 'Test',
+        lastName: 'User',
+        isActive: const drift.Value(true),
+      )
+    );
+    await db.into(db.branches).insert(
+      BranchesCompanion.insert(
+        id: context.currentBranchId!,
+        businessId: businessId,
+        branchCode: 'TB-01',
+        branchName: 'Test Branch',
+        isActive: const drift.Value(true),
+      )
+    );
+
+    
+    // Seed Warehouse
+    await db.into(db.warehouses).insert(
+      WarehousesCompanion.insert(
+        id: warehouseId,
+        businessId: businessId,
+        branchId: context.currentBranchId!,
+        warehouseName: 'Test Warehouse',
+        warehouseCode: 'WH-01',
+        isActive: const drift.Value(true),
+      )
+    );
     // Seed Initial Inventory
     await db
         .into(db.inventories)

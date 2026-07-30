@@ -6,10 +6,6 @@ class ChartOfAccountsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: ChartOfAccountsTab(),
-      ),
-    );
+    return const Scaffold(body: SafeArea(child: ChartOfAccountsTab()));
   }
 }

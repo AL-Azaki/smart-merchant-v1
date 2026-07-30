@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:injectable/injectable.dart';
 import '../storage/app_database.dart';
 
 /// Contract for executing application workflows within an atomic database transaction.
@@ -9,7 +8,6 @@ abstract class ApplicationTransactionRunner {
   Future<T> runInTransaction<T>(Future<T> Function() action);
 }
 
-@LazySingleton(as: ApplicationTransactionRunner)
 class ApplicationTransactionRunnerImpl implements ApplicationTransactionRunner {
   final AppDatabase _db;
 

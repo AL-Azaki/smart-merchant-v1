@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
 import '../../../../../shared/design_system/widgets/app_text_field.dart';
 

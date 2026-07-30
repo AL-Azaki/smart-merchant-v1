@@ -6,7 +6,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../kernel/core/application_context.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../providers/archive_provider.dart';
 import 'widgets/document_form_sheet.dart';
 import '../../../../kernel/storage/app_database.dart';
@@ -40,22 +40,28 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
   }
 
   void _onSearch(String query) {
-    ref.read(archiveFilterStateProvider.notifier).updateFilter(searchQuery: query);
+    ref
+        .read(archiveFilterStateProvider.notifier)
+        .updateFilter(searchQuery: query);
   }
 
   void _onCategorySelect(String cat) {
     setState(() => _activeCategory = cat);
-    ref.read(archiveFilterStateProvider.notifier).updateFilter(
-      category: cat == 'all' ? null : cat,
-    );
+    ref
+        .read(archiveFilterStateProvider.notifier)
+        .updateFilter(category: cat == 'all' ? null : cat);
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final subtleColor = isDark ? AppColors.surfaceDark.withOpacity(0.5) : AppColors.backgroundLight;
+    final subtleColor = isDark
+        ? AppColors.surfaceDark.withOpacity(0.5)
+        : AppColors.backgroundLight;
 
     final stats = ref.watch(archiveStatsProvider);
     final docsAsync = ref.watch(archiveDocumentsProvider);
@@ -70,11 +76,35 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Row(
               children: [
-                _buildStatCard('المستندات المؤرشفة', '${stats['total']}', Icons.description, Colors.purple, surfaceColor, borderColor, isDark),
+                _buildStatCard(
+                  'المستندات المؤرشفة',
+                  '${stats['total']}',
+                  Icons.description,
+                  Colors.purple,
+                  surfaceColor,
+                  borderColor,
+                  isDark,
+                ),
                 const SizedBox(width: AppSpacing.md),
-                _buildStatCard('الفواتير المصورة', '${stats['invoices']}', Icons.receipt_long, Colors.green, surfaceColor, borderColor, isDark),
+                _buildStatCard(
+                  'الفواتير المصورة',
+                  '${stats['invoices']}',
+                  Icons.receipt_long,
+                  Colors.green,
+                  surfaceColor,
+                  borderColor,
+                  isDark,
+                ),
                 const SizedBox(width: AppSpacing.md),
-                _buildStatCard('تنبيهات انتهاء الصلاحية', '${stats['nearExpiry']}', Icons.warning_amber_rounded, Colors.red, surfaceColor, borderColor, isDark),
+                _buildStatCard(
+                  'تنبيهات انتهاء الصلاحية',
+                  '${stats['nearExpiry']}',
+                  Icons.warning_amber_rounded,
+                  Colors.red,
+                  surfaceColor,
+                  borderColor,
+                  isDark,
+                ),
               ],
             ),
           ),
@@ -144,10 +174,14 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
                   return const Center(child: Text('لا توجد مستندات مؤرشفة'));
                 }
                 return ListView.separated(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                    vertical: AppSpacing.sm,
+                  ),
                   itemCount: docs.length,
                   separatorBuilder: (c, i) => Divider(color: borderColor),
-                  itemBuilder: (c, i) => _buildDocRow(docs[i], surfaceColor, isDark),
+                  itemBuilder: (c, i) =>
+                      _buildDocRow(docs[i], surfaceColor, isDark),
                 );
               },
             ),
@@ -157,7 +191,15 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, Color surface, Color border, bool isDark) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    Color surface,
+    Color border,
+    bool isDark,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
@@ -170,7 +212,10 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -178,8 +223,27 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight), overflow: TextOverflow.ellipsis),
-                  Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark
+                          ? AppColors.textSecondaryDark
+                          : AppColors.textSecondaryLight,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -207,7 +271,11 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: active ? Colors.white : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              color: active
+                  ? Colors.white
+                  : (isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight),
             ),
           ),
         ),
@@ -217,14 +285,18 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
 
   Widget _buildDocRow(ArchiveDocument doc, Color surface, bool isDark) {
     final badge = _getCategoryBadge(doc.category);
-    final isExpired = doc.expiryDate != null && doc.expiryDate!.isBefore(DateTime.now());
+    final isExpired =
+        doc.expiryDate != null && doc.expiryDate!.isBefore(DateTime.now());
 
     return InkWell(
       onTap: () => _showPreview(doc),
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(color: surface, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Row(
           children: [
             // Thumbnail
@@ -232,7 +304,9 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
               width: 50,
               height: 50,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.surfaceDark : AppColors.backgroundLight,
+                color: isDark
+                    ? AppColors.surfaceDark
+                    : AppColors.backgroundLight,
                 borderRadius: BorderRadius.circular(10),
               ),
               clipBehavior: Clip.antiAlias,
@@ -247,12 +321,33 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(doc.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Text(
+                    doc.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(color: badge.color.withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
-                    child: Text(badge.label, style: TextStyle(color: badge.color, fontSize: 11, fontWeight: FontWeight.bold)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badge.color.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      badge.label,
+                      style: TextStyle(
+                        color: badge.color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -261,8 +356,17 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('المرجع', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                  Text(doc.refNumber ?? '---', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const Text(
+                    'المرجع',
+                    style: TextStyle(fontSize: 11, color: Colors.grey),
+                  ),
+                  Text(
+                    doc.refNumber ?? '---',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -270,9 +374,18 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('إصدار: ${DateFormat('yyyy/MM/dd').format(doc.issueDate)}', style: const TextStyle(fontSize: 12)),
+                  Text(
+                    'إصدار: ${DateFormat('yyyy/MM/dd').format(doc.issueDate)}',
+                    style: const TextStyle(fontSize: 12),
+                  ),
                   if (doc.expiryDate != null)
-                    Text('انتهاء: ${DateFormat('yyyy/MM/dd').format(doc.expiryDate!)}', style: TextStyle(fontSize: 12, color: isExpired ? Colors.red : Colors.grey)),
+                    Text(
+                      'انتهاء: ${DateFormat('yyyy/MM/dd').format(doc.expiryDate!)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: isExpired ? Colors.red : Colors.grey,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -298,7 +411,11 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
                 IconButton(
                   padding: const EdgeInsets.all(4),
                   constraints: const BoxConstraints(),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 22),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.red,
+                    size: 22,
+                  ),
                   onPressed: () => _confirmDelete(doc),
                   tooltip: 'حذف',
                 ),
@@ -323,9 +440,13 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
             final res = await getIt<ArchiveDocumentService>().saveDocument(cmd);
             if (res.isRight() && ctx.mounted) {
               Navigator.pop(ctx);
-              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('تمت الأرشفة بنجاح')));
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text('تمت الأرشفة بنجاح')),
+              );
             } else if (ctx.mounted) {
-              ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('فشل الحفظ')));
+              ScaffoldMessenger.of(
+                ctx,
+              ).showSnackBar(const SnackBar(content: Text('فشل الحفظ')));
             }
           },
         ),
@@ -341,7 +462,9 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
         clipBehavior: Clip.antiAlias,
         child: Container(
           width: 500,
-          color: Theme.of(ctx).brightness == Brightness.dark ? AppColors.surfaceDark : AppColors.surfaceLight,
+          color: Theme.of(ctx).brightness == Brightness.dark
+              ? AppColors.surfaceDark
+              : AppColors.surfaceLight,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -354,11 +477,27 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(doc.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        if (doc.refNumber != null) Text(doc.refNumber!, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                        Text(
+                          doc.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        if (doc.refNumber != null)
+                          Text(
+                            doc.refNumber!,
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 12,
+                            ),
+                          ),
                       ],
                     ),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(ctx)),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
                   ],
                 ),
               ),
@@ -369,19 +508,30 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        if (doc.fileUrl.isNotEmpty && File(doc.fileUrl).existsSync())
+                        if (doc.fileUrl.isNotEmpty &&
+                            File(doc.fileUrl).existsSync())
                           Image.file(File(doc.fileUrl), fit: BoxFit.contain)
                         else
-                          const Padding(padding: EdgeInsets.all(40), child: Icon(Icons.broken_image, size: 64, color: Colors.grey)),
+                          const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Icon(
+                              Icons.broken_image,
+                              size: 64,
+                              color: Colors.grey,
+                            ),
+                          ),
                         if (doc.notes != null && doc.notes!.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(color: Colors.grey.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             child: Text('ملاحظات: ${doc.notes}'),
                           ),
-                        ]
+                        ],
                       ],
                     ),
                   ),
@@ -401,7 +551,10 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
         title: const Text('تأكيد الحذف'),
         content: const Text('هل تريد حذف هذا المستند من الأرشيف؟'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('إلغاء')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
@@ -417,22 +570,30 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
 
   ({String label, Color color}) _getCategoryBadge(String cat) {
     switch (cat) {
-      case 'contract': return (label: 'عقد', color: Colors.blue);
-      case 'license': return (label: 'ترخيص', color: Colors.orange);
-      case 'invoice': return (label: 'فاتورة', color: Colors.green);
-      default: return (label: 'أخرى', color: Colors.purple);
+      case 'contract':
+        return (label: 'عقد', color: Colors.blue);
+      case 'license':
+        return (label: 'ترخيص', color: Colors.orange);
+      case 'invoice':
+        return (label: 'فاتورة', color: Colors.green);
+      default:
+        return (label: 'أخرى', color: Colors.purple);
     }
   }
 
   Future<void> _downloadDocument(ArchiveDocument doc) async {
     if (doc.fileUrl.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر حفظ المستند')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر حفظ المستند')));
       return;
     }
-    
+
     final sourceFile = File(doc.fileUrl);
     if (!sourceFile.existsSync()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ملف المستند غير موجود على الجهاز')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ملف المستند غير موجود على الجهاز')),
+      );
       return;
     }
 
@@ -443,12 +604,14 @@ class _DocumentsViewState extends ConsumerState<DocumentsView> {
         text: 'مستند: \${doc.title}',
         subject: doc.title,
       );
-      
-      // We don't show "تم حفظ المستند بنجاح" because the OS share sheet handles the UX, 
-      // and the user might just cancel the share sheet. 
+
+      // We don't show "تم حفظ المستند بنجاح" because the OS share sheet handles the UX,
+      // and the user might just cancel the share sheet.
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تعذر حفظ المستند')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر حفظ المستند')));
       }
     }
   }

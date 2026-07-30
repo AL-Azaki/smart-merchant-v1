@@ -93,6 +93,8 @@ abstract class SystemRepository {
   Future<int> insertArchiveDocument(ArchiveDocumentsCompanion companion);
   Future<bool> updateArchiveDocument(ArchiveDocumentsCompanion companion);
   Future<ArchiveDocument?> getArchiveDocumentById(String id, String businessId);
-  Stream<List<ArchiveDocument>> watchArchiveDocuments(ArchiveDocumentFilter filter);
+  Stream<List<ArchiveDocument>> watchArchiveDocuments(
+    ArchiveDocumentFilter filter,
+  );
   Future<bool> deleteArchiveDocument(String id, String businessId);
 }

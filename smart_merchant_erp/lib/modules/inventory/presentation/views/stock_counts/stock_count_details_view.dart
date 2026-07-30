@@ -14,7 +14,9 @@ class StockCountDetailsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return FutureBuilder(
-      future: ref.read(stockCountsNotifierProvider.notifier).getDetails(countId),
+      future: ref
+          .read(stockCountsNotifierProvider.notifier)
+          .getDetails(countId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -63,11 +65,16 @@ class StockCountDetailsView extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('تاريخ الجرد: ${DateFormat('yyyy/MM/dd HH:mm').format(count.countDate)}'),
+                    Text(
+                      'تاريخ الجرد: ${DateFormat('yyyy/MM/dd HH:mm').format(count.countDate)}',
+                    ),
                     const SizedBox(height: 8),
                     if (count.notes != null) Text('ملاحظات: ${count.notes}'),
                     const SizedBox(height: 16),
-                    Text('العناصر (${items.length}):', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text(
+                      'العناصر (${items.length}):',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ],
                 ),
               ),
@@ -77,16 +84,20 @@ class StockCountDetailsView extends ConsumerWidget {
                   itemBuilder: (context, index) {
                     final item = items[index];
                     return ListTile(
-                      title: Text('المنتج: ${item.productId}'), // ideally we fetch product name
-                      subtitle: Text('الكمية الفعلية: ${item.countedQuantity} | الدفترية: ${item.expectedQuantity}'),
+                      title: Text(
+                        'المنتج: ${item.productId}',
+                      ), // ideally we fetch product name
+                      subtitle: Text(
+                        'الكمية الفعلية: ${item.countedQuantity} | الدفترية: ${item.expectedQuantity}',
+                      ),
                       trailing: Text(
                         'الفرق: ${item.differenceQuantity}',
                         style: TextStyle(
                           color: item.differenceQuantity > 0
                               ? AppColors.success
                               : item.differenceQuantity < 0
-                                  ? AppColors.error
-                                  : Colors.grey,
+                              ? AppColors.error
+                              : Colors.grey,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -103,7 +114,10 @@ class StockCountDetailsView extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () => _postCount(context, ref),
-                    child: const Text('اعتماد الجرد', style: TextStyle(color: Colors.white, fontSize: 16)),
+                    child: const Text(
+                      'اعتماد الجرد',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
+                    ),
                   ),
                 ),
             ],
@@ -118,7 +132,9 @@ class StockCountDetailsView extends ConsumerWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الاعتماد'),
-        content: const Text('هل أنت متأكد من اعتماد هذا الجرد؟ سيتم إنشاء حركات تسوية مخزنية للفروقات ولن تتمكن من تعديله بعد ذلك.'),
+        content: const Text(
+          'هل أنت متأكد من اعتماد هذا الجرد؟ سيتم إنشاء حركات تسوية مخزنية للفروقات ولن تتمكن من تعديله بعد ذلك.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -137,16 +153,16 @@ class StockCountDetailsView extends ConsumerWidget {
     try {
       await ref.read(stockCountsNotifierProvider.notifier).postCount(countId);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم اعتماد الجرد بنجاح')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تم اعتماد الجرد بنجاح')));
         Navigator.pop(context); // go back
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString())),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }

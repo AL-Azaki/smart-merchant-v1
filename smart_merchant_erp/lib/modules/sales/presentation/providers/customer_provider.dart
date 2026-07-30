@@ -1,13 +1,12 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../kernel/storage/app_database.dart' show Customer;
-import '../../../../database/daos/sales_dao.dart' show CustomerFilter, CustomerBalanceSummary;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/sales_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 
-part 'customer_provider.g.dart';
+final customersNotifierProvider = AutoDisposeStreamNotifierProvider<CustomersNotifier, List<Customer>>(() => CustomersNotifier());
 
-@riverpod
-class CustomersNotifier extends _$CustomersNotifier {
+class CustomersNotifier extends AutoDisposeStreamNotifier<List<Customer>> {
   @override
   Stream<List<Customer>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -22,8 +21,12 @@ class CustomersNotifier extends _$CustomersNotifier {
   }
 }
 
-@riverpod
-Future<CustomerBalanceSummary?> customerBalance(CustomerBalanceRef ref, String customerId) async {
+final customerBalanceProvider = FutureProvider.autoDispose.family<CustomerBalanceSummary?, String>((ref, customerId) => _customerBalance(ref, customerId));
+
+Future<CustomerBalanceSummary?> _customerBalance(
+  Ref ref,
+  String customerId,
+) async {
   final session = ref.watch(sessionNotifierProvider);
   if (!session.isActive) return null;
 

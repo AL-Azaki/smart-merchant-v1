@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/accounting_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/accounting_dao.dart';
 
-@LazySingleton(as: AccountingRepository)
 class AccountingRepositoryImpl implements AccountingRepository {
   final AccountingDao _dao;
 

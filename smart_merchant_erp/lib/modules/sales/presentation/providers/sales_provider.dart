@@ -1,14 +1,13 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../domain/repositories/sales_repository.dart';
-import '../../../../kernel/storage/app_database.dart' show SalesInvoice;
-import '../../../../database/daos/sales_dao.dart' show SalesInvoiceFilter;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/sales_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 
-part 'sales_provider.g.dart';
+final salesInvoicesNotifierProvider = AutoDisposeStreamNotifierProvider<SalesInvoicesNotifier, List<SalesInvoice>>(() => SalesInvoicesNotifier());
 
-@riverpod
-class SalesInvoicesNotifier extends _$SalesInvoicesNotifier {
+class SalesInvoicesNotifier extends AutoDisposeStreamNotifier<List<SalesInvoice>> {
   @override
   Stream<List<SalesInvoice>> build() {
     final session = ref.watch(sessionNotifierProvider);

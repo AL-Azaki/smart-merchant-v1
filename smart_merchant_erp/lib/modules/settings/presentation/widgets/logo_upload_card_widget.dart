@@ -5,10 +5,7 @@ import '../../../../shared/design_system/tokens/spacing.dart';
 class LogoUploadCardWidget extends StatelessWidget {
   final VoidCallback? onUploadTap;
 
-  const LogoUploadCardWidget({
-    super.key,
-    this.onUploadTap,
-  });
+  const LogoUploadCardWidget({super.key, this.onUploadTap});
 
   @override
   Widget build(BuildContext context) {
@@ -41,10 +38,14 @@ class LogoUploadCardWidget extends StatelessWidget {
               height: 140,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
+                color: isDark
+                    ? const Color(0xFF1F2937)
+                    : const Color(0xFFF8FAFC),
                 borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
+                  color: isDark
+                      ? const Color(0xFF374151)
+                      : const Color(0xFFCBD5E1),
                   width: 1.5,
                   style: BorderStyle.solid,
                 ),
@@ -70,7 +71,9 @@ class LogoUploadCardWidget extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                      color: isDark
+                          ? AppColors.textPrimaryDark
+                          : AppColors.textPrimaryLight,
                     ),
                   ),
                 ],
@@ -86,7 +89,9 @@ class LogoUploadCardWidget extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              color: isDark
+                  ? AppColors.textSecondaryDark
+                  : AppColors.textSecondaryLight,
               height: 1.4,
             ),
           ),

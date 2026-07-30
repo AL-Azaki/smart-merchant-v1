@@ -36,10 +36,16 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
     }
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
 
     final employeesAsync = ref.watch(employeesListProvider);
 
@@ -48,9 +54,9 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
         final filteredEmployees = employees.where((e) {
           final q = _searchQuery.toLowerCase();
           return e.firstName.toLowerCase().contains(q) ||
-                 e.lastName.toLowerCase().contains(q) ||
-                 (e.phone?.contains(q) ?? false) ||
-                 e.employeeCode.toLowerCase().contains(q);
+              e.lastName.toLowerCase().contains(q) ||
+              (e.phone?.contains(q) ?? false) ||
+              e.employeeCode.toLowerCase().contains(q);
         }).toList();
 
         return Column(
@@ -84,9 +90,8 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                             children: [
                               Text(
                                 'الموظفين',
-                                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.w800),
                               ),
                               Text(
                                 '${employees.length} موظف',
@@ -108,11 +113,16 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                           context: context,
                           builder: (ctx) => Dialog(
                             backgroundColor: Colors.transparent,
-                            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                            insetPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 24,
+                            ),
                             child: EmployeeFormSheet(
                               onClose: () => Navigator.pop(ctx),
                               onSave: (data) async {
-                                final success = await ref.read(hrNotifierProvider.notifier).saveEmployee(data);
+                                final success = await ref
+                                    .read(hrNotifierProvider.notifier)
+                                    .saveEmployee(data);
                                 if (success && ctx.mounted) {
                                   Navigator.pop(ctx);
                                 }
@@ -142,7 +152,8 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                         controller: _searchController,
                         onChanged: (val) => setState(() => _searchQuery = val),
                         decoration: const InputDecoration(
-                          hintText: 'البحث عن موظف بالاسم، الرقم، المسمى الوظيفي...',
+                          hintText:
+                              'البحث عن موظف بالاسم، الرقم، المسمى الوظيفي...',
                           prefixIcon: Icon(Icons.search),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(
@@ -173,14 +184,23 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.people_alt_outlined, size: 48, color: Colors.grey),
+                            const Icon(
+                              Icons.people_alt_outlined,
+                              size: 48,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(height: 16),
                             const Text(
                               'لا يوجد موظفين',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             Text(
-                              _searchQuery.isEmpty ? 'قم بإضافة موظف جديد لعرضه هنا.' : 'لا توجد نتائج مطابقة للبحث.',
+                              _searchQuery.isEmpty
+                                  ? 'قم بإضافة موظف جديد لعرضه هنا.'
+                                  : 'لا توجد نتائج مطابقة للبحث.',
                               style: const TextStyle(color: Colors.grey),
                             ),
                           ],
@@ -189,17 +209,25 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                     : ListView.separated(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         itemCount: filteredEmployees.length,
-                        separatorBuilder: (_, __) => Divider(color: borderColor),
+                        separatorBuilder: (_, __) =>
+                            Divider(color: borderColor),
                         itemBuilder: (context, index) {
                           final emp = filteredEmployees[index];
                           final isActive = emp.status == 'Active';
                           final isOnLeave = emp.status == 'OnLeave';
-                          
-                          final badgeColor = isActive ? AppColors.success : (isOnLeave ? AppColors.warning : AppColors.error);
-                          final badgeText = isActive ? 'نشط' : (isOnLeave ? 'في إجازة' : 'موقوف');
+
+                          final badgeColor = isActive
+                              ? AppColors.success
+                              : (isOnLeave
+                                    ? AppColors.warning
+                                    : AppColors.error);
+                          final badgeText = isActive
+                              ? 'نشط'
+                              : (isOnLeave ? 'في إجازة' : 'موقوف');
 
                           return ListTile(
-                            onTap: () => setState(() => _selectedEmployee = emp),
+                            onTap: () =>
+                                setState(() => _selectedEmployee = emp),
                             leading: Container(
                               width: 44,
                               height: 44,
@@ -208,24 +236,47 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                                 shape: BoxShape.circle,
                               ),
                               alignment: Alignment.center,
-                              child: const Icon(Icons.person, color: AppColors.primary),
+                              child: const Icon(
+                                Icons.person,
+                                color: AppColors.primary,
+                              ),
                             ),
-                            title: Text(emp.firstName, style: TextStyle(color: textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-                            subtitle: Text('${emp.employeeCode} • ${emp.phone ?? "بدون رقم"}', style: TextStyle(color: textSecondary, fontSize: 12)),
+                            title: Text(
+                              emp.firstName,
+                              style: TextStyle(
+                                color: textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${emp.employeeCode} • ${emp.phone ?? "بدون رقم"}',
+                              style: TextStyle(
+                                color: textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 _buildStatusBadge(badgeText, badgeColor),
                                 const SizedBox(width: 8),
                                 IconButton(
-                                  icon: const Icon(Icons.edit_outlined, size: 20),
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 20,
+                                  ),
                                   color: Colors.grey,
                                   onPressed: () {
                                     showDialog<void>(
                                       context: context,
                                       builder: (ctx) => Dialog(
                                         backgroundColor: Colors.transparent,
-                                        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                                        insetPadding:
+                                            const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 24,
+                                            ),
                                         child: EmployeeFormSheet(
                                           employee: {
                                             'id': emp.id,
@@ -235,11 +286,19 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
                                             'position': emp.employeeCode,
                                             'phone': emp.phone,
                                             'salary': emp.salary,
-                                            'status': emp.status == 'Active' ? 'active' : (emp.status == 'OnLeave' ? 'on_leave' : 'inactive'),
+                                            'status': emp.status == 'Active'
+                                                ? 'active'
+                                                : (emp.status == 'OnLeave'
+                                                      ? 'on_leave'
+                                                      : 'inactive'),
                                           },
                                           onClose: () => Navigator.pop(ctx),
                                           onSave: (data) async {
-                                            final success = await ref.read(hrNotifierProvider.notifier).saveEmployee(data);
+                                            final success = await ref
+                                                .read(
+                                                  hrNotifierProvider.notifier,
+                                                )
+                                                .saveEmployee(data);
                                             if (success && ctx.mounted) {
                                               Navigator.pop(ctx);
                                             }
@@ -271,7 +330,14 @@ class _EmployeesViewState extends ConsumerState<EmployeesView> {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Text(text, style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.bold)),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 }

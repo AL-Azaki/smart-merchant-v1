@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
@@ -39,7 +38,6 @@ class ProcessStockAdjustmentCommand {
   });
 }
 
-@injectable
 class ProcessStockAdjustmentUseCase
     implements UseCase<String, ProcessStockAdjustmentCommand> {
   final InventoryRepository _inventoryRepository;
@@ -62,11 +60,15 @@ class ProcessStockAdjustmentUseCase
     final userId = _context.currentUserId;
 
     if (branchId == null) {
-      return const Left(ValidationFailure('Branch ID is required for stock adjustment.'));
+      return const Left(
+        ValidationFailure('Branch ID is required for stock adjustment.'),
+      );
     }
 
     if (params.items.isEmpty) {
-      return const Left(ValidationFailure('Adjustment must have at least one item.'));
+      return const Left(
+        ValidationFailure('Adjustment must have at least one item.'),
+      );
     }
 
     final txId = _uuid.v4();
@@ -143,16 +145,17 @@ class ProcessStockAdjustmentUseCase
 
         // Update actual stock quantities
         for (final item in params.items) {
-          final inventory = await _inventoryRepository.getInventoryByUnitAndWarehouse(
-            businessId,
-            params.warehouseId,
-            item.productUnitId,
-          );
+          final inventory = await _inventoryRepository
+              .getInventoryByUnitAndWarehouse(
+                businessId,
+                params.warehouseId,
+                item.productUnitId,
+              );
           if (inventory != null) {
             await _inventoryRepository.updateInventory(
-              inventory.toCompanion(false).copyWith(
-                quantity: drift.Value(item.countedQuantity),
-              ),
+              inventory
+                  .toCompanion(false)
+                  .copyWith(quantity: drift.Value(item.countedQuantity)),
             );
           } else {
             await _inventoryRepository.insertInventory(

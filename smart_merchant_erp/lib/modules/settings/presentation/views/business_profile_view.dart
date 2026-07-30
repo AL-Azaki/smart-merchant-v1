@@ -15,17 +15,25 @@ class BusinessProfileView extends StatefulWidget {
 
 class _BusinessProfileViewState extends State<BusinessProfileView> {
   // Pre-filled Mock Controllers for Demo UI
-  final _arabicNameController = TextEditingController(text: 'مؤسسة التقنية المتقدمة');
-  final _englishNameController = TextEditingController(text: 'Advanced Tech Est.');
+  final _arabicNameController = TextEditingController(
+    text: 'مؤسسة التقنية المتقدمة',
+  );
+  final _englishNameController = TextEditingController(
+    text: 'Advanced Tech Est.',
+  );
   final _crNumberController = TextEditingController(text: '1010123456');
   final _vatNumberController = TextEditingController(text: '300123456789003');
   final _phoneController = TextEditingController(text: '+966 50 123 4567');
   final _emailController = TextEditingController(text: 'info@adv-tech.com');
   final _websiteController = TextEditingController(text: 'www.adv-tech.com');
   final _timezoneController = TextEditingController(text: 'Riyadh (GMT+03:00)');
-  final _countryCityController = TextEditingController(text: 'المملكة العربية السعودية، الرياض');
+  final _countryCityController = TextEditingController(
+    text: 'المملكة العربية السعودية، الرياض',
+  );
   final _currencyController = TextEditingController(text: 'YER - ريال يمني');
-  final _addressController = TextEditingController(text: 'الرياض، شارع العليا العام، مبنى رقم 12');
+  final _addressController = TextEditingController(
+    text: 'الرياض، شارع العليا العام، مبنى رقم 12',
+  );
 
   bool _isSaving = false;
 
@@ -81,7 +89,9 @@ class _BusinessProfileViewState extends State<BusinessProfileView> {
     final border = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Column(
         children: [
           // Header Bar with Back Button
@@ -110,15 +120,19 @@ class _BusinessProfileViewState extends State<BusinessProfileView> {
                             // Left/Right Main Form Card
                             Expanded(
                               flex: 3,
-                              child: _buildFormCard(context, isDark, surface, border, isWide: true),
+                              child: _buildFormCard(
+                                context,
+                                isDark,
+                                surface,
+                                border,
+                                isWide: true,
+                              ),
                             ),
                             const SizedBox(width: AppSpacing.xl),
                             // Logo Upload Card Side Panel
                             SizedBox(
                               width: 320,
-                              child: LogoUploadCardWidget(
-                                onUploadTap: () {},
-                              ),
+                              child: LogoUploadCardWidget(onUploadTap: () {}),
                             ),
                           ],
                         );
@@ -128,12 +142,16 @@ class _BusinessProfileViewState extends State<BusinessProfileView> {
                       return Column(
                         children: [
                           // Logo Upload Card (Top on Mobile)
-                          LogoUploadCardWidget(
-                            onUploadTap: () {},
-                          ),
+                          LogoUploadCardWidget(onUploadTap: () {}),
                           const SizedBox(height: AppSpacing.lg),
                           // Form Card
-                          _buildFormCard(context, isDark, surface, border, isWide: false),
+                          _buildFormCard(
+                            context,
+                            isDark,
+                            surface,
+                            border,
+                            isWide: false,
+                          ),
                         ],
                       );
                     },
@@ -192,7 +210,9 @@ class _BusinessProfileViewState extends State<BusinessProfileView> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w800,
-                  color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
                 ),
               ),
             ],

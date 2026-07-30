@@ -32,7 +32,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        transform: _isHovered ? Matrix4.translationValues(0.0, -4.0, 0.0) : Matrix4.identity(),
+        transform: _isHovered
+            ? Matrix4.translationValues(0.0, -4.0, 0.0)
+            : Matrix4.identity(),
         decoration: BoxDecoration(
           color: surface,
           borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
@@ -80,7 +82,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                         height: 52,
                         decoration: BoxDecoration(
                           color: widget.item.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusLg,
+                          ),
                         ),
                         child: Icon(
                           widget.item.icon,
@@ -99,7 +103,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                               style: TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w800,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -108,7 +114,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                                color: isDark
+                                    ? AppColors.textSecondaryDark
+                                    : AppColors.textSecondaryLight,
                                 height: 1.3,
                               ),
                               maxLines: 2,
@@ -123,7 +131,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                          color: isDark
+                              ? const Color(0xFF374151)
+                              : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -131,7 +141,9 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                               ? Icons.chevron_left_rounded
                               : Icons.chevron_right_rounded,
                           size: 20,
-                          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                          color: isDark
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                       ),
                     ],
@@ -140,7 +152,11 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                   // Divider & Stats Badges (if present)
                   if (widget.item.stats.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.md),
-                    Divider(color: border.withValues(alpha: 0.6), height: 1, thickness: 1),
+                    Divider(
+                      color: border.withValues(alpha: 0.6),
+                      height: 1,
+                      thickness: 1,
+                    ),
                     const SizedBox(height: AppSpacing.sm + 4),
                     Wrap(
                       spacing: AppSpacing.xs + 2,

@@ -6,7 +6,8 @@ class AppearanceAndLanguageView extends StatefulWidget {
   const AppearanceAndLanguageView({super.key});
 
   @override
-  State<AppearanceAndLanguageView> createState() => _AppearanceAndLanguageViewState();
+  State<AppearanceAndLanguageView> createState() =>
+      _AppearanceAndLanguageViewState();
 }
 
 class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
@@ -18,7 +19,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('اختر اللغة', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'اختر اللغة',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           children: [
             SimpleDialogOption(
               onPressed: () {
@@ -27,7 +32,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('العربية', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'العربية',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             SimpleDialogOption(
@@ -37,7 +46,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('English', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'English',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -51,7 +64,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
       context: context,
       builder: (context) {
         return SimpleDialog(
-          title: const Text('اختر المظهر', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold)),
+          title: const Text(
+            'اختر المظهر',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           children: [
             SimpleDialogOption(
               onPressed: () {
@@ -60,7 +77,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('فاتح (Light)', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'فاتح (Light)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             SimpleDialogOption(
@@ -70,7 +91,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('داكن (Dark)', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'داكن (Dark)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             SimpleDialogOption(
@@ -80,7 +105,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text('تلقائي (النظام)', textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'تلقائي (النظام)',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -94,8 +123,12 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : const Color(0xFF0F172A);
-    final textSecondary = isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B);
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : const Color(0xFF0F172A);
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : const Color(0xFF64748B);
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     return Scaffold(
@@ -148,19 +181,30 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
                       // Language Row
                       InkWell(
                         onTap: _showLanguageDialog,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 18,
+                          ),
                           child: Row(
                             children: [
                               Container(
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.12),
+                                  color: const Color(
+                                    0xFF3B82F6,
+                                  ).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.language_rounded, color: Color(0xFF3B82F6), size: 20),
+                                child: const Icon(
+                                  Icons.language_rounded,
+                                  color: Color(0xFF3B82F6),
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Text(
@@ -181,7 +225,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Icon(Icons.chevron_left_rounded, color: textSecondary, size: 20),
+                              Icon(
+                                Icons.chevron_left_rounded,
+                                color: textSecondary,
+                                size: 20,
+                              ),
                             ],
                           ),
                         ),
@@ -192,19 +240,30 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
                       // Appearance Theme Row
                       InkWell(
                         onTap: _showThemeDialog,
-                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          bottom: Radius.circular(20),
+                        ),
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 18,
+                          ),
                           child: Row(
                             children: [
                               Container(
                                 width: 40,
                                 height: 40,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF3B82F6).withOpacity(0.12),
+                                  color: const Color(
+                                    0xFF3B82F6,
+                                  ).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: const Icon(Icons.wb_sunny_outlined, color: Color(0xFF3B82F6), size: 20),
+                                child: const Icon(
+                                  Icons.wb_sunny_outlined,
+                                  color: Color(0xFF3B82F6),
+                                  size: 20,
+                                ),
                               ),
                               const SizedBox(width: 14),
                               Text(
@@ -225,7 +284,11 @@ class _AppearanceAndLanguageViewState extends State<AppearanceAndLanguageView> {
                                 ),
                               ),
                               const SizedBox(width: 6),
-                              Icon(Icons.chevron_left_rounded, color: textSecondary, size: 20),
+                              Icon(
+                                Icons.chevron_left_rounded,
+                                color: textSecondary,
+                                size: 20,
+                              ),
                             ],
                           ),
                         ),

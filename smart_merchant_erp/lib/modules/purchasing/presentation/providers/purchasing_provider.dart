@@ -1,18 +1,15 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../kernel/error/failures.dart';
-import '../../../../kernel/storage/app_database.dart' show Supplier, PurchaseInvoice, Warehouse, CurrencyEntity;
-import '../../../../database/daos/purchasing_dao.dart' show SupplierFilter, PurchaseInvoiceFilter;
-import '../../../../database/daos/inventory_dao.dart' show WarehouseFilter;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/purchasing_dao.dart';
+import '../../../../database/daos/inventory_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/usecases/record_purchase_usecase.dart';
-import '../../../sales/presentation/providers/product_unit_provider.dart' show PosProductsNotifier, PosProductItem;
+import '../../../sales/presentation/providers/product_unit_provider.dart';
 import '../../../treasury/domain/repositories/treasury_repository.dart';
 import '../../../treasury/presentation/providers/treasury_provider.dart';
-import '../../../../kernel/storage/app_database.dart' show Supplier, PurchaseInvoice, Warehouse, CurrencyEntity, PaymentMethod;
-import '../../../../app/di/getit_providers.dart' show systemRepositoryProvider;
-
-part 'purchasing_provider.g.dart';
+import '../../../../app/di/getit_providers.dart';
 
 class PurchaseItemState {
   final String id;
@@ -76,10 +73,10 @@ class PurchasingState {
   final String currencyId;
   final double exchangeRate;
   final String invoiceRef;
-  
+
   // Payment State
   final Map<String, String> paymentAmounts;
-  
+
   // Mutation State
   final bool isSubmitting;
   final String? successInvoiceId;
@@ -99,20 +96,20 @@ class PurchasingState {
   });
 
   factory PurchasingState.initial() => PurchasingState(
-        items: [
-          PurchaseItemState(
-            id: DateTime.now().millisecondsSinceEpoch.toString(),
-            barcode: '',
-            productName: '',
-            categoryId: '',
-            unitId: '',
-            quantity: 1,
-            purchasePrice: 0,
-            sellingPrice: 0,
-            expiryDate: '',
-          )
-        ],
-      );
+    items: [
+      PurchaseItemState(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        barcode: '',
+        productName: '',
+        categoryId: '',
+        unitId: '',
+        quantity: 1,
+        purchasePrice: 0,
+        sellingPrice: 0,
+        expiryDate: '',
+      ),
+    ],
+  );
 
   PurchasingState copyWith({
     List<PurchaseItemState>? items,
@@ -137,14 +134,17 @@ class PurchasingState {
       invoiceRef: invoiceRef ?? this.invoiceRef,
       paymentAmounts: paymentAmounts ?? this.paymentAmounts,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      successInvoiceId: clearSuccess ? null : (successInvoiceId ?? this.successInvoiceId),
+      successInvoiceId: clearSuccess
+          ? null
+          : (successInvoiceId ?? this.successInvoiceId),
       error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
-@riverpod
-class PurchasingNotifier extends _$PurchasingNotifier {
+final purchasingNotifierProvider = AutoDisposeNotifierProvider<PurchasingNotifier, PurchasingState>(() => PurchasingNotifier());
+
+class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
   @override
   PurchasingState build() {
     return PurchasingState.initial();
@@ -158,29 +158,38 @@ class PurchasingNotifier extends _$PurchasingNotifier {
     state = state.copyWith(currencyId: currencyId);
     final session = ref.read(sessionNotifierProvider);
     if (!session.isActive) return;
-    
+
     final currencies = await ref.read(availableCurrenciesFutureProvider.future);
-    final baseCurrency = currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first);
-    
+    final baseCurrency = currencies.firstWhere(
+      (c) => c.isBaseCurrency,
+      orElse: () => currencies.first,
+    );
+
     if (currencyId == baseCurrency.id) {
       state = state.copyWith(exchangeRate: 1.0, error: null, clearError: true);
       return;
     }
-    
+
     final systemRepo = ref.read(systemRepositoryProvider);
     final latestRate = await systemRepo.getLatestExchangeRate(
-      businessId: session.businessId!, 
-      sourceCurrencyId: currencyId, 
+      businessId: session.businessId!,
+      sourceCurrencyId: currencyId,
       targetCurrencyId: baseCurrency.id,
     );
-    
+
     if (latestRate != null) {
-      state = state.copyWith(exchangeRate: latestRate.rate, error: null, clearError: true);
+      state = state.copyWith(
+        exchangeRate: latestRate.rate,
+        error: null,
+        clearError: true,
+      );
     } else {
       // If ERP requires exchange rate and none exists
       state = state.copyWith(
         exchangeRate: fallbackRate,
-        error: const ValidationFailure('تعذر العثور على سعر صرف صالح لهذه العملة في النظام'),
+        error: const ValidationFailure(
+          'تعذر العثور على سعر صرف صالح لهذه العملة في النظام',
+        ),
       );
     }
   }
@@ -231,9 +240,11 @@ class PurchasingNotifier extends _$PurchasingNotifier {
         state.currencyId.isEmpty) {
       return false;
     }
-    
+
     // Filter out empty rows
-    final validItems = state.items.where((r) => r.productName.isNotEmpty && r.quantity > 0).toList();
+    final validItems = state.items
+        .where((r) => r.productName.isNotEmpty && r.quantity > 0)
+        .toList();
     if (validItems.isEmpty) return false;
 
     state = state.copyWith(
@@ -247,7 +258,12 @@ class PurchasingNotifier extends _$PurchasingNotifier {
 
       for (var item in validItems) {
         if (item.productUnitId == null) {
-          state = state.copyWith(isSubmitting: false, error: ValidationFailure('المنتج "${item.productName}" غير مسجل بقاعدة البيانات.'));
+          state = state.copyWith(
+            isSubmitting: false,
+            error: ValidationFailure(
+              'المنتج "${item.productName}" غير مسجل بقاعدة البيانات.',
+            ),
+          );
           return false;
         }
       }
@@ -262,7 +278,7 @@ class PurchasingNotifier extends _$PurchasingNotifier {
             ),
           )
           .toList();
-          
+
       // check payment
       double totalPaid = 0;
       String? activePaymentMethodId;
@@ -272,14 +288,19 @@ class PurchasingNotifier extends _$PurchasingNotifier {
           activePaymentMethodId = key;
         }
       });
-      
+
       double grandTotal = 0;
       for (final item in validItems) {
         grandTotal += item.quantity * item.purchasePrice;
       }
-      
+
       if (totalPaid > 0 && totalPaid < grandTotal) {
-        state = state.copyWith(isSubmitting: false, error: const ValidationFailure('CAPABILITY GAP: الدفع الجزئي غير مدعوم حالياً'));
+        state = state.copyWith(
+          isSubmitting: false,
+          error: const ValidationFailure(
+            'CAPABILITY GAP: الدفع الجزئي غير مدعوم حالياً',
+          ),
+        );
         return false;
       }
 
@@ -290,9 +311,11 @@ class PurchasingNotifier extends _$PurchasingNotifier {
         currencyId: state.currencyId,
         exchangeRate: state.exchangeRate,
         items: itemsCommand,
-        supplierInvoiceNumber: state.invoiceRef.isEmpty ? null : state.invoiceRef,
+        supplierInvoiceNumber: state.invoiceRef.isEmpty
+            ? null
+            : state.invoiceRef,
         dueDate: DateTime.now(),
-        isCreditPurchase: isCredit, 
+        isCreditPurchase: isCredit,
         paymentMethodId: isCredit ? null : activePaymentMethodId,
       );
 
@@ -304,19 +327,26 @@ class PurchasingNotifier extends _$PurchasingNotifier {
           return false;
         },
         (invoiceId) {
-          state = state.copyWith(isSubmitting: false, successInvoiceId: invoiceId);
+          state = state.copyWith(
+            isSubmitting: false,
+            successInvoiceId: invoiceId,
+          );
           return true;
         },
       );
     } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: UnexpectedFailure(e.toString()));
+      state = state.copyWith(
+        isSubmitting: false,
+        error: UnexpectedFailure(e.toString()),
+      );
       return false;
     }
   }
 }
 
-@riverpod
-class SuppliersNotifier extends _$SuppliersNotifier {
+final suppliersNotifierProvider = AutoDisposeStreamNotifierProvider<SuppliersNotifier, List<Supplier>>(() => SuppliersNotifier());
+
+class SuppliersNotifier extends AutoDisposeStreamNotifier<List<Supplier>> {
   @override
   Stream<List<Supplier>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -324,15 +354,15 @@ class SuppliersNotifier extends _$SuppliersNotifier {
 
     final repo = ref.watch(purchasingRepositoryProvider);
 
-    return repo.watchSuppliers(SupplierFilter(
-      businessId: session.businessId!,
-      isActive: true,
-    ));
+    return repo.watchSuppliers(
+      SupplierFilter(businessId: session.businessId!, isActive: true),
+    );
   }
 }
 
-@riverpod
-class PurchaseInvoicesNotifier extends _$PurchaseInvoicesNotifier {
+final purchaseInvoicesNotifierProvider = AutoDisposeStreamNotifierProvider<PurchaseInvoicesNotifier, List<PurchaseInvoice>>(() => PurchaseInvoicesNotifier());
+
+class PurchaseInvoicesNotifier extends AutoDisposeStreamNotifier<List<PurchaseInvoice>> {
   @override
   Stream<List<PurchaseInvoice>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -340,29 +370,41 @@ class PurchaseInvoicesNotifier extends _$PurchaseInvoicesNotifier {
 
     final repo = ref.watch(purchasingRepositoryProvider);
 
-    return repo.watchInvoices(PurchaseInvoiceFilter(
-      businessId: session.businessId!,
-    ));
+    return repo.watchInvoices(
+      PurchaseInvoiceFilter(businessId: session.businessId!),
+    );
   }
 }
 
-@riverpod
-Stream<List<Warehouse>> activeWarehousesStream(ActiveWarehousesStreamRef ref) {
+final activeWarehousesStreamProvider = StreamProvider.autoDispose<List<Warehouse>>((ref) => _activeWarehousesStream(ref));
+
+Stream<List<Warehouse>> _activeWarehousesStream(Ref ref)  {
   final session = ref.watch(sessionNotifierProvider);
   if (!session.isActive) return const Stream.empty();
-  
+
   final repo = ref.watch(inventoryRepositoryProvider);
-  return repo.watchWarehouses(WarehouseFilter(businessId: session.businessId!, branchId: session.branchId));
+  return repo.watchWarehouses(
+    WarehouseFilter(
+      businessId: session.businessId!,
+      branchId: session.branchId,
+    ),
+  );
 }
 
-@riverpod
-Future<List<CurrencyEntity>> availableCurrenciesFuture(AvailableCurrenciesFutureRef ref) async {
+final availableCurrenciesFutureProvider = FutureProvider.autoDispose<List<CurrencyEntity>>((ref) => _availableCurrenciesFuture(ref));
+
+Future<List<CurrencyEntity>> _availableCurrenciesFuture(
+  Ref ref,
+) async {
   final coreRepo = ref.watch(coreRepositoryProvider);
   return await coreRepo.listCurrencies(isActive: true);
 }
 
-@riverpod
-Future<List<PaymentMethod>> availablePaymentMethodsFuture(AvailablePaymentMethodsFutureRef ref) async {
+final availablePaymentMethodsFutureProvider = FutureProvider.autoDispose<List<PaymentMethod>>((ref) => _availablePaymentMethodsFuture(ref));
+
+Future<List<PaymentMethod>> _availablePaymentMethodsFuture(
+  Ref ref,
+) async {
   final session = ref.watch(sessionNotifierProvider);
   if (!session.isActive) return [];
   final repo = ref.watch(treasuryRepositoryProvider);

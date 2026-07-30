@@ -1,21 +1,23 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../kernel/error/failures.dart';
-import '../../../../kernel/storage/app_database.dart' show PurchaseReturn, CurrencyEntity;
-import '../../../../database/daos/purchasing_dao.dart' show PurchaseReturnFilter, PurchaseInvoiceWithItems;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/purchasing_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/usecases/record_purchase_return_usecase.dart';
 
-part 'purchase_returns_provider.g.dart';
+final purchaseReturnsFutureProvider = FutureProvider.autoDispose.family<List<PurchaseReturn>, String?>((ref, searchQuery) => _purchaseReturnsFuture(ref, searchQuery: searchQuery));
 
-@riverpod
-Future<List<PurchaseReturn>> purchaseReturnsFuture(PurchaseReturnsFutureRef ref, {String? searchQuery}) async {
+Future<List<PurchaseReturn>> _purchaseReturnsFuture(
+  Ref ref, {
+  String? searchQuery,
+}) async {
   final session = ref.watch(sessionNotifierProvider);
   if (!session.isActive) return [];
-  
+
   final repo = ref.watch(purchasingRepositoryProvider);
   final filter = PurchaseReturnFilter(businessId: session.businessId!);
-  
+
   // Note: we can filter by search query if needed in memory or in dao
   return await repo.listReturns(filter);
 }
@@ -27,7 +29,7 @@ class PurchaseReturnState {
   final double exchangeRate;
   final String notes;
   final Map<String, double> returnQuantities;
-  
+
   final bool isSubmitting;
   final String? successReturnId;
   final Failure? error;
@@ -67,14 +69,17 @@ class PurchaseReturnState {
       notes: notes ?? this.notes,
       returnQuantities: returnQuantities ?? this.returnQuantities,
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      successReturnId: clearSuccess ? null : (successReturnId ?? this.successReturnId),
+      successReturnId: clearSuccess
+          ? null
+          : (successReturnId ?? this.successReturnId),
       error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
-@riverpod
-class PurchaseReturnNotifier extends _$PurchaseReturnNotifier {
+final purchaseReturnNotifierProvider = AutoDisposeNotifierProvider<PurchaseReturnNotifier, PurchaseReturnState>(() => PurchaseReturnNotifier());
+
+class PurchaseReturnNotifier extends AutoDisposeNotifier<PurchaseReturnState> {
   @override
   PurchaseReturnState build() {
     return PurchaseReturnState.initial();
@@ -83,7 +88,7 @@ class PurchaseReturnNotifier extends _$PurchaseReturnNotifier {
   void updateState(PurchaseReturnState newState) {
     state = newState;
   }
-  
+
   void setInvoice(PurchaseInvoiceWithItems invoiceWithItems) {
     state = state.copyWith(
       purchaseInvoiceId: invoiceWithItems.invoice.id,
@@ -109,42 +114,55 @@ class PurchaseReturnNotifier extends _$PurchaseReturnNotifier {
   }
 
   Future<bool> submitReturn(PurchaseInvoiceWithItems invoiceWithItems) async {
-    if (state.isSubmitting || state.purchaseInvoiceId.isEmpty || state.returnQuantities.isEmpty) {
+    if (state.isSubmitting ||
+        state.purchaseInvoiceId.isEmpty ||
+        state.returnQuantities.isEmpty) {
       return false;
     }
 
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
       final useCase = ref.read(recordPurchaseReturnUseCaseProvider);
-      
+
       final items = <PurchaseReturnItemCommand>[];
       for (final line in invoiceWithItems.items) {
         final qty = state.returnQuantities[line.productUnitId] ?? 0.0;
         if (qty > 0) {
-          items.add(PurchaseReturnItemCommand(
-            purchaseInvoiceItemId: line.id,
-            productUnitId: line.productUnitId,
-            warehouseId: line.warehouseId,
-            quantity: qty,
-            unitPrice: line.unitPrice,
-          ));
+          items.add(
+            PurchaseReturnItemCommand(
+              purchaseInvoiceItemId: line.id,
+              productUnitId: line.productUnitId,
+              warehouseId: line.warehouseId,
+              quantity: qty,
+              unitPrice: line.unitPrice,
+            ),
+          );
         }
       }
 
       if (items.isEmpty) {
-        state = state.copyWith(isSubmitting: false, error: const ValidationFailure('No items selected for return.'));
+        state = state.copyWith(
+          isSubmitting: false,
+          error: const ValidationFailure('No items selected for return.'),
+        );
         return false;
       }
 
-      final result = await useCase(RecordPurchaseReturnCommand(
-        purchaseInvoiceId: state.purchaseInvoiceId,
-        supplierId: state.supplierId,
-        currencyId: state.currencyId,
-        exchangeRate: state.exchangeRate,
-        items: items,
-        notes: state.notes,
-      ));
+      final result = await useCase(
+        RecordPurchaseReturnCommand(
+          purchaseInvoiceId: state.purchaseInvoiceId,
+          supplierId: state.supplierId,
+          currencyId: state.currencyId,
+          exchangeRate: state.exchangeRate,
+          items: items,
+          notes: state.notes,
+        ),
+      );
 
       return result.fold(
         (failure) {
@@ -152,13 +170,20 @@ class PurchaseReturnNotifier extends _$PurchaseReturnNotifier {
           return false;
         },
         (returnId) {
-          state = state.copyWith(isSubmitting: false, successReturnId: returnId, clearError: true);
+          state = state.copyWith(
+            isSubmitting: false,
+            successReturnId: returnId,
+            clearError: true,
+          );
           ref.invalidate(purchaseReturnsFutureProvider);
           return true;
         },
       );
     } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: DatabaseFailure(e.toString()));
+      state = state.copyWith(
+        isSubmitting: false,
+        error: DatabaseFailure(e.toString()),
+      );
       return false;
     }
   }

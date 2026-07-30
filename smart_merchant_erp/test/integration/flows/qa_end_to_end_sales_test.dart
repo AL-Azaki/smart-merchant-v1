@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import 'package:drift/native.dart';
 import 'package:uuid/uuid.dart';
 
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/app/di/injection.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';
@@ -80,7 +81,7 @@ void main() {
     reportBuffer.writeln('\n## Phase 2: Cash Sale Execution');
     final cashSaleCommand = CompleteSaleCommand(
       customerId: 'cust-qa-01',
-      currencyId: 'YER-id',
+      currencyId: 'YER',
       isCreditSale: false,
       items: [
         CompleteSaleItemCommand(
@@ -121,7 +122,7 @@ void main() {
     reportBuffer.writeln('\n## Phase 3: Credit Sale Execution');
     final creditSaleCommand = CompleteSaleCommand(
       customerId: 'cust-qa-01',
-      currencyId: 'YER-id',
+      currencyId: 'YER',
       isCreditSale: true,
       items: [
         CompleteSaleItemCommand(
@@ -165,7 +166,7 @@ void main() {
     final receivePaymentCommand = ReceivePaymentCommand(
       customerId: 'cust-qa-01',
       amount: 1725.0,
-      currencyId: 'YER-id',
+      currencyId: 'YER',
       paymentMethodId: 'pm-bank',
       chartOfAccountId: 'coa-bank',
       allocations: [

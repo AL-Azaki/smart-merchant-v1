@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -35,7 +34,6 @@ class EmployeeCommand {
   });
 }
 
-@injectable
 class EmployeeApplicationService {
   final HrRepository _hrRepository;
   final ApplicationContext _context;

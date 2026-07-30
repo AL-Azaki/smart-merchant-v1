@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/catalog_dao.dart';
 
-@LazySingleton(as: CatalogRepository)
 class CatalogRepositoryImpl implements CatalogRepository {
   final CatalogDao _dao;
 

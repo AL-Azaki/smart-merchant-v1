@@ -18,18 +18,13 @@ void main() {
   });
 
   group('AuthRepository Unit Tests', () {
-    test('Dummy credentials should allow login', () async {
-      // Act
-      final result = await authRepository.login(
-        'admin@smartmerchant.com',
-        'admin123',
-      );
-
-      // Assert
+    test('Registered credentials should allow login', () async {
+      await authRepository.register('Admin', 'User', 'admin@test.com', 'admin123');
+      final result = await authRepository.login('admin@test.com', 'admin123');
       expect(
         result,
         isTrue,
-        reason: 'Dummy credentials must always allow login during development.',
+        reason: 'Registered credentials must allow login.',
       );
     });
 

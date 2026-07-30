@@ -9,7 +9,7 @@ import '../../../../database/daos/sales_dao.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/services/online_order_service.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../layouts/sales_layout.dart';
 
 class OrdersListView extends ConsumerWidget {
@@ -37,9 +37,11 @@ class OrdersListView extends ConsumerWidget {
         if (actionState.searchQuery.isNotEmpty) {
           final q = actionState.searchQuery.toLowerCase();
           orders = orders
-              .where((o) =>
-                  o.orderNumber.toLowerCase().contains(q) ||
-                  (o.notes?.toLowerCase().contains(q) ?? false))
+              .where(
+                (o) =>
+                    o.orderNumber.toLowerCase().contains(q) ||
+                    (o.notes?.toLowerCase().contains(q) ?? false),
+              )
               .toList();
         }
 
@@ -87,8 +89,7 @@ class OrdersListView extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.error_outline_rounded,
-                size: 48, color: AppColors.error),
+            Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
             const SizedBox(height: 12),
             Text(
               'حدث خطأ في تحميل الطلبات',
@@ -162,14 +163,18 @@ class OrdersListView extends ConsumerWidget {
   ) {
     final actionState = ref.watch(onlineOrdersActionNotifierProvider);
     final activeOrders = allOrders.where((o) => o.deletedAt == null).toList();
-    final pendingCount =
-        activeOrders.where((o) => o.status == 'Pending').length;
-    final confirmedCount =
-        activeOrders.where((o) => o.status == 'Confirmed').length;
-    final cancelledCount =
-        activeOrders.where((o) => o.status == 'Cancelled').length;
-    final deliveredCount =
-        activeOrders.where((o) => o.status == 'Delivered').length;
+    final pendingCount = activeOrders
+        .where((o) => o.status == 'Pending')
+        .length;
+    final confirmedCount = activeOrders
+        .where((o) => o.status == 'Confirmed')
+        .length;
+    final cancelledCount = activeOrders
+        .where((o) => o.status == 'Cancelled')
+        .length;
+    final deliveredCount = activeOrders
+        .where((o) => o.status == 'Delivered')
+        .length;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -245,8 +250,12 @@ class OrdersListView extends ConsumerWidget {
     Color? badgeColor,
   }) {
     final isActive = currentFilter == status;
-    final chipColor = isActive ? AppColors.primary : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight);
-    final textColor = isActive ? Colors.white : (isDark ? Colors.white70 : AppColors.textPrimaryLight);
+    final chipColor = isActive
+        ? AppColors.primary
+        : (isDark ? AppColors.surfaceDark : AppColors.surfaceLight);
+    final textColor = isActive
+        ? Colors.white
+        : (isDark ? Colors.white70 : AppColors.textPrimaryLight);
 
     return GestureDetector(
       onTap: () {
@@ -290,13 +299,13 @@ class OrdersListView extends ConsumerWidget {
             if (count > 0) ...[
               const SizedBox(width: 6),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: isActive
                       ? Colors.white.withValues(alpha: 0.25)
-                      : (badgeColor ?? AppColors.textSecondaryLight)
-                          .withValues(alpha: 0.15),
+                      : (badgeColor ?? AppColors.textSecondaryLight).withValues(
+                          alpha: 0.15,
+                        ),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
@@ -364,8 +373,10 @@ class OrdersListView extends ConsumerWidget {
             borderRadius: AppSpacing.borderSm,
             borderSide: const BorderSide(color: AppColors.primary),
           ),
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 10,
+          ),
           isDense: true,
         ),
       ),
@@ -717,13 +728,16 @@ class _OrderDetailsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final surfaceColor =
-        isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final bgColor =
-        isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
+    final bgColor = isDark
+        ? AppColors.backgroundDark
+        : AppColors.backgroundLight;
     final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final textSecondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return Container(
@@ -753,8 +767,11 @@ class _OrderDetailsSheet extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(Icons.receipt_long_rounded,
-                    color: AppColors.primary, size: 24),
+                Icon(
+                  Icons.receipt_long_rounded,
+                  color: AppColors.primary,
+                  size: 24,
+                ),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -780,8 +797,11 @@ class _OrderDetailsSheet extends StatelessWidget {
                     ],
                   ),
                 ),
-                _OrderCard(order: order, isDark: isDark, onTap: () {})
-                    ._buildStatusChip(order.status, isDark),
+                _OrderCard(
+                  order: order,
+                  isDark: isDark,
+                  onTap: () {},
+                )._buildStatusChip(order.status, isDark),
               ],
             ),
           ),
@@ -796,21 +816,38 @@ class _OrderDetailsSheet extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Order Info Grid
-                  _buildInfoRow('رقم الطلب', order.orderNumber, textColor,
-                      textSecondary),
-                  _buildInfoRow('التاريخ', _formatDate(order.orderDate),
-                      textColor, textSecondary),
                   _buildInfoRow(
-                      'الحالة',
-                      _statusLabel(order.status),
-                      textColor,
-                      textSecondary),
+                    'رقم الطلب',
+                    order.orderNumber,
+                    textColor,
+                    textSecondary,
+                  ),
+                  _buildInfoRow(
+                    'التاريخ',
+                    _formatDate(order.orderDate),
+                    textColor,
+                    textSecondary,
+                  ),
+                  _buildInfoRow(
+                    'الحالة',
+                    _statusLabel(order.status),
+                    textColor,
+                    textSecondary,
+                  ),
                   if (order.customerId != null)
-                    _buildInfoRow('العميل', order.customerId!, textColor,
-                        textSecondary),
+                    _buildInfoRow(
+                      'العميل',
+                      order.customerId!,
+                      textColor,
+                      textSecondary,
+                    ),
                   if (order.notes != null && order.notes!.isNotEmpty)
                     _buildInfoRow(
-                        'ملاحظات', order.notes!, textColor, textSecondary),
+                      'ملاحظات',
+                      order.notes!,
+                      textColor,
+                      textSecondary,
+                    ),
 
                   const SizedBox(height: 16),
 
@@ -845,20 +882,30 @@ class _OrderDetailsSheet extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _buildTotalRow('المجموع الفرعي',
-                            order.subTotal.toStringAsFixed(2), textColor),
+                        _buildTotalRow(
+                          'المجموع الفرعي',
+                          order.subTotal.toStringAsFixed(2),
+                          textColor,
+                        ),
                         if (order.discountTotal > 0)
-                          _buildTotalRow('الخصم',
-                              '-${order.discountTotal.toStringAsFixed(2)}',
-                              AppColors.error),
+                          _buildTotalRow(
+                            'الخصم',
+                            '-${order.discountTotal.toStringAsFixed(2)}',
+                            AppColors.error,
+                          ),
                         if (order.taxTotal > 0)
-                          _buildTotalRow('الضريبة',
-                              order.taxTotal.toStringAsFixed(2), textSecondary),
+                          _buildTotalRow(
+                            'الضريبة',
+                            order.taxTotal.toStringAsFixed(2),
+                            textSecondary,
+                          ),
                         Divider(color: borderColor, height: 16),
-                        _buildTotalRow('الإجمالي',
-                            order.grandTotal.toStringAsFixed(2),
-                            AppColors.primary,
-                            isBold: true),
+                        _buildTotalRow(
+                          'الإجمالي',
+                          order.grandTotal.toStringAsFixed(2),
+                          AppColors.primary,
+                          isBold: true,
+                        ),
                       ],
                     ),
                   ),
@@ -1045,8 +1092,12 @@ class _OrderDetailsSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalRow(String label, String value, Color valueColor,
-      {bool isBold = false}) {
+  Widget _buildTotalRow(
+    String label,
+    String value,
+    Color valueColor, {
+    bool isBold = false,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
@@ -1110,8 +1161,9 @@ class _OrderItemsList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.watch(salesRepositoryProvider);
     final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
-    final textSecondary =
-        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return FutureBuilder<OrderWithItems?>(
@@ -1143,7 +1195,9 @@ class _OrderItemsList extends ConsumerWidget {
               margin: const EdgeInsets.only(bottom: 6),
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+                color: isDark
+                    ? AppColors.backgroundDark
+                    : AppColors.backgroundLight,
                 borderRadius: AppSpacing.borderSm,
                 border: Border.all(color: borderColor),
               ),
@@ -1179,10 +1233,7 @@ class _OrderItemsList extends ConsumerWidget {
                         ),
                         Text(
                           '${item.quantity} × ${item.unitPrice.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: textSecondary,
-                          ),
+                          style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                       ],
                     ),
@@ -1192,7 +1243,9 @@ class _OrderItemsList extends ConsumerWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 14,
-                      color: isDark ? AppColors.primaryLight : AppColors.primary,
+                      color: isDark
+                          ? AppColors.primaryLight
+                          : AppColors.primary,
                     ),
                   ),
                 ],

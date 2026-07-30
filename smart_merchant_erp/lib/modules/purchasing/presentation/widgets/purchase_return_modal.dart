@@ -7,7 +7,8 @@ import '../providers/purchase_returns_provider.dart';
 import '../providers/purchasing_provider.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../database/daos/purchasing_dao.dart' show PurchaseInvoiceFilter, PurchaseInvoiceWithItems;
+import '../../../../database/daos/purchasing_dao.dart'
+    show PurchaseInvoiceFilter, PurchaseInvoiceWithItems;
 import '../../../authentication/presentation/providers/session_provider.dart';
 
 class PurchaseReturnModal extends ConsumerStatefulWidget {
@@ -16,7 +17,8 @@ class PurchaseReturnModal extends ConsumerStatefulWidget {
   const PurchaseReturnModal({super.key, required this.onClose});
 
   @override
-  ConsumerState<PurchaseReturnModal> createState() => _PurchaseReturnModalState();
+  ConsumerState<PurchaseReturnModal> createState() =>
+      _PurchaseReturnModalState();
 }
 
 class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
@@ -25,7 +27,7 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
   PurchaseInvoiceWithItems? _selectedInvoice;
   List<PurchaseInvoiceWithItems> _searchResults = [];
   bool _isSearching = false;
-  
+
   @override
   void initState() {
     super.initState();
@@ -36,30 +38,35 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
 
   Future<void> _searchInvoices() async {
     if (_searchQuery.trim().isEmpty) return;
-    
+
     setState(() {
       _isSearching = true;
     });
-    
+
     try {
       final repo = ref.read(purchasingRepositoryProvider);
       final session = ref.read(sessionNotifierProvider);
       if (!session.isActive) return;
-      
+
       final filter = PurchaseInvoiceFilter(businessId: session.businessId!);
       // Ideally we would filter by search query in DB, but let's just get the latest and filter in memory for simplicity
       final invoices = await repo.listInvoices(filter);
-      
+
       final results = <PurchaseInvoiceWithItems>[];
       for (final inv in invoices) {
-        if (inv.invoiceNumber.toLowerCase().contains(_searchQuery.toLowerCase())) {
-          final withItems = await repo.getInvoiceWithItemsById(inv.id, session.businessId!);
+        if (inv.invoiceNumber.toLowerCase().contains(
+          _searchQuery.toLowerCase(),
+        )) {
+          final withItems = await repo.getInvoiceWithItemsById(
+            inv.id,
+            session.businessId!,
+          );
           if (withItems != null) {
             results.add(withItems);
           }
         }
       }
-      
+
       if (mounted) {
         setState(() {
           _searchResults = results;
@@ -79,12 +86,16 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
   Widget build(BuildContext context) {
     final state = ref.watch(purchaseReturnNotifierProvider);
     final notifier = ref.read(purchaseReturnNotifierProvider.notifier);
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final surfaceColor = isDark
+        ? AppColors.surfaceDark
+        : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textColor = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    
+    final textColor = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+
     if (state.successReturnId != null) {
       return Container(
         padding: const EdgeInsets.all(32),
@@ -104,15 +115,23 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                 color: Colors.green.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, color: Colors.green, size: 32),
+              child: const Icon(
+                Icons.check_circle,
+                color: Colors.green,
+                size: 32,
+              ),
             ),
             const SizedBox(height: 24),
-            Text('تم إنشاء فاتورة المرتجع بنجاح', style: TextStyle(color: textColor, fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 32),
-            PrimaryButton(
-              text: 'إغلاق',
-              onPressed: widget.onClose,
+            Text(
+              'تم إنشاء فاتورة المرتجع بنجاح',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
+            const SizedBox(height: 32),
+            PrimaryButton(text: 'إغلاق', onPressed: widget.onClose),
           ],
         ),
       );
@@ -120,7 +139,9 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
 
     return Container(
       width: 700,
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.9),
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.of(context).size.height * 0.9,
+      ),
       decoration: BoxDecoration(
         color: surfaceColor,
         borderRadius: BorderRadius.circular(24),
@@ -145,22 +166,45 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(colors: [Colors.orange, Colors.deepOrange]),
+                        gradient: const LinearGradient(
+                          colors: [Colors.orange, Colors.deepOrange],
+                        ),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(Icons.keyboard_return, color: Colors.white),
+                      child: const Icon(
+                        Icons.keyboard_return,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('إنشاء مرتجع مشتريات', style: TextStyle(color: textColor, fontSize: 20, fontWeight: FontWeight.bold)),
-                        Text('إرجاع بضاعة واسترداد التكلفة', style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 13)),
+                        Text(
+                          'إنشاء مرتجع مشتريات',
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'إرجاع بضاعة واسترداد التكلفة',
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                     ),
                   ],
                 ),
-                IconButton(icon: const Icon(Icons.close), onPressed: widget.onClose),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: widget.onClose,
+                ),
               ],
             ),
           ),
@@ -169,17 +213,22 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
           Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
-              child: _step == 1 ? _buildStep1(isDark, borderColor) : _buildStep2(state, notifier, isDark, borderColor),
+              child: _step == 1
+                  ? _buildStep1(isDark, borderColor)
+                  : _buildStep2(state, notifier, isDark, borderColor),
             ),
           ),
-          
+
           if (state.error != null)
             Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
               color: AppColors.error.withOpacity(0.1),
               child: Text(
                 state.error!.message,
-                style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
@@ -192,13 +241,17 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
             child: _step == 1
                 ? PrimaryButton(
                     text: 'متابعة',
-                    onPressed: _selectedInvoice != null ? () {
-                      notifier.setInvoice(_selectedInvoice!);
-                      setState(() => _step = 2);
-                    } : null,
+                    onPressed: _selectedInvoice != null
+                        ? () {
+                            notifier.setInvoice(_selectedInvoice!);
+                            setState(() => _step = 2);
+                          }
+                        : null,
                   )
                 : PrimaryButton(
-                    text: state.isSubmitting ? 'جاري التنفيذ...' : 'تأكيد إرجاع البضاعة',
+                    text: state.isSubmitting
+                        ? 'جاري التنفيذ...'
+                        : 'تأكيد إرجاع البضاعة',
                     onPressed: state.isSubmitting || _calculateTotal(state) <= 0
                         ? null
                         : () => notifier.submitReturn(_selectedInvoice!),
@@ -226,7 +279,13 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
           ),
         ),
         const SizedBox(height: 24),
-        Text('رقم فاتورة المشتريات *', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontWeight: FontWeight.bold)),
+        Text(
+          'رقم فاتورة المشتريات *',
+          style: TextStyle(
+            color: isDark ? Colors.white70 : Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -236,7 +295,9 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                 decoration: InputDecoration(
                   hintText: 'PINV-2024-XXXX',
                   prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -244,53 +305,100 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
             ElevatedButton(
               onPressed: _searchInvoices,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: _isSearching ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('بحث'),
+              child: _isSearching
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('بحث'),
             ),
           ],
         ),
         if (_searchResults.isNotEmpty) ...[
           const SizedBox(height: 24),
-          const Text('نتائج البحث:', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text(
+            'نتائج البحث:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 12),
-          ..._searchResults.map((inv) => InkWell(
-            onTap: () => setState(() => _selectedInvoice = inv),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border.all(color: _selectedInvoice == inv ? Colors.green : borderColor, width: _selectedInvoice == inv ? 2 : 1),
-                borderRadius: BorderRadius.circular(12),
-                color: _selectedInvoice == inv ? Colors.green.withOpacity(0.05) : null,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(inv.invoice.invoiceNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      Text('${inv.invoice.purchaseDate.day}/${inv.invoice.purchaseDate.month}/${inv.invoice.purchaseDate.year}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                    ],
+          ..._searchResults
+              .map(
+                (inv) => InkWell(
+                  onTap: () => setState(() => _selectedInvoice = inv),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: _selectedInvoice == inv
+                            ? Colors.green
+                            : borderColor,
+                        width: _selectedInvoice == inv ? 2 : 1,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: _selectedInvoice == inv
+                          ? Colors.green.withOpacity(0.05)
+                          : null,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              inv.invoice.invoiceNumber,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              '${inv.invoice.purchaseDate.day}/${inv.invoice.purchaseDate.month}/${inv.invoice.purchaseDate.year}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          '${inv.invoice.grandTotal.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  Text('${inv.invoice.grandTotal.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
-                ],
-              ),
-            ),
-          )).toList(),
+                ),
+              )
+              .toList(),
         ] else if (_searchQuery.isNotEmpty && !_isSearching) ...[
           const SizedBox(height: 24),
           const Center(child: Text('لا توجد نتائج')),
-        ]
+        ],
       ],
     );
   }
 
-  Widget _buildStep2(PurchaseReturnState state, PurchaseReturnNotifier notifier, bool isDark, Color borderColor) {
+  Widget _buildStep2(
+    PurchaseReturnState state,
+    PurchaseReturnNotifier notifier,
+    bool isDark,
+    Color borderColor,
+  ) {
     if (_selectedInvoice == null) return const SizedBox();
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -315,18 +423,30 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('الفاتورة الأصلية: ${_selectedInvoice!.invoice.invoiceNumber}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text('تاريخ الشراء: ${_selectedInvoice!.invoice.purchaseDate.toString().split(' ')[0]}', style: const TextStyle(color: Colors.grey)),
+                  Text(
+                    'الفاتورة الأصلية: ${_selectedInvoice!.invoice.invoiceNumber}',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    'تاريخ الشراء: ${_selectedInvoice!.invoice.purchaseDate.toString().split(' ')[0]}',
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                 ],
               ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-        
-        const Text('حدد الكميات المرتجعة للمورد من المستودع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+
+        const Text(
+          'حدد الكميات المرتجعة للمورد من المستودع',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         const SizedBox(height: 16),
-        
+
         ..._selectedInvoice!.items.map((item) {
           final returnedQty = state.returnQuantities[item.productUnitId] ?? 0.0;
           return Container(
@@ -342,15 +462,30 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('المنتج ${item.productUnitId.substring(0, 8)}', style: const TextStyle(fontWeight: FontWeight.bold)), // Ideally we have product name
+                      Text(
+                        'المنتج ${item.productUnitId.substring(0, 8)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ), // Ideally we have product name
                       const SizedBox(height: 4),
-                      Text('السعر: ${item.unitPrice} | الكمية المشتراة: ${item.quantity}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text(
+                        'السعر: ${item.unitPrice} | الكمية المشتراة: ${item.quantity}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Row(
                   children: [
-                    const Text('إرجاع:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    const Text(
+                      'إرجاع:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                     const SizedBox(width: 8),
                     SizedBox(
                       width: 80,
@@ -359,8 +494,12 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(
                           isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                         onChanged: (val) {
                           final qty = double.tryParse(val) ?? 0.0;
@@ -376,21 +515,34 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
             ),
           );
         }).toList(),
-        
+
         const SizedBox(height: 24),
-        
+
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.orange.withOpacity(0.05),
-            border: Border.all(color: Colors.orange.withOpacity(0.3), style: BorderStyle.solid),
+            border: Border.all(
+              color: Colors.orange.withOpacity(0.3),
+              style: BorderStyle.solid,
+            ),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('إجمالي المبلغ المسترد من المورد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Text('${_calculateTotal(state).toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.orange)),
+              const Text(
+                'إجمالي المبلغ المسترد من المورد',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              Text(
+                '${_calculateTotal(state).toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 24,
+                  color: Colors.orange,
+                ),
+              ),
             ],
           ),
         ),

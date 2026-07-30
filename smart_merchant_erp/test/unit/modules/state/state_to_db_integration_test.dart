@@ -24,6 +24,7 @@ import 'package:smart_merchant_erp/modules/accounting/infrastructure/repositorie
 import 'package:smart_merchant_erp/modules/core/infrastructure/repositories/core_repository_impl.dart';
 import 'package:smart_merchant_erp/modules/authentication/presentation/providers/session_provider.dart';
 import 'package:smart_merchant_erp/modules/sales/presentation/providers/pos_provider.dart';
+import 'package:smart_merchant_erp/modules/inventory/application/services/warehouse_context_service.dart';
 import 'package:drift/drift.dart' as drift;
 
 void main() {
@@ -62,14 +63,15 @@ void main() {
     sessionHolder = SessionHolder();
     sessionHolder.setSession(
       businessId: businessId,
-      branchId: branchId,
-      userId: userId,
+      branchId: 'BRANCH_1',
+      userId: 'u-owner',
     );
 
     final context = RuntimeApplicationContext(sessionHolder);
 
     GetIt.I.registerSingleton<SessionHolder>(sessionHolder);
     GetIt.I.registerSingleton<ApplicationContext>(context);
+    GetIt.I.registerSingleton<WarehouseContextService>(WarehouseContextService(inventoryRepository));
 
     accountingService = AccountingApplicationService(
       accountingRepository,
@@ -90,18 +92,60 @@ void main() {
     GetIt.I.registerSingleton<CompleteSaleUseCase>(useCase);
 
     // Seed master data
-    await db
-        .into(db.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: currencyId,
-            currencyCode: 'USD',
-            currencyNameAr: 'USD',
-            currencyNameEn: 'USD',
-            currencySymbol: '\$',
-            decimalPlaces: drift.Value(2),
-          ),
-        );
+    await db.into(db.usersTable).insert(
+      UsersTableCompanion.insert(
+        id: const drift.Value('u-owner'),
+        email: 'test@example.com',
+        passwordHash: 'hash',
+        firstName: 'Owner',
+        lastName: 'Test',
+        isActive: const drift.Value(true),
+      )
+    );
+    await db.into(db.branches).insert(
+      BranchesCompanion.insert(
+        id: 'BRANCH_1',
+        businessId: businessId,
+        branchCode: 'TB-01',
+        branchName: 'Test Branch',
+        isActive: const drift.Value(true),
+      )
+    );
+
+
+
+    await db.into(db.warehouses).insert(
+      WarehousesCompanion.insert(
+        id: warehouseId,
+        businessId: businessId,
+        branchId: 'BRANCH_1',
+        warehouseName: 'Main WH',
+        warehouseCode: 'WH-01',
+        isDefault: const drift.Value(true),
+        isActive: const drift.Value(true),
+      )
+    );
+
+    // Seed account and business
+    await db.into(db.accountsTable).insert(
+      AccountsTableCompanion.insert(
+        id: const drift.Value('test-account'),
+        ownerId: 'u-owner',
+        businessName: 'Test Account',
+        businessType: 'test',
+        defaultCurrency: 'YER',
+      )
+    );
+    await db.into(db.businesses).insert(
+      BusinessesCompanion.insert(
+        id: businessId,
+        accountId: 'test-account',
+        businessName: 'Test Business',
+        status: const drift.Value('Active'),
+      )
+    );
+
+    
     await db
         .into(db.inventories)
         .insert(
@@ -205,8 +249,24 @@ void main() {
   test(
     'FULL INTEGRATION: Riverpod PosNotifier -> GetIt CompleteSaleUseCase -> Repositories -> DAOs -> SQLite',
     () async {
+      
+    // Seed Customer
+    await db.into(db.customers).insert(
+      CustomersCompanion.insert(
+        id: customerId,
+        businessId: businessId,
+        customerName: 'Test Customer',
+        isActive: const drift.Value(true),
+      )
+    );
       // 1. Setup Riverpod Container
       final container = ProviderContainer();
+      
+      container.read(sessionNotifierProvider.notifier).setSession(
+        businessId: businessId,
+        branchId: 'BRANCH_1',
+        userId: 'u-owner',
+      );
 
       // 2. Simulate User Interaction (UI -> Notifier)
       final posNotifier = container.read(posNotifierProvider.notifier);

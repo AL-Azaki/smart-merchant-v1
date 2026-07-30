@@ -15,7 +15,7 @@ class RegisterView extends ConsumerStatefulWidget {
 
 class _RegisterViewState extends ConsumerState<RegisterView> {
   final _formKey = GlobalKey<FormState>();
-  
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -44,14 +44,16 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
 
     setState(() => _isLoading = true);
 
-    final result = await ref.read(authNotifierProvider.notifier).register(
-      firstName: _firstNameController.text.trim(),
-      lastName: _lastNameController.text.trim(),
-      username: _usernameController.text.trim(),
-      email: _emailController.text.trim(),
-      phone: _phoneController.text.trim(),
-      password: _passwordController.text,
-    );
+    final result = await ref
+        .read(authNotifierProvider.notifier)
+        .register(
+          firstName: _firstNameController.text.trim(),
+          lastName: _lastNameController.text.trim(),
+          username: _usernameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          password: _passwordController.text,
+        );
 
     if (!mounted) return;
 
@@ -197,7 +199,7 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                         AppTextField(
                           label: 'اسم المستخدم *',
                           controller: _usernameController,
-                          hint: 'username',
+                          hint: '@username',
                           inputFormatters: [AppInputFormatters.englishOnly],
                           prefixIcon: const Icon(Icons.alternate_email_outlined, size: 20),
                           validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
@@ -290,7 +292,9 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
 
                         // Submit Button
                         ElevatedButton(
-                          onPressed: _acceptTerms && !_isLoading ? _submit : null,
+                          onPressed: _acceptTerms && !_isLoading
+                              ? _submit
+                              : null,
                           style: ElevatedButton.styleFrom(
                             minimumSize: const Size(double.infinity, 56),
                             backgroundColor: AppColors.primary,
@@ -299,16 +303,23 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                               borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                          child: _isLoading 
-                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : const Text(
-                              'إنشاء الحساب',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'إنشاء الحساب',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                         ),
 
                         const SizedBox(height: 24),

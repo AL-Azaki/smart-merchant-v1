@@ -1,0 +1,9 @@
+targets:
+  $default:
+    builders:
+      riverpod_generator:
+        enabled: true
+      injectable_generator:injectable_builder:
+        enabled: false
+      injectable_generator:injectable_config_builder:
+        enabled: false

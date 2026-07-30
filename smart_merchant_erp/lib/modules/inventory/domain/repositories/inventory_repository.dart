@@ -165,5 +165,8 @@ abstract class InventoryRepository {
     String? postedBy,
     DateTime? postedAt,
   });
-  Future<List<StockCountItem>> getStockCountItems(String stockCountId, String businessId);
+  Future<List<StockCountItem>> getStockCountItems(
+    String stockCountId,
+    String businessId,
+  );
 }

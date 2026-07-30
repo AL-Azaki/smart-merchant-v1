@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 import 'package:smart_merchant_erp/app/di/injection.dart';
 import 'package:smart_merchant_erp/kernel/storage/app_database.dart';
 import 'package:smart_merchant_erp/kernel/core/application_context.dart';
@@ -162,7 +163,7 @@ void main() {
     );
 
     // Create supplier first as it might not be in qa_data_seeder yet
-    await db.into(db.suppliers).insert(SuppliersCompanion.insert(
+    await db.into(db.suppliers).insertOnConflictUpdate(SuppliersCompanion.insert(
       id: 'supplier-qa-01',
       businessId: 'test-biz',
       supplierName: 'Test Supplier',
@@ -183,7 +184,7 @@ void main() {
       )
     ];
 
-    await db.into(db.suppliers).insert(SuppliersCompanion.insert(
+    await db.into(db.suppliers).insertOnConflictUpdate(SuppliersCompanion.insert(
       id: 'supplier-qa-01',
       businessId: 'test-biz',
       supplierName: 'Test Supplier',
@@ -267,7 +268,7 @@ void main() {
       )
     ];
 
-    await db.into(db.suppliers).insert(SuppliersCompanion.insert(
+    await db.into(db.suppliers).insertOnConflictUpdate(SuppliersCompanion.insert(
       id: 'supplier-qa-01',
       businessId: 'test-biz',
       supplierName: 'Test Supplier',
@@ -295,7 +296,7 @@ void main() {
     // Switch context to a different tenant
     getIt.allowReassignment = true;
     getIt.registerSingleton<ApplicationContext>(TestApplicationContext('other-biz'));
-    final otherAccountingService = getIt<AccountingApplicationService>();
+    final otherAccountingService = AccountingApplicationService(getIt(), TestApplicationContext('other-biz'));
 
     final result = await otherAccountingService.resolveAccountMapping('accounts_receivable');
     expect(result.isLeft(), true, reason: 'Other tenant should not see test-biz mappings');

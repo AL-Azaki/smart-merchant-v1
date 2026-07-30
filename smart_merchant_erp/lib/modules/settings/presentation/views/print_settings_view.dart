@@ -12,11 +12,15 @@ class PrintSettingsView extends StatefulWidget {
 class _PrintSettingsViewState extends State<PrintSettingsView> {
   String _selectedPaperSize = '80mm';
   String _selectedPrinter = 'EPSON TM-T20III';
-  final TextEditingController _copiesController = TextEditingController(text: '1');
+  final TextEditingController _copiesController = TextEditingController(
+    text: '1',
+  );
   bool _printQr = true;
   bool _autoPrint = true;
 
-  final TextEditingController _headerController = TextEditingController(text: 'فرع العليا - الرياض');
+  final TextEditingController _headerController = TextEditingController(
+    text: 'فرع العليا - الرياض',
+  );
   final TextEditingController _footerController = TextEditingController(
     text: 'شكراً لتسوقكم معنا!\nالبضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام.',
   );
@@ -43,8 +47,12 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : const Color(0xFF1E293B);
-    final textSecondary = isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B);
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : const Color(0xFF1E293B);
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : const Color(0xFF64748B);
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final inputBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC);
 
@@ -94,7 +102,11 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                               color: const Color(0xFF10B981).withOpacity(0.15),
                               borderRadius: BorderRadius.circular(14),
                             ),
-                            child: const Icon(Icons.print_rounded, color: Color(0xFF10B981), size: 24),
+                            child: const Icon(
+                              Icons.print_rounded,
+                              color: Color(0xFF10B981),
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 14),
                           Column(
@@ -129,16 +141,29 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                         },
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: borderColor),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          backgroundColor: isDark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFF8FAFC),
                         ),
-                        icon: Icon(Icons.remove_red_eye_outlined, size: 18, color: textPrimary),
+                        icon: Icon(
+                          Icons.remove_red_eye_outlined,
+                          size: 18,
+                          color: textPrimary,
+                        ),
                         label: Text(
                           'معاينة الفاتورة',
-                          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textPrimary),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                            color: textPrimary,
+                          ),
                         ),
                       ),
                     ],
@@ -167,7 +192,9 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                           InkWell(
                             onTap: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('رفع شعار الفاتورة...')),
+                                const SnackBar(
+                                  content: Text('رفع شعار الفاتورة...'),
+                                ),
                               );
                             },
                             borderRadius: BorderRadius.circular(14),
@@ -181,7 +208,11 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Icon(Icons.cloud_upload_outlined, color: const Color(0xFF64748B), size: 22),
+                                  Icon(
+                                    Icons.cloud_upload_outlined,
+                                    color: const Color(0xFF64748B),
+                                    size: 22,
+                                  ),
                                   const SizedBox(width: 8),
                                   Text(
                                     'رفع شعار أبيض وأسود للطباعة',
@@ -197,23 +228,37 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                           ),
                           const SizedBox(height: 20),
 
-                          _buildLabel('رأس الفاتورة (النص العلوي)', textPrimary),
+                          _buildLabel(
+                            'رأس الفاتورة (النص العلوي)',
+                            textPrimary,
+                          ),
                           const SizedBox(height: 10),
                           TextField(
                             controller: _headerController,
                             maxLines: 2,
                             decoration: _inputDecoration(inputBg, borderColor),
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 20),
 
-                          _buildLabel('تذييل الفاتورة (النص السفلي)', textPrimary),
+                          _buildLabel(
+                            'تذييل الفاتورة (النص السفلي)',
+                            textPrimary,
+                          ),
                           const SizedBox(height: 10),
                           TextField(
                             controller: _footerController,
                             maxLines: 3,
                             decoration: _inputDecoration(inputBg, borderColor),
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
                           ),
                           const SizedBox(height: 28),
 
@@ -260,12 +305,26 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                             value: _selectedPaperSize,
                             decoration: _inputDecoration(inputBg, borderColor),
                             dropdownColor: surface,
-                            style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
-                            onChanged: (val) => setState(() => _selectedPaperSize = val!),
+                            style: TextStyle(
+                              color: textPrimary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                            onChanged: (val) =>
+                                setState(() => _selectedPaperSize = val!),
                             items: const [
-                              DropdownMenuItem(value: '80mm', child: Text('طابعة إيصالات (80mm Thermal)')),
-                              DropdownMenuItem(value: '58mm', child: Text('طابعة إيصالات (58mm Thermal)')),
-                              DropdownMenuItem(value: 'A4', child: Text('طابعة عادية (A4 Document)')),
+                              DropdownMenuItem(
+                                value: '80mm',
+                                child: Text('طابعة إيصالات (80mm Thermal)'),
+                              ),
+                              DropdownMenuItem(
+                                value: '58mm',
+                                child: Text('طابعة إيصالات (58mm Thermal)'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'A4',
+                                child: Text('طابعة عادية (A4 Document)'),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 20),
@@ -277,18 +336,39 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLabel('الطابعة الافتراضية', textPrimary),
+                                    _buildLabel(
+                                      'الطابعة الافتراضية',
+                                      textPrimary,
+                                    ),
                                     const SizedBox(height: 10),
                                     DropdownButtonFormField<String>(
                                       value: _selectedPrinter,
-                                      decoration: _inputDecoration(inputBg, borderColor),
+                                      decoration: _inputDecoration(
+                                        inputBg,
+                                        borderColor,
+                                      ),
                                       dropdownColor: surface,
-                                      style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 13),
-                                      onChanged: (val) => setState(() => _selectedPrinter = val!),
+                                      style: TextStyle(
+                                        color: textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13,
+                                      ),
+                                      onChanged: (val) => setState(
+                                        () => _selectedPrinter = val!,
+                                      ),
                                       items: const [
-                                        DropdownMenuItem(value: 'EPSON TM-T20III', child: Text('EPSON TM-T20III')),
-                                        DropdownMenuItem(value: 'XP-80C Printer', child: Text('XP-80C Printer')),
-                                        DropdownMenuItem(value: 'Microsoft Print to PDF', child: Text('Microsoft Print to PDF')),
+                                        DropdownMenuItem(
+                                          value: 'EPSON TM-T20III',
+                                          child: Text('EPSON TM-T20III'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'XP-80C Printer',
+                                          child: Text('XP-80C Printer'),
+                                        ),
+                                        DropdownMenuItem(
+                                          value: 'Microsoft Print to PDF',
+                                          child: Text('Microsoft Print to PDF'),
+                                        ),
                                       ],
                                     ),
                                   ],
@@ -300,14 +380,24 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _buildLabel('عدد النسخ الافتراضي', textPrimary),
+                                    _buildLabel(
+                                      'عدد النسخ الافتراضي',
+                                      textPrimary,
+                                    ),
                                     const SizedBox(height: 10),
                                     TextField(
                                       controller: _copiesController,
                                       keyboardType: TextInputType.number,
                                       textAlign: TextAlign.center,
-                                      decoration: _inputDecoration(inputBg, borderColor),
-                                      style: TextStyle(color: textPrimary, fontWeight: FontWeight.w700, fontSize: 14),
+                                      decoration: _inputDecoration(
+                                        inputBg,
+                                        borderColor,
+                                      ),
+                                      style: TextStyle(
+                                        color: textPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -318,7 +408,10 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
 
                           // Checkbox Card 1 (ZATCA QR)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: inputBg,
                               borderRadius: BorderRadius.circular(14),
@@ -342,8 +435,11 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                                   child: Checkbox(
                                     value: _printQr,
                                     activeColor: const Color(0xFF10B981),
-                                    onChanged: (val) => setState(() => _printQr = val ?? true),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (val) =>
+                                        setState(() => _printQr = val ?? true),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -353,7 +449,10 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
 
                           // Checkbox Card 2 (Auto Print)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
                             decoration: BoxDecoration(
                               color: inputBg,
                               borderRadius: BorderRadius.circular(14),
@@ -377,8 +476,12 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
                                   child: Checkbox(
                                     value: _autoPrint,
                                     activeColor: const Color(0xFF10B981),
-                                    onChanged: (val) => setState(() => _autoPrint = val ?? true),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                    onChanged: (val) => setState(
+                                      () => _autoPrint = val ?? true,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
                                   ),
                                 ),
                               ],
@@ -419,11 +522,7 @@ class _PrintSettingsViewState extends State<PrintSettingsView> {
   Widget _buildLabel(String text, Color color) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w700,
-        color: color,
-      ),
+      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: color),
     );
   }
 

@@ -90,7 +90,9 @@ class RoleCardWidget extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w800,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -98,15 +100,24 @@ class RoleCardWidget extends StatelessWidget {
                         ),
                         if (role.isSystemRole) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.success.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusSm,
+                              ),
                             ),
                             child: const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.check_rounded, size: 12, color: AppColors.success),
+                                Icon(
+                                  Icons.check_rounded,
+                                  size: 12,
+                                  color: AppColors.success,
+                                ),
                                 SizedBox(width: 2),
                                 Text(
                                   'دور نظام',
@@ -128,7 +139,9 @@ class RoleCardWidget extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                         height: 1.3,
                       ),
                       maxLines: 2,
@@ -141,15 +154,24 @@ class RoleCardWidget extends StatelessWidget {
                       onTap: onEdit ?? () {},
                       borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: amberColor.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                          borderRadius: BorderRadius.circular(
+                            AppSpacing.radiusSm,
+                          ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.shield_outlined, size: 13, color: amberColor),
+                            const Icon(
+                              Icons.shield_outlined,
+                              size: 13,
+                              color: amberColor,
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               '${role.permissionsCount} صلاحيات (عرض الصلاحيات)',
@@ -170,7 +192,11 @@ class RoleCardWidget extends StatelessWidget {
           ),
 
           const SizedBox(height: AppSpacing.md),
-          Divider(color: border.withValues(alpha: 0.6), height: 1, thickness: 1),
+          Divider(
+            color: border.withValues(alpha: 0.6),
+            height: 1,
+            thickness: 1,
+          ),
           const SizedBox(height: AppSpacing.sm),
 
           // Bottom Actions Row: Status Badge + Delete & Edit Buttons
@@ -185,15 +211,24 @@ class RoleCardWidget extends StatelessWidget {
                     onTap: onEdit ?? () {},
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        color: isDark
+                            ? const Color(0xFF374151)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
                       ),
                       child: Icon(
                         Icons.edit_outlined,
                         size: 18,
-                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                        color: isDark
+                            ? AppColors.textSecondaryDark
+                            : AppColors.textSecondaryLight,
                       ),
                     ),
                   ),
@@ -204,18 +239,27 @@ class RoleCardWidget extends StatelessWidget {
                     onTap: onDelete ?? () {},
                     borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: role.isSystemRole
-                            ? (isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9))
+                            ? (isDark
+                                  ? const Color(0xFF374151)
+                                  : const Color(0xFFF1F5F9))
                             : AppColors.error.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
+                        borderRadius: BorderRadius.circular(
+                          AppSpacing.radiusSm,
+                        ),
                       ),
                       child: Icon(
                         Icons.delete_outline_rounded,
                         size: 18,
                         color: role.isSystemRole
-                            ? (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)
+                            ? (isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight)
                             : AppColors.error,
                       ),
                     ),
@@ -225,7 +269,10 @@ class RoleCardWidget extends StatelessWidget {
 
               // Status Active Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: role.isActive
                       ? AppColors.success.withValues(alpha: 0.1)
@@ -237,7 +284,9 @@ class RoleCardWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: role.isActive ? AppColors.success : AppColors.textSecondaryLight,
+                    color: role.isActive
+                        ? AppColors.success
+                        : AppColors.textSecondaryLight,
                   ),
                 ),
               ),

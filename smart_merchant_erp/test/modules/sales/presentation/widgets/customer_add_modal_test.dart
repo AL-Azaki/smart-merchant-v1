@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:smart_merchant_erp/modules/sales/presentation/widgets/customer_add_modal.dart';
-import 'package:smart_merchant_erp/app/di/injection.dart';
+import 'package:smart_merchant_erp/app/di/getit_instance.dart';
 
 void main() {
   testWidgets('Customer Add Modal accepts Arabic text', (WidgetTester tester) async {

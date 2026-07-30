@@ -8,7 +8,7 @@ import '../../../sales/presentation/providers/product_unit_provider.dart'
     show posProductsNotifierProvider, PosProductItem;
 import '../../../../kernel/storage/app_database.dart'
     show Supplier, Warehouse, CurrencyEntity;
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
 import '../../../../shared/documents/printing/document_printer.dart';
@@ -68,7 +68,10 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
             Flexible(
               child: Text(
                 'فاتورة مشتريات (إدخال سريع)',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
@@ -104,8 +107,13 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                             data: (currencies) => DropdownButtonFormField<String>(
                               value: state.currencyId.isEmpty
                                   ? (currencies.isNotEmpty
-                                      ? currencies.firstWhere((c) => c.isBaseCurrency, orElse: () => currencies.first).id
-                                      : null)
+                                        ? currencies
+                                              .firstWhere(
+                                                (c) => c.isBaseCurrency,
+                                                orElse: () => currencies.first,
+                                              )
+                                              .id
+                                        : null)
                                   : state.currencyId,
                               decoration: InputDecoration(
                                 labelText: 'العملة',
@@ -120,7 +128,10 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                   .map(
                                     (c) => DropdownMenuItem(
                                       value: c.id,
-                                      child: Text('${c.currencyNameAr} (${c.currencyCode})', overflow: TextOverflow.ellipsis),
+                                      child: Text(
+                                        '${c.currencyNameAr} (${c.currencyCode})',
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   )
                                   .toList(),
@@ -129,12 +140,16 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                   final cur = currencies.firstWhere(
                                     (c) => c.id == val,
                                   );
-                                  notifier.changeCurrency(val, cur.exchangeRate);
+                                  notifier.changeCurrency(
+                                    val,
+                                    cur.exchangeRate,
+                                  );
                                 }
                               },
                             ),
-                            loading: () =>
-                                const Center(child: CircularProgressIndicator()),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                             error: (_, __) => const Text('خطأ بالعملة'),
                           ),
                         ),
@@ -142,38 +157,40 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                         SizedBox(
                           width: isSmall ? constraints.maxWidth : 250,
                           child: suppliersAsync.when(
-                            data: (suppliers) => DropdownButtonFormField<String>(
-                              value: state.supplierId.isEmpty
-                                  ? null
-                                  : state.supplierId,
-                              decoration: InputDecoration(
-                                labelText: 'المورد',
-                                prefixIcon: const Icon(Icons.store),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                ),
-                              ),
-                              items: suppliers
-                                  .map(
-                                    (s) => DropdownMenuItem(
-                                      value: s.id,
-                                      child: Text(s.supplierName),
+                            data: (suppliers) =>
+                                DropdownButtonFormField<String>(
+                                  value: state.supplierId.isEmpty
+                                      ? null
+                                      : state.supplierId,
+                                  decoration: InputDecoration(
+                                    labelText: 'المورد',
+                                    prefixIcon: const Icon(Icons.store),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                  )
-                                  .toList(),
-                              onChanged: (val) {
-                                if (val != null) {
-                                  notifier.updateState(
-                                    state.copyWith(supplierId: val),
-                                  );
-                                }
-                              },
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                  ),
+                                  items: suppliers
+                                      .map(
+                                        (s) => DropdownMenuItem(
+                                          value: s.id,
+                                          child: Text(s.supplierName),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      notifier.updateState(
+                                        state.copyWith(supplierId: val),
+                                      );
+                                    }
+                                  },
+                                ),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
                             ),
-                            loading: () =>
-                                const Center(child: CircularProgressIndicator()),
                             error: (_, __) => const Text('خطأ بالموردين'),
                           ),
                         ),
@@ -184,7 +201,9 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                             data: (warehouses) {
                               if (warehouses.isNotEmpty &&
                                   state.warehouseId.isEmpty) {
-                                WidgetsBinding.instance.addPostFrameCallback((_) {
+                                WidgetsBinding.instance.addPostFrameCallback((
+                                  _,
+                                ) {
                                   if (mounted) {
                                     notifier.updateState(
                                       state.copyWith(
@@ -225,8 +244,9 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                 },
                               );
                             },
-                            loading: () =>
-                                const Center(child: CircularProgressIndicator()),
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
                             error: (_, __) => const Text('خطأ بالمخازن'),
                           ),
                         ),
@@ -267,7 +287,8 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: SizedBox(
-                        width: 1400, // 140+250+140+100+100+120+120+120+120+60+paddings
+                        width:
+                            1400, // 140+250+140+100+100+120+120+120+120+60+paddings
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -343,7 +364,8 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                                   productUnitId:
                                                       match.baseUnit.id,
                                                   productId: match.product.id,
-                                                  categoryId: match.product.categoryId,
+                                                  categoryId:
+                                                      match.product.categoryId,
                                                   productName:
                                                       match.product.productName,
                                                   purchasePrice: match
@@ -395,7 +417,8 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                                 productUnitId:
                                                     option.baseUnit.id,
                                                 productId: option.product.id,
-                                                categoryId: option.product.categoryId,
+                                                categoryId:
+                                                    option.product.categoryId,
                                                 purchasePrice: option
                                                     .baseUnit
                                                     .purchasePrice,
@@ -410,32 +433,89 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                               alignment: Alignment.topLeft,
                                               child: Material(
                                                 elevation: 4.0,
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 child: ConstrainedBox(
-                                                  constraints: BoxConstraints(maxHeight: 250, maxWidth: MediaQuery.of(context).size.width * 0.9 > 400 ? 400 : MediaQuery.of(context).size.width * 0.9),
+                                                  constraints: BoxConstraints(
+                                                    maxHeight: 250,
+                                                    maxWidth:
+                                                        MediaQuery.of(
+                                                                  context,
+                                                                ).size.width *
+                                                                0.9 >
+                                                            400
+                                                        ? 400
+                                                        : MediaQuery.of(
+                                                                context,
+                                                              ).size.width *
+                                                              0.9,
+                                                  ),
                                                   child: ListView.separated(
                                                     padding: EdgeInsets.zero,
                                                     shrinkWrap: true,
                                                     itemCount: options.length,
-                                                    separatorBuilder: (_, __) => const Divider(height: 1),
+                                                    separatorBuilder: (_, __) =>
+                                                        const Divider(
+                                                          height: 1,
+                                                        ),
                                                     itemBuilder: (context, index) {
-                                                      final option = options.elementAt(index);
+                                                      final option = options
+                                                          .elementAt(index);
                                                       return InkWell(
-                                                        onTap: () => onSelected(option),
+                                                        onTap: () =>
+                                                            onSelected(option),
                                                         child: Padding(
-                                                          padding: const EdgeInsets.all(12.0),
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                12.0,
+                                                              ),
                                                           child: Column(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                                            mainAxisSize: MainAxisSize.min,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
+                                                            mainAxisSize:
+                                                                MainAxisSize
+                                                                    .min,
                                                             children: [
-                                                              Text(option.product.productName, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 2, overflow: TextOverflow.ellipsis),
-                                                              const SizedBox(height: 4),
+                                                              Text(
+                                                                option
+                                                                    .product
+                                                                    .productName,
+                                                                style: const TextStyle(
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .bold,
+                                                                ),
+                                                                maxLines: 2,
+                                                                overflow:
+                                                                    TextOverflow
+                                                                        .ellipsis,
+                                                              ),
+                                                              const SizedBox(
+                                                                height: 4,
+                                                              ),
                                                               Wrap(
                                                                 spacing: 12,
                                                                 runSpacing: 4,
                                                                 children: [
-                                                                  Text('SKU: ${(option.baseUnit.sku?.isNotEmpty ?? false) ? option.baseUnit.sku : '-'}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                                                                  Text('السعر: ${option.baseUnit.purchasePrice}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                                                  Text(
+                                                                    'SKU: ${(option.baseUnit.sku?.isNotEmpty ?? false) ? option.baseUnit.sku : '-'}',
+                                                                    style: const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .grey,
+                                                                    ),
+                                                                  ),
+                                                                  Text(
+                                                                    'السعر: ${option.baseUnit.purchasePrice}',
+                                                                    style: const TextStyle(
+                                                                      fontSize:
+                                                                          12,
+                                                                      color: Colors
+                                                                          .grey,
+                                                                    ),
+                                                                  ),
                                                                 ],
                                                               ),
                                                             ],
@@ -610,34 +690,34 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                               },
                             ),
 
-                          // Add Row Button
-                          Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: SizedBox(
-                              width: 250,
-                              child: OutlinedButton.icon(
-                                onPressed: notifier.addRow,
-                                icon: const Icon(Icons.add),
-                                label: const Text('إضافة سطر جديد'),
-                                style: OutlinedButton.styleFrom(
-                                  minimumSize: const Size(250, 50),
-                                  side: const BorderSide(
-                                    color: AppColors.primary,
-                                    style: BorderStyle.solid,
+                            // Add Row Button
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: SizedBox(
+                                width: 250,
+                                child: OutlinedButton.icon(
+                                  onPressed: notifier.addRow,
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('إضافة سطر جديد'),
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(250, 50),
+                                    side: const BorderSide(
+                                      color: AppColors.primary,
+                                      style: BorderStyle.solid,
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
-            
-            // Footer
+
+              // Footer
               SafeArea(
                 child: Container(
                   padding: const EdgeInsets.all(24),
@@ -1131,45 +1211,52 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
   ) {
     final state = ref.watch(purchasingNotifierProvider);
     final notifier = ref.read(purchasingNotifierProvider.notifier);
-    
+
     if (state.successInvoiceId == null) return const SizedBox();
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF8FAFC),
       body: Center(
         child: FutureBuilder<CommercialDocumentData>(
-          future: getIt<PurchaseInvoiceDocumentMapper>().mapToDocumentData(state.successInvoiceId!),
+          future: getIt<PurchaseInvoiceDocumentMapper>().mapToDocumentData(
+            state.successInvoiceId!,
+          ),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-               return Container(
-                 constraints: const BoxConstraints(maxWidth: 400),
-                 padding: const EdgeInsets.all(48),
-                 child: const Center(child: CircularProgressIndicator()),
-               );
+              return Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.all(48),
+                child: const Center(child: CircularProgressIndicator()),
+              );
             }
             if (snapshot.hasError) {
-               return Container(
-                 constraints: const BoxConstraints(maxWidth: 400),
-                 padding: const EdgeInsets.all(32),
-                 decoration: BoxDecoration(
-                   color: surfaceColor,
-                   borderRadius: BorderRadius.circular(24),
-                   border: Border.all(color: borderColor),
-                 ),
-                 child: Column(
-                   mainAxisSize: MainAxisSize.min,
-                   children: [
-                     const Icon(Icons.error, color: AppColors.error, size: 48),
-                     const SizedBox(height: 16),
-                     Text('حدث خطأ أثناء تحميل الفاتورة: ${snapshot.error}', style: const TextStyle(color: AppColors.error)),
-                     const SizedBox(height: 24),
-                     ElevatedButton(
-                        onPressed: () => notifier.clearForm(),
-                        child: const Text('رجوع'),
-                     )
-                   ]
-                 )
-               );
+              return Container(
+                constraints: const BoxConstraints(maxWidth: 400),
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: borderColor),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error, color: AppColors.error, size: 48),
+                    const SizedBox(height: 16),
+                    Text(
+                      'حدث خطأ أثناء تحميل الفاتورة: ${snapshot.error}',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton(
+                      onPressed: () => notifier.clearForm(),
+                      child: const Text('رجوع'),
+                    ),
+                  ],
+                ),
+              );
             }
 
             final docData = snapshot.data!;
@@ -1183,130 +1270,156 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: borderColor),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20),
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 20,
+                  ),
                 ],
               ),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.success.withOpacity(0.1),
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: AppColors.success.withOpacity(0.1),
+                      ),
+                      child: const Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.success,
+                        size: 64,
+                      ),
                     ),
-                    child: const Icon(
-                      Icons.check_circle_rounded,
-                      color: AppColors.success,
-                      size: 64,
+                    const SizedBox(height: 24),
+                    const Text(
+                      'تم إتمام عملية الشراء بنجاح!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'تم إتمام عملية الشراء بنجاح!',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'رقم الفاتورة: ${docData.documentNumber}',
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryLight,
-                      fontSize: 14,
+                    const SizedBox(height: 8),
+                    Text(
+                      'رقم الفاتورة: ${docData.documentNumber}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondaryLight,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => DocumentPrinter.printDocument(docData),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () =>
+                                DocumentPrinter.printDocument(docData),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(Icons.print_rounded),
+                            label: const Text(
+                              'طباعة',
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
-                          icon: const Icon(Icons.print_rounded),
-                          label: const Text(
-                            'طباعة',
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () => DocumentShare.shareDocument(docData),
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            backgroundColor: const Color(0xFF25D366),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                DocumentShare.shareDocument(docData),
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              backgroundColor: const Color(0xFF25D366),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            icon: const Icon(
+                              Icons.share_rounded,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'مشاركة',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          icon: const Icon(Icons.share_rounded, color: Colors.white),
-                          label: const Text(
-                            'مشاركة',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CommercialDocumentPreviewScreen(
+                              document: docData,
+                            ),
                           ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 56),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CommercialDocumentPreviewScreen(document: docData),
+                      icon: const Icon(Icons.receipt_long_rounded),
+                      label: const Text(
+                        'عرض الفاتورة',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
                         ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 56),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
-                    icon: const Icon(Icons.receipt_long_rounded),
-                    label: const Text(
-                      'عرض الفاتورة',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      notifier.clearForm();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 56),
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        notifier.clearForm();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 56),
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      icon: const Icon(
+                        Icons.add_shopping_cart_rounded,
+                        color: Colors.white,
+                      ),
+                      label: const Text(
+                        'فاتورة شراء جديدة',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
-                    label: const Text(
-                      'فاتورة شراء جديدة',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: widget.onBack,
+                      child: const Text(
+                        'العودة للقائمة',
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  TextButton(
-                    onPressed: widget.onBack,
-                    child: const Text(
-                      'العودة للقائمة',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
             );
           },
         ),

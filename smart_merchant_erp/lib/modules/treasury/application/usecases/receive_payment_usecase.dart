@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
@@ -45,7 +44,6 @@ class ReceivePaymentCommand {
   });
 }
 
-@injectable
 class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
   final TreasuryRepository _treasuryRepository;
   final SalesRepository _salesRepository;
@@ -171,7 +169,9 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       final newRemainingAmount =
           receivable.remainingAmount - alloc.allocatedAmount;
 
-      final newStatus = newRemainingAmount <= 0.001 ? 'Paid' : (newPaidAmount > 0 ? 'Partial' : 'Unpaid');
+      final newStatus = newRemainingAmount <= 0.001
+          ? 'Paid'
+          : (newPaidAmount > 0 ? 'Partial' : 'Unpaid');
 
       final entryCompanion = ReceivableEntriesCompanion.insert(
         id: _uuid.v4(),
@@ -295,8 +295,7 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
               businessId,
             );
             if (invoice != null) {
-              final newPaymentStatus =
-                  (update['newStatus'] as String) == 'Paid'
+              final newPaymentStatus = (update['newStatus'] as String) == 'Paid'
                   ? 'Paid'
                   : 'Partial';
               await _salesRepository.updateInvoicePaymentStatus(

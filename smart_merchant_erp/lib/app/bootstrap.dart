@@ -27,7 +27,7 @@ Future<void> bootstrap(Widget Function() builder) async {
   };
 
   // 3. Initialize Dependency Injection (GetIt)
-  configureDependencies();
+  await configureDependencies();
 
   // 4. Run the app wrapped in Riverpod's ProviderScope
   runApp(ProviderScope(child: builder()));

@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -28,7 +27,6 @@ class ArchiveDocumentCommand {
   });
 }
 
-@injectable
 class ArchiveDocumentService {
   final SystemRepository _repository;
   final ApplicationContext _context;
@@ -36,7 +34,9 @@ class ArchiveDocumentService {
 
   ArchiveDocumentService(this._repository, this._context);
 
-  Future<Either<Failure, String>> saveDocument(ArchiveDocumentCommand command) async {
+  Future<Either<Failure, String>> saveDocument(
+    ArchiveDocumentCommand command,
+  ) async {
     final businessId = _context.currentBusinessId;
     if (businessId == null) {
       return const Left(ValidationFailure('Business ID is required.'));

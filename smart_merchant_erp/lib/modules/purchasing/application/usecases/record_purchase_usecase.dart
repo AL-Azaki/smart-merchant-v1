@@ -1,7 +1,6 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../treasury/domain/repositories/treasury_repository.dart';
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
@@ -63,7 +62,6 @@ class RecordPurchaseCommand {
   });
 }
 
-@injectable
 class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
   final PurchasingRepository _purchasingRepository;
   final InventoryRepository _inventoryRepository;
@@ -112,28 +110,40 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     // 1. Resolve Accounting Mappings
     String creditAccountId;
     String? treasuryPaymentMethodId;
-    
+
     if (params.isCreditPurchase) {
-      final apIdResult = await _accountingService.resolveAccountMapping('accounts_payable');
+      final apIdResult = await _accountingService.resolveAccountMapping(
+        'accounts_payable',
+      );
       if (apIdResult.isLeft()) {
         return Left(apIdResult.fold((l) => l, (r) => throw Exception()));
       }
       creditAccountId = apIdResult.getOrElse(() => '');
     } else {
       if (params.paymentMethodId == null) {
-        return const Left(ValidationFailure('Payment method is required for cash purchases.'));
+        return const Left(
+          ValidationFailure('Payment method is required for cash purchases.'),
+        );
       }
-      final paymentMethod = await _treasuryRepository.getPaymentMethodById(params.paymentMethodId!, businessId);
+      final paymentMethod = await _treasuryRepository.getPaymentMethodById(
+        params.paymentMethodId!,
+        businessId,
+      );
       if (paymentMethod == null || !paymentMethod.isActive) {
-        return const Left(ValidationFailure('Invalid or inactive payment method.'));
+        return const Left(
+          ValidationFailure('Invalid or inactive payment method.'),
+        );
       }
       creditAccountId = paymentMethod.chartOfAccountId;
       treasuryPaymentMethodId = paymentMethod.id;
     }
 
-    final inventoryAssetIdResult = await _accountingService.resolveAccountMapping('inventory_asset');
+    final inventoryAssetIdResult = await _accountingService
+        .resolveAccountMapping('inventory_asset');
     if (inventoryAssetIdResult.isLeft()) {
-      return Left(inventoryAssetIdResult.fold((l) => l, (r) => throw Exception()));
+      return Left(
+        inventoryAssetIdResult.fold((l) => l, (r) => throw Exception()),
+      );
     }
     final inventoryAssetId = inventoryAssetIdResult.getOrElse(() => '');
 
@@ -162,10 +172,11 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     final invoiceId = _uuid.v4();
     final invoiceNumber = 'PINV-${DateTime.now().millisecondsSinceEpoch}';
     final invoiceDate = DateTime.now();
-    
+
     // Ensure dueDate is not before invoiceDate to satisfy CHECK constraint (due_date >= purchase_date)
-    final effectiveDueDate = (params.dueDate != null && params.dueDate!.isBefore(invoiceDate)) 
-        ? invoiceDate 
+    final effectiveDueDate =
+        (params.dueDate != null && params.dueDate!.isBefore(invoiceDate))
+        ? invoiceDate
         : params.dueDate;
 
     final invoiceCompanion = PurchaseInvoicesCompanion.insert(
@@ -353,7 +364,9 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         type: 'Credit',
         foreignAmount: drift.Value(grandTotal),
         baseAmount: drift.Value(grandTotal * params.exchangeRate),
-        description: drift.Value(params.isCreditPurchase ? 'Purchase Liability' : 'Cash Payment'),
+        description: drift.Value(
+          params.isCreditPurchase ? 'Purchase Liability' : 'Cash Payment',
+        ),
       ),
     ];
 
@@ -376,28 +389,33 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
 
         // Update actual stock quantities and calculate new average cost
         for (final item in params.items) {
-          final inventory = await _inventoryRepository.getInventoryByUnitAndWarehouse(
-            businessId,
-            item.warehouseId,
-            item.productUnitId,
-          );
+          final inventory = await _inventoryRepository
+              .getInventoryByUnitAndWarehouse(
+                businessId,
+                item.warehouseId,
+                item.productUnitId,
+              );
           if (inventory != null) {
             final oldQty = inventory.quantity;
             final oldAvgCost = inventory.averageCost;
             final newQty = item.quantity;
             final newCost = item.unitCost;
-            
+
+
             final updatedQty = oldQty + newQty;
             double updatedAvgCost = oldAvgCost;
             if (updatedQty > 0) {
-              updatedAvgCost = ((oldQty * oldAvgCost) + (newQty * newCost)) / updatedQty;
+              updatedAvgCost =
+                  ((oldQty * oldAvgCost) + (newQty * newCost)) / updatedQty;
             }
-            
+
             await _inventoryRepository.updateInventory(
-              inventory.toCompanion(false).copyWith(
-                quantity: drift.Value(updatedQty),
-                averageCost: drift.Value(updatedAvgCost),
-              ),
+              inventory
+                  .toCompanion(false)
+                  .copyWith(
+                    quantity: drift.Value(updatedQty),
+                    averageCost: drift.Value(updatedAvgCost),
+                  ),
             );
           } else {
             await _inventoryRepository.insertInventory(

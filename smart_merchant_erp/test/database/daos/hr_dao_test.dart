@@ -76,20 +76,7 @@ void main() {
             isDefault: const drift.Value(false),
           ),
         );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
   });
 
   tearDown(() async {
@@ -156,7 +143,7 @@ void main() {
             departmentId: const drift.Value('dept-tech'),
             jobTitleId: const drift.Value('jt-dev'),
             salary: const drift.Value(15000.0),
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
           ),
         );
 
@@ -294,7 +281,7 @@ void main() {
             hireDate: DateTime(2026, 2, 10),
             departmentId: const drift.Value('d1'),
             jobTitleId: const drift.Value('j1'),
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
           ),
         );
         await hrDao.insertEmployee(
@@ -307,7 +294,7 @@ void main() {
             hireDate: DateTime(2026, 3, 15),
             departmentId: const drift.Value('d2'),
             status: const drift.Value('OnLeave'),
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
           ),
         );
 
@@ -351,7 +338,7 @@ void main() {
             firstName: 'Pre',
             lastName: 'Existing',
             hireDate: DateTime(2026, 4, 12),
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
           ),
         );
         await hrDao.insertDocument(
@@ -373,7 +360,7 @@ void main() {
               firstName: 'Atomic',
               lastName: 'Rollback',
               hireDate: DateTime(2026, 5, 20),
-              currencyId: 'curr-sar',
+              currencyId: 'SAR',
             ),
             [
               EmployeeDocumentsCompanion.insert(

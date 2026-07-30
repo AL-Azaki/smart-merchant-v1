@@ -123,7 +123,8 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
       RoleCardModel(
         id: '3',
         title: 'أمين مخزن (Inventory Manager)',
-        description: 'صلاحية إدارة المنتجات، الأصول الثابتة، المستودعات وجرد المخزون',
+        description:
+            'صلاحية إدارة المنتجات، الأصول الثابتة، المستودعات وجرد المخزون',
         permissionsCount: 3,
         isSystemRole: false,
         isActive: true,
@@ -155,7 +156,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
   // Show Add/Edit Role Modal with exact Permission Groups and Checkboxes
   void _showRoleModal({RoleCardModel? existingRole}) {
     final titleCtrl = TextEditingController(text: existingRole?.title ?? '');
-    final descCtrl = TextEditingController(text: existingRole?.description ?? '');
+    final descCtrl = TextEditingController(
+      text: existingRole?.description ?? '',
+    );
     bool isActive = existingRole?.isActive ?? true;
 
     // Selected permission IDs
@@ -171,8 +174,12 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-            final border = isDark ? AppColors.borderDark : AppColors.borderLight;
+            final surface = isDark
+                ? AppColors.surfaceDark
+                : AppColors.surfaceLight;
+            final border = isDark
+                ? AppColors.borderDark
+                : AppColors.borderLight;
             const amberColor = Color(0xFFF59E0B);
 
             // Group permissions by category
@@ -187,11 +194,14 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                 left: AppSpacing.lg,
                 right: AppSpacing.lg,
                 top: AppSpacing.lg,
-                bottom: MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+                bottom:
+                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
               ),
               decoration: BoxDecoration(
                 color: surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.radiusXl),
+                ),
               ),
               child: Column(
                 children: [
@@ -205,7 +215,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             padding: const EdgeInsets.all(AppSpacing.sm),
                             decoration: BoxDecoration(
                               color: amberColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                             ),
                             child: const Icon(
                               Icons.shield_outlined,
@@ -215,11 +227,15 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                           ),
                           const SizedBox(width: AppSpacing.sm + 2),
                           Text(
-                            existingRole != null ? 'تعديل الدور' : 'إضافة دور جديد',
+                            existingRole != null
+                                ? 'تعديل الدور'
+                                : 'إضافة دور جديد',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ],
@@ -228,7 +244,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                         icon: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF374151) : const Color(0xFFF1F5F9),
+                            color: isDark
+                                ? const Color(0xFF374151)
+                                : const Color(0xFFF1F5F9),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(Icons.close_rounded, size: 18),
@@ -280,7 +298,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.md),
@@ -288,11 +308,17 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                           // Permission Groups Checklist Cards
                           for (final entry in grouped.entries) ...[
                             Container(
-                              margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                              margin: const EdgeInsets.only(
+                                bottom: AppSpacing.md,
+                              ),
                               padding: const EdgeInsets.all(AppSpacing.md),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                color: isDark
+                                    ? const Color(0xFF1F2937)
+                                    : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusLg,
+                                ),
                                 border: Border.all(color: border, width: 1.5),
                               ),
                               child: Column(
@@ -310,58 +336,82 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   const SizedBox(height: AppSpacing.sm),
                                   // Items Row / List
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: entry.value.map((perm) {
-                                      final isChecked = selectedPermissions.contains(perm.id);
+                                      final isChecked = selectedPermissions
+                                          .contains(perm.id);
 
                                       return Expanded(
                                         child: Container(
-                                          margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                            vertical: 2,
+                                          ),
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
                                             color: isChecked
-                                                ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF))
+                                                ? (isDark
+                                                      ? const Color(0xFF1E293B)
+                                                      : const Color(0xFFEEF2FF))
                                                 : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                            borderRadius: BorderRadius.circular(
+                                              AppSpacing.radiusMd,
+                                            ),
                                           ),
                                           child: InkWell(
                                             onTap: () {
                                               setModalState(() {
                                                 if (isChecked) {
-                                                  selectedPermissions.remove(perm.id);
+                                                  selectedPermissions.remove(
+                                                    perm.id,
+                                                  );
                                                 } else {
-                                                  selectedPermissions.add(perm.id);
+                                                  selectedPermissions.add(
+                                                    perm.id,
+                                                  );
                                                 }
                                               });
                                             },
                                             child: Row(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
                                               children: [
                                                 Checkbox(
                                                   value: isChecked,
-                                                  activeColor: const Color(0xFF6366F1),
+                                                  activeColor: const Color(
+                                                    0xFF6366F1,
+                                                  ),
                                                   onChanged: (val) {
                                                     setModalState(() {
                                                       if (val == true) {
-                                                        selectedPermissions.add(perm.id);
+                                                        selectedPermissions.add(
+                                                          perm.id,
+                                                        );
                                                       } else {
-                                                        selectedPermissions.remove(perm.id);
+                                                        selectedPermissions
+                                                            .remove(perm.id);
                                                       }
                                                     });
                                                   },
                                                 ),
                                                 Expanded(
                                                   child: Column(
-                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       Text(
                                                         perm.title,
                                                         style: TextStyle(
                                                           fontSize: 13,
-                                                          fontWeight: FontWeight.w800,
+                                                          fontWeight:
+                                                              FontWeight.w800,
                                                           color: isDark
-                                                              ? AppColors.textPrimaryDark
-                                                              : AppColors.textPrimaryLight,
+                                                              ? AppColors
+                                                                    .textPrimaryDark
+                                                              : AppColors
+                                                                    .textPrimaryLight,
                                                         ),
                                                       ),
                                                       Text(
@@ -369,8 +419,10 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                                         style: TextStyle(
                                                           fontSize: 11,
                                                           color: isDark
-                                                              ? AppColors.textSecondaryDark
-                                                              : AppColors.textSecondaryLight,
+                                                              ? AppColors
+                                                                    .textSecondaryDark
+                                                              : AppColors
+                                                                    .textSecondaryLight,
                                                           height: 1.2,
                                                         ),
                                                       ),
@@ -391,10 +443,17 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
 
                           // Active Role Checkbox Tile
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.md,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF1F2937) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                              color: isDark
+                                  ? const Color(0xFF1F2937)
+                                  : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusMd,
+                              ),
                               border: Border.all(color: border, width: 1.5),
                             ),
                             child: Row(
@@ -403,7 +462,8 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   value: isActive,
                                   activeColor: amberColor,
                                   onChanged: (val) {
-                                    if (val != null) setModalState(() => isActive = val);
+                                    if (val != null)
+                                      setModalState(() => isActive = val);
                                   },
                                 ),
                                 Text(
@@ -411,7 +471,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
-                                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                    color: isDark
+                                        ? AppColors.textPrimaryDark
+                                        : AppColors.textPrimaryLight,
                                   ),
                                 ),
                               ],
@@ -438,7 +500,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusLg,
+                                ),
                               ),
                             ),
                             onPressed: () {
@@ -453,7 +517,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   backgroundColor: AppColors.success,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                   ),
                                 ),
                               );
@@ -461,7 +527,11 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_rounded, color: Colors.white, size: 20),
+                                Icon(
+                                  Icons.check_rounded,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
                                 SizedBox(width: 8),
                                 Text(
                                   'حفظ',
@@ -484,7 +554,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             style: OutlinedButton.styleFrom(
                               side: BorderSide(color: border, width: 1.5),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                borderRadius: BorderRadius.circular(
+                                  AppSpacing.radiusLg,
+                                ),
                               ),
                             ),
                             onPressed: () => Navigator.pop(ctx),
@@ -493,7 +565,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                                color: isDark
+                                    ? AppColors.textPrimaryDark
+                                    : AppColors.textPrimaryLight,
                               ),
                             ),
                           ),
@@ -548,7 +622,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
-                    color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                    color: isDark
+                        ? AppColors.textPrimaryDark
+                        : AppColors.textPrimaryLight,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -558,7 +634,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
-                    color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+                    color: isDark
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
                     height: 1.4,
                   ),
                 ),
@@ -573,7 +651,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             backgroundColor: AppColors.error,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusLg,
+                              ),
                             ),
                           ),
                           onPressed: () {
@@ -581,11 +661,15 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             if (role.isSystemRole) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: const Text('لا يمكن حذف أدوار النظام الأساسية'),
+                                  content: const Text(
+                                    'لا يمكن حذف أدوار النظام الأساسية',
+                                  ),
                                   backgroundColor: AppColors.error,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                   ),
                                 ),
                               );
@@ -599,7 +683,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   backgroundColor: AppColors.error,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                    borderRadius: BorderRadius.circular(
+                                      AppSpacing.radiusMd,
+                                    ),
                                   ),
                                 ),
                               );
@@ -624,7 +710,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: border, width: 1.5),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                              borderRadius: BorderRadius.circular(
+                                AppSpacing.radiusLg,
+                              ),
                             ),
                           ),
                           onPressed: () => Navigator.pop(ctx),
@@ -633,7 +721,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
+                              color: isDark
+                                  ? AppColors.textPrimaryDark
+                                  : AppColors.textPrimaryLight,
                             ),
                           ),
                         ),
@@ -656,13 +746,16 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
     const amberColor = Color(0xFFF59E0B);
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
+      backgroundColor: isDark
+          ? AppColors.backgroundDark
+          : AppColors.backgroundLight,
       body: Column(
         children: [
           // Header Bar
           SettingsHeaderWidget(
             title: 'الأدوار والصلاحيات',
-            description: 'تحديد مستويات الوصول وتوزيع الصلاحيات الخاصة بكافة الموظفين',
+            description:
+                'تحديد مستويات الوصول وتوزيع الصلاحيات الخاصة بكافة الموظفين',
             onBackTap: () => Navigator.of(context).pop(),
           ),
 
@@ -688,10 +781,16 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                 Row(
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.sm + 2,
+                                      ),
                                       decoration: BoxDecoration(
-                                        color: amberColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                        color: amberColor.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.radiusMd,
+                                        ),
                                       ),
                                       child: const Icon(
                                         Icons.shield_outlined,
@@ -701,7 +800,8 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                     ),
                                     const SizedBox(width: AppSpacing.md),
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'الأدوار والصلاحيات',
@@ -735,11 +835,16 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                       foregroundColor: Colors.white,
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                        borderRadius: BorderRadius.circular(
+                                          AppSpacing.radiusLg,
+                                        ),
                                       ),
                                     ),
                                     onPressed: () => _showRoleModal(),
-                                    icon: const Icon(Icons.add_rounded, size: 20),
+                                    icon: const Icon(
+                                      Icons.add_rounded,
+                                      size: 20,
+                                    ),
                                     label: const Text(
                                       'إضافة دور',
                                       style: TextStyle(
@@ -759,10 +864,14 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                               Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(AppSpacing.sm + 2),
+                                    padding: const EdgeInsets.all(
+                                      AppSpacing.sm + 2,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: amberColor.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusMd,
+                                      ),
                                     ),
                                     child: const Icon(
                                       Icons.shield_outlined,
@@ -772,7 +881,8 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                   ),
                                   const SizedBox(width: AppSpacing.md),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         'الأدوار والصلاحيات',
@@ -806,7 +916,9 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                     foregroundColor: Colors.white,
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
+                                      borderRadius: BorderRadius.circular(
+                                        AppSpacing.radiusLg,
+                                      ),
                                     ),
                                   ),
                                   onPressed: () => _showRoleModal(),
@@ -843,10 +955,16 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(AppSpacing.xxl),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
+                            color: isDark
+                                ? AppColors.surfaceDark
+                                : AppColors.surfaceLight,
+                            borderRadius: BorderRadius.circular(
+                              AppSpacing.radiusXl,
+                            ),
                             border: Border.all(
-                              color: isDark ? AppColors.borderDark : AppColors.borderLight,
+                              color: isDark
+                                  ? AppColors.borderDark
+                                  : AppColors.borderLight,
                             ),
                           ),
                           child: Column(
@@ -880,13 +998,16 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: filtered.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: AppSpacing.lg),
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: AppSpacing.lg),
                                 itemBuilder: (context, index) {
                                   final roleItem = filtered[index];
                                   return RoleCardWidget(
                                     role: roleItem,
-                                    onEdit: () => _showRoleModal(existingRole: roleItem),
-                                    onDelete: () => _showDeleteRoleModal(roleItem),
+                                    onEdit: () =>
+                                        _showRoleModal(existingRole: roleItem),
+                                    onDelete: () =>
+                                        _showDeleteRoleModal(roleItem),
                                   );
                                 },
                               );
@@ -896,18 +1017,21 @@ class _RolesPermissionsViewState extends State<RolesPermissionsView> {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: filtered.length,
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: AppSpacing.lg,
-                                mainAxisSpacing: AppSpacing.lg,
-                                mainAxisExtent: 250,
-                              ),
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: AppSpacing.lg,
+                                    mainAxisSpacing: AppSpacing.lg,
+                                    mainAxisExtent: 250,
+                                  ),
                               itemBuilder: (context, index) {
                                 final roleItem = filtered[index];
                                 return RoleCardWidget(
                                   role: roleItem,
-                                  onEdit: () => _showRoleModal(existingRole: roleItem),
-                                  onDelete: () => _showDeleteRoleModal(roleItem),
+                                  onEdit: () =>
+                                      _showRoleModal(existingRole: roleItem),
+                                  onDelete: () =>
+                                      _showDeleteRoleModal(roleItem),
                                 );
                               },
                             );

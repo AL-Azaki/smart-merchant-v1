@@ -11,13 +11,17 @@ mixin _$TreasuryDaoMixin on DatabaseAccessor<AppDatabase> {
       attachedDatabase.bankReconciliations;
   $BankTransactionsTable get bankTransactions =>
       attachedDatabase.bankTransactions;
+  $BusinessesTable get businesses => attachedDatabase.businesses;
+  $CurrenciesTable get currencies => attachedDatabase.currencies;
+  $BranchesTable get branches => attachedDatabase.branches;
   $CashRegistersTable get cashRegisters => attachedDatabase.cashRegisters;
   $CashTransactionsTable get cashTransactions =>
       attachedDatabase.cashTransactions;
-  $PaymentAllocationsTable get paymentAllocations =>
-      attachedDatabase.paymentAllocations;
+  $ChartOfAccountsTable get chartOfAccounts => attachedDatabase.chartOfAccounts;
   $PaymentMethodsTable get paymentMethods => attachedDatabase.paymentMethods;
   $PaymentsTable get payments => attachedDatabase.payments;
+  $PaymentAllocationsTable get paymentAllocations =>
+      attachedDatabase.paymentAllocations;
   $CustomerReceivablesTable get customerReceivables =>
       attachedDatabase.customerReceivables;
   $ReceivableEntriesTable get receivableEntries =>
@@ -28,5 +32,4 @@ mixin _$TreasuryDaoMixin on DatabaseAccessor<AppDatabase> {
   $SalesInvoicesTable get salesInvoices => attachedDatabase.salesInvoices;
   $PurchaseInvoicesTable get purchaseInvoices =>
       attachedDatabase.purchaseInvoices;
-  $ChartOfAccountsTable get chartOfAccounts => attachedDatabase.chartOfAccounts;
 }

@@ -1,16 +1,16 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../application/usecases/process_warehouse_transfer_usecase.dart';
-import '../../application/usecases/process_stock_adjustment_usecase.dart' as smart_merchant_erp_usecase;
+import '../../application/usecases/process_stock_adjustment_usecase.dart'
+    as smart_merchant_erp_usecase;
+
 import '../../domain/repositories/inventory_repository.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../database/daos/inventory_dao.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/enums/inventory_reference_type.dart';
-
-part 'inventory_provider.g.dart';
 
 class TransferItemState {
   final String productUnitId;
@@ -63,8 +63,9 @@ class TransferState {
   }
 }
 
-@riverpod
-class TransferNotifier extends _$TransferNotifier {
+final transferNotifierProvider = AutoDisposeNotifierProvider<TransferNotifier, TransferState>(() => TransferNotifier());
+
+class TransferNotifier extends AutoDisposeNotifier<TransferState> {
   @override
   TransferState build() {
     return TransferState.initial();
@@ -178,14 +179,17 @@ class StockAdjustmentState {
   }) {
     return StockAdjustmentState(
       isSubmitting: isSubmitting ?? this.isSubmitting,
-      successAdjustmentId: clearSuccess ? null : (successAdjustmentId ?? this.successAdjustmentId),
+      successAdjustmentId: clearSuccess
+          ? null
+          : (successAdjustmentId ?? this.successAdjustmentId),
       error: clearError ? null : (error ?? this.error),
     );
   }
 }
 
-@riverpod
-class StockAdjustmentNotifier extends _$StockAdjustmentNotifier {
+final stockAdjustmentNotifierProvider = AutoDisposeNotifierProvider<StockAdjustmentNotifier, StockAdjustmentState>(() => StockAdjustmentNotifier());
+
+class StockAdjustmentNotifier extends AutoDisposeNotifier<StockAdjustmentState> {
   @override
   StockAdjustmentState build() {
     return StockAdjustmentState.initial();
@@ -198,16 +202,22 @@ class StockAdjustmentNotifier extends _$StockAdjustmentNotifier {
   Future<bool> submitAdjustment(Map<String, dynamic> data) async {
     if (state.isSubmitting) return false;
 
-    state = state.copyWith(isSubmitting: true, clearError: true, clearSuccess: true);
+    state = state.copyWith(
+      isSubmitting: true,
+      clearError: true,
+      clearSuccess: true,
+    );
 
     try {
-      final useCase = getIt<smart_merchant_erp_usecase.ProcessStockAdjustmentUseCase>();
-      
+      final useCase =
+          getIt<smart_merchant_erp_usecase.ProcessStockAdjustmentUseCase>();
+
       final linesList = data['lines'] as List;
       final lines = linesList.map((dynamic l) {
         final lineData = l as Map<String, dynamic>;
         return smart_merchant_erp_usecase.StockAdjustmentItemCommand(
-          productUnitId: (lineData['product_unit_id'] ?? lineData['product_id']) as String,
+          productUnitId:
+              (lineData['product_unit_id'] ?? lineData['product_id']) as String,
           countedQuantity: (lineData['physical_qty'] as num).toDouble(),
           expectedQuantity: (lineData['system_qty'] as num).toDouble(),
           difference: (lineData['discrepancy'] as num).toDouble(),
@@ -233,14 +243,18 @@ class StockAdjustmentNotifier extends _$StockAdjustmentNotifier {
         },
       );
     } catch (e) {
-      state = state.copyWith(isSubmitting: false, error: UnexpectedFailure(e.toString()));
+      state = state.copyWith(
+        isSubmitting: false,
+        error: UnexpectedFailure(e.toString()),
+      );
       return false;
     }
   }
 }
 
-@riverpod
-Future<List<Warehouse>> activeWarehouses(ActiveWarehousesRef ref) async {
+final activeWarehousesProvider = FutureProvider.autoDispose<List<Warehouse>>((ref) => _activeWarehouses(ref));
+
+Future<List<Warehouse>> _activeWarehouses(Ref ref) async {
   final repo = getIt<InventoryRepository>();
   final context = getIt<ApplicationContext>();
   final filter = WarehouseFilter(
@@ -251,8 +265,12 @@ Future<List<Warehouse>> activeWarehouses(ActiveWarehousesRef ref) async {
   return await repo.listWarehouses(filter);
 }
 
-@riverpod
-Future<List<StockBalanceView>> warehouseStockBalances(WarehouseStockBalancesRef ref, String warehouseId) async {
+final warehouseStockBalancesProvider = FutureProvider.autoDispose.family<List<StockBalanceView>, String>((ref, warehouseId) => _warehouseStockBalances(ref, warehouseId));
+
+Future<List<StockBalanceView>> _warehouseStockBalances(
+  Ref ref,
+  String warehouseId,
+) async {
   final repo = getIt<InventoryRepository>();
   final context = getIt<ApplicationContext>();
   final filter = InventoryFilter(
@@ -262,8 +280,11 @@ Future<List<StockBalanceView>> warehouseStockBalances(WarehouseStockBalancesRef 
   return await repo.getDetailedStockBalances(filter);
 }
 
-@riverpod
-Stream<List<InventoryTransaction>> stockAdjustmentsList(StockAdjustmentsListRef ref) {
+final stockAdjustmentsListProvider = StreamProvider.autoDispose<List<InventoryTransaction>>((ref) => _stockAdjustmentsList(ref));
+
+Stream<List<InventoryTransaction>> _stockAdjustmentsList(
+  Ref ref,
+) {
   final repo = getIt<InventoryRepository>();
   final context = getIt<ApplicationContext>();
   final filter = InventoryTransactionFilter(
@@ -273,4 +294,3 @@ Stream<List<InventoryTransaction>> stockAdjustmentsList(StockAdjustmentsListRef 
   );
   return repo.watchTransactions(filter);
 }
-

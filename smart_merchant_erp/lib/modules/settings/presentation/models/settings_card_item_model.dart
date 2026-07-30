@@ -24,8 +24,5 @@ class SettingsGroupModel {
   final String title;
   final List<SettingsCardItemModel> cards;
 
-  const SettingsGroupModel({
-    required this.title,
-    required this.cards,
-  });
+  const SettingsGroupModel({required this.title, required this.cards});
 }

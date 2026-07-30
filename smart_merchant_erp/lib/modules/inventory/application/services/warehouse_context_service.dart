@@ -1,4 +1,3 @@
-import 'package:injectable/injectable.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../domain/repositories/inventory_repository.dart';
 import '../../../../database/daos/inventory_dao.dart';
@@ -8,7 +7,6 @@ import '../../../../kernel/storage/app_database.dart';
 ///
 /// Ensures that business and branch constraints are respected before returning
 /// the default warehouse for a session.
-@lazySingleton
 class WarehouseContextService {
   final InventoryRepository _inventoryRepository;
 

@@ -1,0 +1,140 @@
+File: lib/modules\accounting\application\services\accounting_application_service.dart
+Class: AccountingApplicationService
+Args: _accountingRepository, _context
+----------------------------------------
+File: lib/modules\accounting\application\usecases\post_journal_entry_usecase.dart
+Class: JournalEntryLineCommand
+Args:  accountId, = 0.0, = 0.0, description, }
+----------------------------------------
+File: lib/modules\accounting\infrastructure\repositories\accounting_repository_impl.dart
+Class: AccountingRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\authentication\infrastructure\data_sources\auth_local_data_source.dart
+Class: AuthLocalDataSource
+Args: 
+----------------------------------------
+File: lib/modules\authentication\infrastructure\repositories\auth_repository_impl.dart
+Class: AuthRepositoryImpl
+Args: dynamic source
+----------------------------------------
+File: lib/modules\catalog\application\services\catalog_application_service.dart
+Class: ProductCommand
+Args: { id,  name, nameEn, description, categoryId, brandId, sku, barcode, unitId, purchasePrice, sellingPrice, = true, = true, imagePath, currencyId, = false, openingWarehouseId, openingQuantity, }
+----------------------------------------
+File: lib/modules\catalog\infrastructure\repositories\catalog_repository_impl.dart
+Class: CatalogRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\core\infrastructure\repositories\core_repository_impl.dart
+Class: CoreRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\fixed_assets\application\services\fixed_asset_application_service.dart
+Class: FixedAssetCommand
+Args: { id,  assetCode,  assetName, nameEn, assetCategoryId, locationId, employeeId,  purchasePrice, = 0.0,  currentBookValue,  purchaseDate, capitalizationDate,  usefulLifeMonths, = 'straight_line', = 'active', = true, }
+----------------------------------------
+File: lib/modules\fixed_assets\infrastructure\repositories\fixed_assets_repository_impl.dart
+Class: FixedAssetsRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\hr\application\services\employee_application_service.dart
+Class: EmployeeCommand
+Args: { id,  employeeCode,  name, nameEn, phone, email, jobTitle, departmentId, hireDate, = true, salary, }
+----------------------------------------
+File: lib/modules\hr\infrastructure\repositories\hr_repository_impl.dart
+Class: HrRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\inventory\application\services\warehouse_context_service.dart
+Class: WarehouseContextService
+Args: _inventoryRepository
+----------------------------------------
+File: lib/modules\inventory\application\usecases\get_stock_counts_usecase.dart
+Class: GetStockCountsUseCase
+Args: _repository, _context
+----------------------------------------
+File: lib/modules\inventory\application\usecases\get_stock_count_details_usecase.dart
+Class: StockCountDetails
+Args: 
+----------------------------------------
+File: lib/modules\inventory\application\usecases\post_stock_count_usecase.dart
+Class: PostStockCountUseCase
+Args: _repository, _context, _processStockAdjustmentUseCase, _transactionRunner
+----------------------------------------
+File: lib/modules\inventory\application\usecases\process_stock_adjustment_usecase.dart
+Class: StockAdjustmentItemCommand
+Args:  productUnitId,  countedQuantity,  expectedQuantity,  difference, }
+----------------------------------------
+File: lib/modules\inventory\application\usecases\process_warehouse_transfer_usecase.dart
+Class: WarehouseTransferItemCommand
+Args:  productUnitId,  quantity, }
+----------------------------------------
+File: lib/modules\inventory\application\usecases\save_stock_count_usecase.dart
+Class: SaveStockCountItemCommand
+Args:  productId,  productUnitId,  expectedQuantity,  countedQuantity,  differenceQuantity, }
+----------------------------------------
+File: lib/modules\inventory\infrastructure\repositories\inventory_repository_impl.dart
+Class: InventoryRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\purchasing\application\services\supplier_application_service.dart
+Class: SupplierCommand
+Args: { id,  name, nameEn, contactPerson, phone, email, taxNumber, address, creditLimit, openingBalance, openingBalanceType, openingBalanceDate, = true, }
+----------------------------------------
+File: lib/modules\purchasing\application\usecases\record_purchase_return_usecase.dart
+Class: PurchaseReturnItemCommand
+Args:  purchaseInvoiceItemId,  productUnitId,  warehouseId,  quantity,  unitPrice, }
+----------------------------------------
+File: lib/modules\purchasing\application\usecases\record_purchase_usecase.dart
+Class: PurchaseItemCommand
+Args:  productUnitId,  warehouseId,  quantity,  unitCost, = 0.0, = 0.0, taxId, }
+----------------------------------------
+File: lib/modules\purchasing\infrastructure\repositories\purchasing_repository_impl.dart
+Class: PurchasingRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\purchasing\presentation\mappers\purchase_invoice_document_mapper.dart
+Class: PurchaseInvoiceDocumentMapper
+Args: _purchasingDao, _coreDao, _catalogDao, _context
+----------------------------------------
+File: lib/modules\sales\application\services\customer_application_service.dart
+Class: CustomerCommand
+Args: { id,  name, nameEn, phone, email, taxNumber, address, creditLimit, openingBalance, openingBalanceType, openingBalanceDate, = true, }
+----------------------------------------
+File: lib/modules\sales\application\services\online_order_service.dart
+Class: OnlineOrderService
+Args: _salesRepository, _context
+----------------------------------------
+File: lib/modules\sales\application\usecases\complete_sale_usecase.dart
+Class: CompleteSaleItemCommand
+Args:  productUnitId,  warehouseId,  quantity,  unitPrice, = 0.0, = 0.0, taxId, }
+----------------------------------------
+File: lib/modules\sales\infrastructure\repositories\sales_repository_impl.dart
+Class: SalesRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\sales\presentation\mappers\sales_invoice_document_mapper.dart
+Class: SalesInvoiceDocumentMapper
+Args: _salesDao, _coreDao, _catalogDao, _context
+----------------------------------------
+File: lib/modules\system\application\services\archive_document_service.dart
+Class: ArchiveDocumentCommand
+Args:  title,  category, refNumber,  issueDate, expiryDate,  fileUrl, notes, }
+----------------------------------------
+File: lib/modules\system\application\services\document_application_service.dart
+Class: AttachmentCommand
+Args:  entityType,  entityId,  fileName,  fileType,  fileSize, localPath, remoteUrl, documentType, }
+----------------------------------------
+File: lib/modules\system\infrastructure\repositories\system_repository_impl.dart
+Class: SystemRepositoryImpl
+Args: _dao
+----------------------------------------
+File: lib/modules\treasury\application\usecases\receive_payment_usecase.dart
+Class: PaymentAllocationCommand
+Args:  receivableId,  allocatedAmount, }
+----------------------------------------
+File: lib/modules\treasury\infrastructure\repositories\treasury_repository_impl.dart
+Class: TreasuryRepositoryImpl
+Args: _dao
+----------------------------------------

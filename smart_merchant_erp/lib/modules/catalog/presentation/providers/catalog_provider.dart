@@ -1,19 +1,18 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../kernel/core/application_context.dart';
-import '../../../../app/di/injection.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../domain/repositories/catalog_repository.dart';
 import '../../application/services/catalog_application_service.dart';
-import '../../../../kernel/storage/app_database.dart' show Product, Category, Unit;
-import '../../../../database/daos/catalog_dao.dart' show ProductFilter;
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/catalog_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 
-import 'package:drift/drift.dart' show Value;
+import 'package:drift/drift.dart';
 
-part 'catalog_provider.g.dart';
+final productsNotifierProvider = AutoDisposeStreamNotifierProvider<ProductsNotifier, List<Product>>(() => ProductsNotifier());
 
-@riverpod
-class ProductsNotifier extends _$ProductsNotifier {
+class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
   @override
   Stream<List<Product>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -33,7 +32,7 @@ class ProductsNotifier extends _$ProductsNotifier {
 
     final service = getIt<CatalogApplicationService>();
     final id = data['id'] as String?;
-    
+
     final command = ProductCommand(
       id: id,
       name: data['product_name']?.toString() ?? '',
@@ -43,22 +42,25 @@ class ProductsNotifier extends _$ProductsNotifier {
       brandId: data['brand_id']?.toString(),
       barcode: data['barcode']?.toString(),
       unitId: data['unit_id']?.toString(),
-      purchasePrice: data['purchase_price'] != null ? double.tryParse(data['purchase_price'].toString()) : null,
-      sellingPrice: data['selling_price'] != null ? double.tryParse(data['selling_price'].toString()) : null,
+      purchasePrice: data['purchase_price'] != null
+          ? double.tryParse(data['purchase_price'].toString())
+          : null,
+      sellingPrice: data['selling_price'] != null
+          ? double.tryParse(data['selling_price'].toString())
+          : null,
       isActive: (data['is_active'] as bool?) ?? true,
       trackStock: (data['track_stock'] as bool?) ?? true,
       imagePath: data['image_url']?.toString(),
       currencyId: data['currency_id']?.toString(),
       showInStore: (data['show_in_store'] as bool?) ?? false,
       openingWarehouseId: data['opening_warehouse_id']?.toString(),
-      openingQuantity: data['opening_quantity'] != null ? double.tryParse(data['opening_quantity'].toString()) : null,
+      openingQuantity: data['opening_quantity'] != null
+          ? double.tryParse(data['opening_quantity'].toString())
+          : null,
     );
 
     final result = await service.saveProduct(command);
-    return result.fold(
-      (l) => null,
-      (r) => r,
-    );
+    return result.fold((l) => null, (r) => r);
   }
 
   Future<void> deleteProduct(String id) async {
@@ -70,8 +72,9 @@ class ProductsNotifier extends _$ProductsNotifier {
   }
 }
 
-@riverpod
-class CategoriesNotifier extends _$CategoriesNotifier {
+final categoriesNotifierProvider = AutoDisposeStreamNotifierProvider<CategoriesNotifier, List<Category>>(() => CategoriesNotifier());
+
+class CategoriesNotifier extends AutoDisposeStreamNotifier<List<Category>> {
   @override
   Stream<List<Category>> build() {
     final session = ref.watch(sessionNotifierProvider);
@@ -89,7 +92,7 @@ class CategoriesNotifier extends _$CategoriesNotifier {
 
     final service = getIt<CatalogApplicationService>();
     final id = data['id'] as String?;
-    
+
     final command = CategoryCommand(
       id: id,
       name: data['category_name']?.toString() ?? '',
@@ -98,10 +101,7 @@ class CategoriesNotifier extends _$CategoriesNotifier {
     );
 
     final result = await service.saveCategory(command);
-    return result.fold(
-      (l) => null,
-      (r) => r,
-    );
+    return result.fold((l) => null, (r) => r);
   }
 
   Future<void> deleteCategory(String id) async {
@@ -113,8 +113,9 @@ class CategoriesNotifier extends _$CategoriesNotifier {
   }
 }
 
-@riverpod
-class UnitsNotifier extends _$UnitsNotifier {
+final unitsNotifierProvider = AutoDisposeStreamNotifierProvider<UnitsNotifier, List<Unit>>(() => UnitsNotifier());
+
+class UnitsNotifier extends AutoDisposeStreamNotifier<List<Unit>> {
   @override
   Stream<List<Unit>> build() {
     final session = ref.watch(sessionNotifierProvider);

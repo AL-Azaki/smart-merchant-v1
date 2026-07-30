@@ -1,10 +1,8 @@
-import 'package:injectable/injectable.dart';
 import '../../domain/repositories/core_repository.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../kernel/error/repository_exceptions.dart';
 import '../../../../database/daos/core_dao.dart';
 
-@LazySingleton(as: CoreRepository)
 class CoreRepositoryImpl implements CoreRepository {
   final CoreDao _dao;
 

@@ -1,6 +1,5 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
-import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
@@ -73,21 +72,20 @@ class UnitCommand {
   final String name;
   final String symbol;
 
-  const UnitCommand({
-    this.id,
-    required this.name,
-    required this.symbol,
-  });
+  const UnitCommand({this.id, required this.name, required this.symbol});
 }
 
-@injectable
 class CatalogApplicationService {
   final CatalogRepository _catalogRepository;
   final ApplicationContext _context;
   final ProcessStockAdjustmentUseCase _processStockAdjustmentUseCase;
   final Uuid _uuid = const Uuid();
 
-  CatalogApplicationService(this._catalogRepository, this._context, this._processStockAdjustmentUseCase);
+  CatalogApplicationService(
+    this._catalogRepository,
+    this._context,
+    this._processStockAdjustmentUseCase,
+  );
 
   Future<Either<Failure, String>> saveProduct(ProductCommand command) async {
     final businessId = _context.currentBusinessId;
@@ -105,7 +103,9 @@ class CatalogApplicationService {
         categoryId: drift.Value(command.categoryId),
         currencyId: drift.Value(command.currencyId),
         productName: drift.Value(command.name),
-        productCode: drift.Value(command.sku ?? 'PRD-${DateTime.now().millisecondsSinceEpoch}'),
+        productCode: drift.Value(
+          command.sku ?? 'PRD-${DateTime.now().millisecondsSinceEpoch}',
+        ),
         description: drift.Value(command.description),
         isActive: drift.Value(command.isActive),
         showInStore: drift.Value(command.showInStore),
@@ -113,101 +113,116 @@ class CatalogApplicationService {
       );
       List<ProductImagesCompanion> images = [];
       if (command.imagePath != null && command.imagePath!.isNotEmpty) {
-         images.add(ProductImagesCompanion(
-           id: drift.Value(_uuid.v4()),
-           productId: drift.Value(productId),
-           imagePath: drift.Value(command.imagePath!),
-           isPrimary: const drift.Value(true),
-           syncStatus: const drift.Value('pending'),
-         ));
+        images.add(
+          ProductImagesCompanion(
+            id: drift.Value(_uuid.v4()),
+            productId: drift.Value(productId),
+            imagePath: drift.Value(command.imagePath!),
+            isPrimary: const drift.Value(true),
+            syncStatus: const drift.Value('pending'),
+          ),
+        );
       }
 
       String? createdUnitId;
 
       if (isNew) {
         if (command.unitId != null && command.unitId!.isNotEmpty) {
-           final unitIdStr = _uuid.v4();
-           createdUnitId = unitIdStr;
-           final unitsCompanion = ProductUnitsCompanion(
-             id: drift.Value(unitIdStr),
-             businessId: drift.Value(businessId),
-             productId: drift.Value(productId),
-             unitId: drift.Value(command.unitId!),
-             barcode: drift.Value(command.barcode),
-             purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
-             sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
-             minimumPrice: const drift.Value(0.0),
-             isBaseUnit: const drift.Value(true),
-             isActive: const drift.Value(true),
-             syncStatus: const drift.Value('pending'),
-           );
-           await _catalogRepository.createProductWithDetails(
-             product: companion,
-             units: [unitsCompanion],
-             images: images,
-           );
+          final unitIdStr = _uuid.v4();
+          createdUnitId = unitIdStr;
+          final unitsCompanion = ProductUnitsCompanion(
+            id: drift.Value(unitIdStr),
+            businessId: drift.Value(businessId),
+            productId: drift.Value(productId),
+            unitId: drift.Value(command.unitId!),
+            barcode: drift.Value(command.barcode),
+            purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
+            sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
+            minimumPrice: const drift.Value(0.0),
+            isBaseUnit: const drift.Value(true),
+            isActive: const drift.Value(true),
+            syncStatus: const drift.Value('pending'),
+          );
+          await _catalogRepository.createProductWithDetails(
+            product: companion,
+            units: [unitsCompanion],
+            images: images,
+          );
         } else {
-           await _catalogRepository.createProductWithDetails(
-             product: companion,
-             units: [],
-             images: images,
-           );
+          await _catalogRepository.createProductWithDetails(
+            product: companion,
+            units: [],
+            images: images,
+          );
         }
       } else {
         await _catalogRepository.updateProduct(companion);
         if (images.isNotEmpty) {
-           final existingImages = await _catalogRepository.getProductImagesByProductId(productId);
-           for (var img in existingImages) {
-             await _catalogRepository.deleteProductImage(img.id);
-           }
-           await _catalogRepository.insertProductImage(images.first);
+          final existingImages = await _catalogRepository
+              .getProductImagesByProductId(productId);
+          for (var img in existingImages) {
+            await _catalogRepository.deleteProductImage(img.id);
+          }
+          await _catalogRepository.insertProductImage(images.first);
         }
         if (command.unitId != null && command.unitId!.isNotEmpty) {
-           final existingUnits = await _catalogRepository.listProductUnitsByProductId(productId, businessId);
-           final existingBase = existingUnits.where((u) => u.isBaseUnit).firstOrNull ?? existingUnits.firstOrNull;
-           if (existingBase != null) {
-              await _catalogRepository.updateProductUnit(ProductUnitsCompanion(
+          final existingUnits = await _catalogRepository
+              .listProductUnitsByProductId(productId, businessId);
+          final existingBase =
+              existingUnits.where((u) => u.isBaseUnit).firstOrNull ??
+              existingUnits.firstOrNull;
+          if (existingBase != null) {
+            await _catalogRepository.updateProductUnit(
+              ProductUnitsCompanion(
                 id: drift.Value(existingBase.id),
                 barcode: drift.Value(command.barcode),
                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
                 unitId: drift.Value(command.unitId!),
                 syncStatus: const drift.Value('pending'),
-              ));
-           } else {
-              final unitIdStr = _uuid.v4();
-              await _catalogRepository.insertProductUnit(ProductUnitsCompanion(
-                 id: drift.Value(unitIdStr),
-                 businessId: drift.Value(businessId),
-                 productId: drift.Value(productId),
-                 unitId: drift.Value(command.unitId!),
-                 barcode: drift.Value(command.barcode),
-                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
-                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
-                 minimumPrice: const drift.Value(0.0),
-                 isBaseUnit: const drift.Value(true),
-                 isActive: const drift.Value(true),
-                 syncStatus: const drift.Value('pending'),
-              ));
-           }
+              ),
+            );
+          } else {
+            final unitIdStr = _uuid.v4();
+            await _catalogRepository.insertProductUnit(
+              ProductUnitsCompanion(
+                id: drift.Value(unitIdStr),
+                businessId: drift.Value(businessId),
+                productId: drift.Value(productId),
+                unitId: drift.Value(command.unitId!),
+                barcode: drift.Value(command.barcode),
+                purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
+                sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
+                minimumPrice: const drift.Value(0.0),
+                isBaseUnit: const drift.Value(true),
+                isActive: const drift.Value(true),
+                syncStatus: const drift.Value('pending'),
+              ),
+            );
+          }
         }
       }
 
       // Record Opening Stock if applicable
-      if (isNew && command.openingWarehouseId != null && command.openingQuantity != null && command.openingQuantity! > 0) {
+      if (isNew &&
+          command.openingWarehouseId != null &&
+          command.openingQuantity != null &&
+          command.openingQuantity! > 0) {
         if (createdUnitId != null) {
-          await _processStockAdjustmentUseCase(ProcessStockAdjustmentCommand(
-            warehouseId: command.openingWarehouseId!,
-            notes: 'Opening stock for newly created product',
-            items: [
-              StockAdjustmentItemCommand(
-                productUnitId: createdUnitId,
-                countedQuantity: command.openingQuantity!,
-                expectedQuantity: 0,
-                difference: command.openingQuantity!,
-              )
-            ]
-          ));
+          await _processStockAdjustmentUseCase(
+            ProcessStockAdjustmentCommand(
+              warehouseId: command.openingWarehouseId!,
+              notes: 'Opening stock for newly created product',
+              items: [
+                StockAdjustmentItemCommand(
+                  productUnitId: createdUnitId,
+                  countedQuantity: command.openingQuantity!,
+                  expectedQuantity: 0,
+                  difference: command.openingQuantity!,
+                ),
+              ],
+            ),
+          );
         }
       }
 

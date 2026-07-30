@@ -76,20 +76,7 @@ void main() {
             isDefault: const drift.Value(false),
           ),
         );
-    await database
-        .into(database.currencies)
-        .insert(
-          CurrenciesCompanion.insert(
-            id: 'curr-sar',
-            currencyCode: 'SAR',
-            currencyNameAr: 'ريال سعودي',
-            currencyNameEn: 'Saudi Riyal',
-            currencySymbol: 'SAR',
-            decimalPlaces: const drift.Value(2),
-            exchangeRate: const drift.Value(1.0),
-            isBaseCurrency: const drift.Value(true),
-          ),
-        );
+    
   });
 
   tearDown(() async {
@@ -105,7 +92,7 @@ void main() {
           id: 'fa-101',
           businessId: 'BUS_A',
           branchId: const drift.Value('BRANCH_1'),
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           assetCode: 'FA-001',
           assetName: 'MacBook Pro M3 Max',
           acquisitionDate: DateTime(2026, 1, 15),
@@ -258,7 +245,7 @@ void main() {
           id: 'fa-busA',
           businessId: 'BUS_A',
           branchId: const drift.Value('BRANCH_1'),
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           assetCode: 'FA-A1',
           assetName: 'Asset A',
           acquisitionDate: DateTime(2026, 1, 1),
@@ -276,7 +263,7 @@ void main() {
         FixedAssetsCompanion.insert(
           id: 'fa-busB',
           businessId: 'BUS_B',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           assetCode: 'FA-B1',
           assetName: 'Asset B',
           acquisitionDate: DateTime(2026, 1, 1),
@@ -327,7 +314,7 @@ void main() {
           id: 'fa-branch2',
           businessId: 'BUS_A',
           branchId: const drift.Value('BRANCH_2'),
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           assetCode: 'FA-A2',
           assetName: 'Asset Branch 2',
           acquisitionDate: DateTime(2026, 1, 5),
@@ -365,7 +352,7 @@ void main() {
           FixedAssetsCompanion.insert(
             id: 'fa-item-$i',
             businessId: 'BUS_A',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             assetCode: 'CODE-${i.toString().padLeft(3, '0')}',
             assetName: i % 2 == 0 ? 'Vehicle Unit $i' : 'Computer Equipment $i',
             acquisitionDate: DateTime(2026, 1, i),
@@ -430,7 +417,7 @@ void main() {
       final assetComp = FixedAssetsCompanion.insert(
         id: 'fa-atomic-1',
         businessId: 'BUS_A',
-        currencyId: 'curr-sar',
+        currencyId: 'SAR',
         assetCode: 'FA-ATM-01',
         assetName: 'Atomic Server Unit',
         acquisitionDate: DateTime(2026, 1, 10),
@@ -486,7 +473,7 @@ void main() {
       final failAssetComp = FixedAssetsCompanion.insert(
         id: 'fa-fail-1',
         businessId: 'BUS_A',
-        currencyId: 'curr-sar',
+        currencyId: 'SAR',
         assetCode: 'FA-FAIL-01',
         assetName: 'Failing Asset Unit',
         acquisitionDate: DateTime(2026, 1, 10),
@@ -563,7 +550,7 @@ void main() {
           FixedAssetsCompanion.insert(
             id: 'fa-stream-init',
             businessId: 'BUS_A',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             assetCode: 'FA-STR-INIT',
             assetName: 'Initial Stream Asset',
             acquisitionDate: DateTime(2026, 1, 1),
@@ -590,7 +577,7 @@ void main() {
           FixedAssetsCompanion.insert(
             id: 'fa-stream-1',
             businessId: 'BUS_A',
-            currencyId: 'curr-sar',
+            currencyId: 'SAR',
             assetCode: 'FA-STR-01',
             assetName: 'Stream Asset',
             acquisitionDate: DateTime(2026, 1, 1),
@@ -681,7 +668,7 @@ void main() {
         FixedAssetsCompanion.insert(
           id: 'fa-sync-1',
           businessId: 'BUS_A',
-          currencyId: 'curr-sar',
+          currencyId: 'SAR',
           assetCode: 'FA-SYNC-01',
           assetName: 'Sync Asset',
           acquisitionDate: DateTime(2026, 1, 1),

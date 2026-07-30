@@ -1,4 +1,3 @@
-import 'package:injectable/injectable.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../domain/repositories/inventory_repository.dart';
@@ -10,7 +9,6 @@ class StockCountDetails {
   StockCountDetails({required this.count, required this.items});
 }
 
-@injectable
 class GetStockCountDetailsUseCase {
   final InventoryRepository _repository;
   final ApplicationContext _context;

@@ -61,11 +61,9 @@ class AuthRemoteApiClient {
     );
     return RegisterDeviceResponseDto.fromJson(response.json);
   }
+
   /// POST /business/setup
   Future<void> setupBusiness(Map<String, dynamic> request) async {
-    await _apiClient.post(
-      '/business/setup',
-      data: request,
-    );
+    await _apiClient.post('/business/setup', data: request);
   }
 }

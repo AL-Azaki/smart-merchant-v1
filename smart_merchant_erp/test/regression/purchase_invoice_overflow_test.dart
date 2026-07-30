@@ -19,7 +19,8 @@ void main() {
       ),
     );
 
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
     
     // Find the product text field.
     final textField = find.byType(TextField).first;
