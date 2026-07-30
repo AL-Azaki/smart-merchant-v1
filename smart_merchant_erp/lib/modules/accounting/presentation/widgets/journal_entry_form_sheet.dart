@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
+import '../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../shared/design_system/widgets/app_status_badge.dart';
+import '../../../../shared/design_system/widgets/app_text_field.dart';
 
 class JournalEntryLineModel {
   String id;
@@ -23,19 +26,19 @@ class JournalEntryLineModel {
 
 class JournalEntryFormSheet extends StatefulWidget {
   final VoidCallback onClose;
-  final Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave;
+  final void Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave;
 
   const JournalEntryFormSheet({
-    super.key,
     required this.onClose,
     required this.onSave,
+    super.key,
   });
 
   static void show(
     BuildContext context, {
-    required Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave,
+    required void Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave,
   }) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -139,475 +142,231 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.surfaceDark : Colors.white;
-    final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
-      ),
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.9,
-      ),
+    return AppModalSheet(
+      title: 'إضافة قيد يومية',
+      icon: Icons.receipt_long_outlined,
+      iconColor: const Color(0xFF10B981),
+      onClose: widget.onClose,
+      primaryLabel: 'حفظ وترحيل القيد',
+      onPrimary: _isBalanced ? _submit : null,
+      maxHeightFactor: 0.9,
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header ──
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: AppTextField(
+                  label: 'البيان / الوصف *',
+                  hint: 'مثال: إثبات فاتورة مشتريات',
+                  controller: _descriptionController,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: AppTextField(
+                  label: 'التاريخ',
+                  initialValue: '${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}',
+                  readOnly: true,
+                  suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _selectedDate,
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime(2030),
+                    );
+                    if (picked != null) {
+                      setState(() => _selectedDate = picked);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 1,
+                child: AppTextField(
+                  label: 'رقم المرجع',
+                  hint: 'INV-001',
+                  controller: _referenceController,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Table Header
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: surface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              border: Border(bottom: BorderSide(color: borderColor)),
+              color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: const Row(
               children: [
-                Expanded(
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40, height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(Icons.description_outlined, color: Color(0xFF10B981), size: 22),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'إضافة قيد يومية',
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: Icon(Icons.close_rounded, color: textPrimary, size: 22),
-                ),
+                Expanded(flex: 3, child: Text('الحساب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                SizedBox(width: 8),
+                Expanded(flex: 2, child: Text('البيان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
+                SizedBox(width: 8),
+                Expanded(flex: 1, child: Center(child: Text('مدين', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blue)))),
+                SizedBox(width: 8),
+                Expanded(flex: 1, child: Center(child: Text('دائن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red)))),
+                SizedBox(width: 36),
               ],
             ),
           ),
+          const SizedBox(height: 8),
 
-          // ── Scrollable Form Area (Top Fields + Lines Table) ──
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
+          // Lines List
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _lines.length,
+            separatorBuilder: (ctx, idx) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final line = _lines[index];
+              final selectedAcc = _mockAccounts.cast<Map<String, String>?>().firstWhere(
+                (a) => a!['id'] == line.accountId,
+                orElse: () => null,
+              );
+
+              return Row(
                 children: [
-                  // Top Fields (Description, Date, Ref)
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    color: surface,
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('البيان / الوصف', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textSecondary)),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: _descriptionController,
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
-                                    decoration: InputDecoration(
-                                      hintText: 'مثال: إثبات فاتورة مشتريات',
-                                      hintStyle: TextStyle(color: textSecondary.withOpacity(0.5), fontSize: 13),
-                                      filled: true,
-                                      fillColor: bg,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 1,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('التاريخ', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textSecondary)),
-                                  const SizedBox(height: 6),
-                                  GestureDetector(
-                                    onTap: () async {
-                                      final picked = await showDatePicker(
-                                        context: context,
-                                        initialDate: _selectedDate,
-                                        firstDate: DateTime(2020),
-                                        lastDate: DateTime(2030),
-                                      );
-                                      if (picked != null) {
-                                        setState(() => _selectedDate = picked);
-                                      }
-                                    },
-                                    child: Container(
-                                      height: 48,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                                      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14), border: Border.all(color: borderColor)),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            '${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.year}',
-                                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textPrimary),
-                                          ),
-                                          Icon(Icons.calendar_today_rounded, size: 16, color: textSecondary),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              flex: 1,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('رقم المرجع', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: textSecondary)),
-                                  const SizedBox(height: 6),
-                                  TextField(
-                                    controller: _referenceController,
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: textPrimary),
-                                    decoration: InputDecoration(
-                                      hintText: 'INV-001',
-                                      hintStyle: TextStyle(color: textSecondary.withOpacity(0.5), fontSize: 13),
-                                      filled: true,
-                                      fillColor: bg,
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
-                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: borderColor)),
-                                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5)),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                  Expanded(
+                    flex: 3,
+                    child: AppTextField(
+                      label: '',
+                      initialValue: selectedAcc != null ? '${selectedAcc['code']} - ${selectedAcc['name']}' : 'اختر الحساب...',
+                      readOnly: true,
+                      suffixIcon: PopupMenuButton<String>(
+                        icon: const Icon(Icons.arrow_drop_down),
+                        onSelected: (val) {
+                          final acc = _mockAccounts.firstWhere((a) => a['id'] == val);
+                          setState(() {
+                            line.accountId = acc['id']!;
+                            line.accountCode = acc['code']!;
+                            line.accountName = acc['name']!;
+                          });
+                        },
+                        itemBuilder: (ctx) => _mockAccounts
+                            .map((acc) => PopupMenuItem(
+                                  value: acc['id'],
+                                  child: Text('${acc['code']} - ${acc['name']}'),
+                                ))
+                            .toList(),
+                      ),
                     ),
                   ),
-
-                  // ── Table Column Headers ──
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                      border: Border.symmetric(horizontal: BorderSide(color: borderColor)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(flex: 3, child: Text('الحساب', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textSecondary))),
-                        const SizedBox(width: 8),
-                        Expanded(flex: 2, child: Text('البيان', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textSecondary))),
-                        const SizedBox(width: 8),
-                        Expanded(flex: 1, child: Text('مدين', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textSecondary))),
-                        const SizedBox(width: 8),
-                        Expanded(flex: 1, child: Text('دائن', textAlign: TextAlign.center, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: textSecondary))),
-                        const SizedBox(width: 32),
-                      ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 2,
+                    child: AppTextField(
+                      label: '',
+                      hint: 'شرح السطر...',
+                      initialValue: line.description,
+                      onChanged: (val) => line.description = val,
                     ),
                   ),
-
-                  // ── Lines List ──
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      children: [
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _lines.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final line = _lines[index];
-                      return Row(
-                        children: [
-                          // Account dropdown
-                          Expanded(
-                            flex: 3,
-                            child: Container(
-                              height: 48,
-                              padding: const EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                color: surface,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: borderColor),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: line.accountId.isEmpty ? null : line.accountId,
-                                  hint: Text('اختر الحساب...', style: TextStyle(fontSize: 12, color: textSecondary)),
-                                  isExpanded: true,
-                                  items: _mockAccounts.map((acc) {
-                                    return DropdownMenuItem(
-                                      value: acc['id'],
-                                      child: Text(
-                                        '${acc['code']} - ${acc['name']}',
-                                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textPrimary),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    final acc = _mockAccounts.firstWhere((a) => a['id'] == val);
-                                    setState(() {
-                                      line.accountId = acc['id']!;
-                                      line.accountCode = acc['code']!;
-                                      line.accountName = acc['name']!;
-                                    });
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Line description
-                          Expanded(
-                            flex: 2,
-                            child: SizedBox(
-                              height: 48,
-                              child: TextField(
-                                onChanged: (val) => line.description = val,
-                                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textPrimary),
-                                decoration: InputDecoration(
-                                  hintText: 'شرح السطر...',
-                                  hintStyle: TextStyle(color: textSecondary.withOpacity(0.5), fontSize: 12),
-                                  filled: true,
-                                  fillColor: surface,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF10B981))),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Debit
-                          Expanded(
-                            flex: 1,
-                            child: SizedBox(
-                              height: 48,
-                              child: TextField(
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: line.debit > 0 ? const Color(0xFF3B82F6) : textPrimary,
-                                ),
-                                onChanged: (val) {
-                                  setState(() {
-                                    line.debit = double.tryParse(val) ?? 0.0;
-                                    if (line.debit > 0) line.credit = 0.0;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  hintText: '0',
-                                  filled: true,
-                                  fillColor: surface,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF3B82F6))),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          // Credit
-                          Expanded(
-                            flex: 1,
-                            child: SizedBox(
-                              height: 48,
-                              child: TextField(
-                                keyboardType: TextInputType.number,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w800,
-                                  color: line.credit > 0 ? const Color(0xFFEF4444) : textPrimary,
-                                ),
-                                onChanged: (val) {
-                                  setState(() {
-                                    line.credit = double.tryParse(val) ?? 0.0;
-                                    if (line.credit > 0) line.debit = 0.0;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  hintText: '0',
-                                  filled: true,
-                                  fillColor: surface,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: borderColor)),
-                                  focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFEF4444))),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          // Delete button
-                          IconButton(
-                            onPressed: _lines.length > 2 ? () => _removeLine(index) : null,
-                            icon: Icon(
-                              Icons.delete_outline_rounded,
-                              color: _lines.length > 2 ? const Color(0xFFEF4444) : textSecondary.withOpacity(0.3),
-                              size: 20,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: AppNumberField(
+                      label: '',
+                      hint: '0',
+                      initialValue: line.debit > 0 ? line.debit.toString() : '',
+                      onChanged: (val) {
+                        setState(() {
+                          line.debit = double.tryParse(val) ?? 0.0;
+                          if (line.debit > 0) {
+                            line.credit = 0.0;
+                          }
+                        });
+                      },
+                    ),
                   ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: _addLine,
-                      icon: const Icon(Icons.add_rounded, color: Color(0xFF10B981), size: 20),
-                      label: const Text(
-                        'إضافة سطر',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: Color(0xFF10B981)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: AppNumberField(
+                      label: '',
+                      hint: '0',
+                      initialValue: line.credit > 0 ? line.credit.toString() : '',
+                      onChanged: (val) {
+                        setState(() {
+                          line.credit = double.tryParse(val) ?? 0.0;
+                          if (line.credit > 0) {
+                            line.debit = 0.0;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  SizedBox(
+                    width: 36,
+                    child: IconButton(
+                      onPressed: _lines.length > 2 ? () => _removeLine(index) : null,
+                      icon: Icon(
+                        Icons.delete_outline_rounded,
+                        color: _lines.length > 2 ? Colors.red : Colors.grey.shade400,
+                        size: 20,
                       ),
                     ),
                   ),
                 ],
-              ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          TextButton.icon(
+            onPressed: _addLine,
+            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF10B981), size: 20),
+            label: const Text(
+              'إضافة سطر جديد للقيد',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13),
             ),
-          ],
-        ),
-      ),
-    ),
+          ),
+          const SizedBox(height: 16),
+          Divider(color: borderColor),
+          const SizedBox(height: 12),
 
-          // ── Bottom Summary & Actions ──
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: surface,
-              border: Border(top: BorderSide(color: borderColor)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, -4))],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('إجمالي المدين', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary)),
-                            const SizedBox(height: 2),
-                            Text(
-                              _totalDebit.toStringAsFixed(0),
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF3B82F6)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 24),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('إجمالي الدائن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary)),
-                            const SizedBox(height: 2),
-                            Text(
-                              _totalCredit.toStringAsFixed(0),
-                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFFEF4444)),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _isBalanced
-                            ? const Color(0xFF10B981).withOpacity(0.12)
-                            : const Color(0xFFEF4444).withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
+          // Summary & Balance Status
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('إجمالي المدين', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        _totalDebit.toStringAsFixed(0),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
                       ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _isBalanced ? Icons.check_rounded : Icons.close_rounded,
-                            size: 16,
-                            color: _isBalanced ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            _isBalanced ? 'متوازن' : 'غير متوازن (${_difference.toStringAsFixed(0)})',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              color: _isBalanced ? const Color(0xFF10B981) : const Color(0xFFEF4444),
-                            ),
-                          ),
-                        ],
+                    ],
+                  ),
+                  const SizedBox(width: 24),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('إجمالي الدائن', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        _totalCredit.toStringAsFixed(0),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: SizedBox(
-                        height: 50,
-                        child: OutlinedButton(
-                          onPressed: widget.onClose,
-                          style: OutlinedButton.styleFrom(
-                            backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                            side: BorderSide.none,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: Text('إلغاء', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textSecondary)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: SizedBox(
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: _isBalanced ? _submit : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _isBalanced ? const Color(0xFF10B981) : borderColor,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          icon: const Icon(Icons.check_rounded, color: Colors.white, size: 20),
-                          label: const Text('حفظ وترحيل', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                    ],
+                  ),
+                ],
+              ),
+              AppStatusBadge(
+                label: _isBalanced ? 'القيد متوازن' : 'غير متوازن (${_difference.toStringAsFixed(0)})',
+                variant: _isBalanced ? AppStatusBadgeVariant.success : AppStatusBadgeVariant.error,
+              ),
+            ],
           ),
         ],
       ),

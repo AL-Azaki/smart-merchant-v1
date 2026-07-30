@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import '../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../shared/design_system/widgets/custom_text_field.dart';
-import '../../../../../shared/forms/app_field_config.dart';
+import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../../shared/design_system/widgets/app_text_field.dart';
 
 class EmployeeFormSheet extends StatefulWidget {
   final Map<String, dynamic>? employee;
   final VoidCallback onClose;
-  final Function(Map<String, dynamic>) onSave;
+  final void Function(Map<String, dynamic> data) onSave;
 
   const EmployeeFormSheet({
-    super.key,
-    this.employee,
     required this.onClose,
     required this.onSave,
+    super.key,
+    this.employee,
   });
 
   @override
@@ -32,13 +32,13 @@ class _EmployeeFormSheetState extends State<EmployeeFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: (widget.employee?['name'] as String?) ?? '');
-    _employeeCodeController = TextEditingController(text: (widget.employee?['employee_code'] as String?) ?? '');
-    _phoneController = TextEditingController(text: (widget.employee?['phone'] as String?) ?? '');
+    _nameController = TextEditingController(text: widget.employee?['name']?.toString() ?? '');
+    _employeeCodeController = TextEditingController(text: widget.employee?['employee_code']?.toString() ?? '');
+    _phoneController = TextEditingController(text: widget.employee?['phone']?.toString() ?? '');
     final salary = widget.employee?['salary'] as num?;
     _salaryController = TextEditingController(text: salary != null && salary > 0 ? salary.toString() : '');
-    _emailController = TextEditingController(text: (widget.employee?['email'] as String?) ?? '');
-    _status = (widget.employee?['status'] as String?) ?? 'active';
+    _emailController = TextEditingController(text: widget.employee?['email']?.toString() ?? '');
+    _status = widget.employee?['status']?.toString() ?? 'active';
   }
 
   @override
@@ -68,262 +68,151 @@ class _EmployeeFormSheetState extends State<EmployeeFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final bg = isDark ? AppColors.backgroundDark : AppColors.backgroundLight;
     final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final isEdit = widget.employee != null;
 
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
-        width: double.infinity,
-        height: MediaQuery.of(context).size.height * 0.9,
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isDark ? borderColor : Colors.white),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 48,
-              offset: const Offset(0, 24),
-            ),
-          ],
-        ),
+    return AppModalSheet(
+      title: isEdit ? 'تعديل بيانات الموظف' : 'إضافة موظف جديد',
+      icon: Icons.badge_outlined,
+      onClose: widget.onClose,
+      primaryLabel: 'حفظ الموظف',
+      onPrimary: _submit,
+      child: Form(
+        key: _formKey,
         child: Column(
           children: [
-            // Header
+            // المعلومات الأساسية
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(bottom: BorderSide(color: borderColor)),
+                border: Border.all(color: borderColor),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  const Row(
                     children: [
-                      Text(
-                        widget.employee == null ? 'إضافة موظف جديد' : 'تعديل بيانات الموظف',
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'أدخل تفاصيل الموظف بدقة',
-                        style: TextStyle(color: textSecondary, fontSize: 14),
-                      ),
+                      Icon(Icons.person_outline, size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text('المعلومات الأساسية', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
                     ],
                   ),
-                  InkWell(
-                    onTap: widget.onClose,
-                    borderRadius: BorderRadius.circular(22),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.surfaceDark : Colors.grey[100],
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close),
-                    ),
+                  const SizedBox(height: 16),
+                  AppTextField(
+                    label: 'اسم الموظف *',
+                    hint: 'أدخل الاسم الكامل للموظف',
+                    controller: _nameController,
+                    prefixIcon: const Icon(Icons.person_outline),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال اسم الموظف' : null,
+                  ),
+                  const SizedBox(height: 14),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final empCodeField = AppTextField(
+                        label: 'رمز الموظف (الكود) *',
+                        hint: 'EMP-01',
+                        controller: _employeeCodeController,
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال كود الموظف' : null,
+                      );
+                      final phoneField = AppTextField(
+                        label: 'رقم الهاتف',
+                        hint: '05xxxxxxxx',
+                        controller: _phoneController,
+                        keyboardType: TextInputType.phone,
+                        prefixIcon: const Icon(Icons.phone_outlined),
+                      );
+
+                      if (isMobile) {
+                        return Column(
+                          children: [
+                            empCodeField,
+                            const SizedBox(height: 14),
+                            phoneField,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: empCodeField),
+                          const SizedBox(width: 12),
+                          Expanded(child: phoneField),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
             ),
-            
-            // Body
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          border: Border.all(color: borderColor),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.person_outline, size: 18, color: AppColors.primary),
-                                const SizedBox(width: 8),
-                                const Text('المعلومات الأساسية', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            CustomTextField(
-                              label: 'اسم الموظف *',
-                              controller: _nameController,
-                              fieldType: AppFieldType.generalText,
-                              isRequired: true,
-                              prefixIcon: const Icon(Icons.person_outline),
-                            ),
-                            const SizedBox(height: 16),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isMobile = constraints.maxWidth < 600;
-                                Widget empCodeField = CustomTextField(
-                                  label: 'رمز الموظف (الكود) *',
-                                  controller: _employeeCodeController,
-                                  fieldType: AppFieldType.generalText,
-                                  isRequired: true,
-                                  prefixIcon: const Icon(Icons.badge_outlined),
-                                );
-                                Widget phoneField = CustomTextField(
-                                  label: 'رقم الهاتف',
-                                  controller: _phoneController,
-                                  fieldType: AppFieldType.phone,
-                                  prefixIcon: const Icon(Icons.phone_outlined),
-                                );
-                                if (isMobile) {
-                                  return Column(
-                                    children: [
-                                      empCodeField,
-                                      const SizedBox(height: 16),
-                                      phoneField,
-                                    ],
-                                  );
-                                }
-                                return Row(
-                                  children: [
-                                    Expanded(child: empCodeField),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: phoneField),
-                                  ],
-                                );
-                              }
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      
-                      // Financial Info Section
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          border: Border.all(color: borderColor),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                const Icon(Icons.attach_money_outlined, size: 18, color: Colors.green),
-                                const SizedBox(width: 8),
-                                const Text('التفاصيل الإدارية والمالية', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final isMobile = constraints.maxWidth < 600;
-                                Widget salaryField = CustomTextField(
-                                  label: 'الراتب الشهري (YER) *',
-                                  controller: _salaryController,
-                                  fieldType: AppFieldType.decimal,
-                                  isRequired: true,
-                                  prefixIcon: const Icon(Icons.account_balance_wallet_outlined),
-                                );
-                                Widget statusField = DropdownButtonFormField<String>(
-                                  initialValue: _status,
-                                  decoration: InputDecoration(
-                                    labelText: 'الحالة',
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                                  ),
-                                  items: const [
-                                    DropdownMenuItem(value: 'active', child: Text('نشط')),
-                                    DropdownMenuItem(value: 'on_leave', child: Text('في إجازة')),
-                                    DropdownMenuItem(value: 'inactive', child: Text('موقوف')),
-                                  ],
-                                  onChanged: (v) => setState(() => _status = v ?? 'active'),
-                                );
-                                if (isMobile) {
-                                  return Column(
-                                    children: [
-                                      salaryField,
-                                      const SizedBox(height: 16),
-                                      statusField,
-                                    ],
-                                  );
-                                }
-                                return Row(
-                                  children: [
-                                    Expanded(child: salaryField),
-                                    const SizedBox(width: 16),
-                                    Expanded(child: statusField),
-                                  ],
-                                );
-                              }
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            
-            // Footer
+            const SizedBox(height: 20),
+
+            // التفاصيل الإدارية والمالية
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
-                border: Border(top: BorderSide(color: borderColor)),
+                border: Border.all(color: borderColor),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: 1,
-                    child: SizedBox(
-                      height: 60,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          backgroundColor: isDark ? AppColors.surfaceDark : Colors.grey[100],
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        onPressed: widget.onClose,
-                        child: const Text('إلغاء', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey)),
-                      ),
-                    ),
+                  const Row(
+                    children: [
+                      Icon(Icons.attach_money_outlined, size: 18, color: Colors.green),
+                      SizedBox(width: 8),
+                      Text('التفاصيل الإدارية والمالية', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                    ],
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 60,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        onPressed: _submit,
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check, size: 24),
-                            SizedBox(width: 10),
-                            Text('حفظ الموظف', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final salaryField = AppNumberField(
+                        label: 'الراتب الشهري (YER) *',
+                        hint: '0.00',
+                        controller: _salaryController,
+                        suffixIcon: const Icon(Icons.account_balance_wallet_outlined),
+                        validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال الراتب' : null,
+                      );
+                      final statusField = AppTextField(
+                        label: 'الحالة',
+                        initialValue: _status == 'active'
+                            ? 'نشط'
+                            : (_status == 'on_leave' ? 'في إجازة' : 'موقوف'),
+                        readOnly: true,
+                        suffixIcon: PopupMenuButton<String>(
+                          icon: const Icon(Icons.arrow_drop_down),
+                          onSelected: (val) => setState(() => _status = val),
+                          itemBuilder: (ctx) => const [
+                            PopupMenuItem(value: 'active', child: Text('نشط')),
+                            PopupMenuItem(value: 'on_leave', child: Text('في إجازة')),
+                            PopupMenuItem(value: 'inactive', child: Text('موقوف')),
                           ],
                         ),
-                      ),
-                    ),
+                      );
+
+                      if (isMobile) {
+                        return Column(
+                          children: [
+                            salaryField,
+                            const SizedBox(height: 14),
+                            statusField,
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          Expanded(child: salaryField),
+                          const SizedBox(width: 12),
+                          Expanded(child: statusField),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),

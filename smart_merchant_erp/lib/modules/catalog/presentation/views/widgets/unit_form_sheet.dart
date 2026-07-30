@@ -1,17 +1,17 @@
-import 'package:flutter/material.dart';
-import '../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../shared/design_system/widgets/primary_button.dart';
+﻿import 'package:flutter/material.dart';
+import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../../shared/design_system/widgets/app_text_field.dart';
 
 class UnitFormSheet extends StatefulWidget {
   final Map<String, dynamic>? unit;
   final VoidCallback onClose;
-  final Function(Map<String, dynamic>) onSave;
+  final void Function(Map<String, dynamic> data) onSave;
 
   const UnitFormSheet({
-    super.key,
-    this.unit,
     required this.onClose,
     required this.onSave,
+    super.key,
+    this.unit,
   });
 
   @override
@@ -29,11 +29,11 @@ class _UnitFormSheetState extends State<UnitFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.unit?['unit_name'] ?? '');
-    _symbolController = TextEditingController(text: widget.unit?['unit_symbol'] ?? '');
-    _descriptionController = TextEditingController(text: widget.unit?['unit_description'] ?? '');
-    _isActive = widget.unit?['is_active'] ?? true;
-    _isDefault = widget.unit?['is_default'] ?? false;
+    _nameController = TextEditingController(text: widget.unit?['unit_name']?.toString() ?? '');
+    _symbolController = TextEditingController(text: widget.unit?['unit_symbol']?.toString() ?? '');
+    _descriptionController = TextEditingController(text: widget.unit?['unit_description']?.toString() ?? '');
+    _isActive = (widget.unit?['is_active'] as bool?) ?? true;
+    _isDefault = (widget.unit?['is_default'] as bool?) ?? false;
   }
 
   @override
@@ -59,161 +59,74 @@ class _UnitFormSheetState extends State<UnitFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final isEdit = widget.unit != null;
 
-    return Container(
-      width: 500,
-      height: MediaQuery.of(context).size.height * 0.7,
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight)),
+    return AppModalSheet(
+      title: isEdit ? 'تعديل الوحدة' : 'إضافة وحدة جديدة',
+      icon: Icons.scale_outlined,
+      iconColor: Colors.blue,
+      onClose: widget.onClose,
+      primaryLabel: 'حفظ',
+      onPrimary: _submit,
+      maxHeightFactor: 0.7,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTextField(
+              label: 'اسم الوحدة *',
+              hint: 'مثال: قطعة، كرتون، كيلو',
+              controller: _nameController,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال اسم الوحدة' : null,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.scale_outlined, color: Colors.blue),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      widget.unit == null ? 'إضافة وحدة جديدة' : 'تعديل الوحدة',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-          ),
-          
-          // Body
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الوحدة *',
-                        border: OutlineInputBorder(),
-                        hintText: 'مثال: قطعة، كرتون، كيلو',
-                      ),
-                      validator: (v) => v!.isEmpty ? 'يرجى إدخال اسم الوحدة' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _symbolController,
-                            decoration: const InputDecoration(
-                              labelText: 'الرمز / الاختصار *',
-                              border: OutlineInputBorder(),
-                              hintText: 'مثال: قطعة، كرتون، كغ',
-                            ),
-                            validator: (v) => v!.isEmpty ? 'يرجى إدخال رمز الوحدة' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _descriptionController,
-                            decoration: const InputDecoration(
-                              labelText: 'الوصف',
-                              border: OutlineInputBorder(),
-                              hintText: 'الوصف أو التفاصيل',
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: SwitchListTile(
-                            title: const Text('وحدة نشطة', style: TextStyle(fontWeight: FontWeight.bold)),
-                            value: _isActive,
-                            onChanged: (val) => setState(() => _isActive = val),
-                            activeColor: Colors.blue,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: SwitchListTile(
-                            title: const Text('افتراضية النظام', style: TextStyle(fontWeight: FontWeight.bold)),
-                            value: _isDefault,
-                            onChanged: (val) => setState(() => _isDefault = val),
-                            activeColor: Colors.blue,
-                            contentPadding: EdgeInsets.zero,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          
-          // Footer
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight)),
-            ),
-            child: Row(
+            const SizedBox(height: 16),
+            Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: widget.onClose,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? AppColors.surfaceDark : Colors.grey.shade200,
-                      foregroundColor: isDark ? Colors.white : Colors.black,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: AppTextField(
+                    label: 'الرمز / الاختصار *',
+                    hint: 'مثال: قطعة، كرتون، كغ',
+                    controller: _symbolController,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال رمز الوحدة' : null,
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: PrimaryButton(
-                    text: 'حفظ',
-                    icon: Icons.check,
-                    onPressed: _submit,
+                  child: AppTextField(
+                    label: 'الوصف',
+                    hint: 'الوصف أو التفاصيل',
+                    controller: _descriptionController,
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: SwitchListTile(
+                    title: const Text('وحدة نشطة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    value: _isActive,
+                    onChanged: (val) => setState(() => _isActive = val),
+                    activeThumbColor: Colors.blue,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: SwitchListTile(
+                    title: const Text('افتراضية النظام', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    value: _isDefault,
+                    onChanged: (val) => setState(() => _isDefault = val),
+                    activeThumbColor: Colors.blue,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

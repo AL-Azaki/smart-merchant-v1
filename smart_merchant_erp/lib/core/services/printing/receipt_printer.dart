@@ -102,7 +102,7 @@ class ReceiptPrinter {
                     children: [
                       pw.Expanded(
                         flex: 3,
-                        child: pw.Text(item['name'], maxLines: 1),
+                        child: pw.Text(item['name']?.toString() ?? '', maxLines: 1),
                       ),
                       pw.Expanded(
                         flex: 1,
@@ -114,7 +114,7 @@ class ReceiptPrinter {
                       pw.Expanded(
                         flex: 2,
                         child: pw.Text(
-                          item['total'].toStringAsFixed(2),
+                          (item['total'] as num).toStringAsFixed(2),
                           textAlign: pw.TextAlign.left,
                         ),
                       ),

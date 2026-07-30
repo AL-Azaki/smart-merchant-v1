@@ -8,9 +8,9 @@ class PrimaryButton extends StatelessWidget {
   final IconData? icon;
 
   const PrimaryButton({
-    super.key,
     required this.text,
     required this.onPressed,
+    super.key,
     this.isLoading = false,
     this.icon,
   });

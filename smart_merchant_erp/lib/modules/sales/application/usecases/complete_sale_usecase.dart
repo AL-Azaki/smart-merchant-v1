@@ -290,7 +290,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       id: inventoryTransactionId,
       businessId: businessId,
       branchId: branchId,
-      warehouseId: itemsWithCost.first['command'].warehouseId,
+      warehouseId: (itemsWithCost.first['command'] as dynamic).warehouseId as String,
       transactionDate: drift.Value(invoiceDate),
       transactionType: InventoryTransactionType.dispatch,
       movementDirection: InventoryMovementDirection.outbound,

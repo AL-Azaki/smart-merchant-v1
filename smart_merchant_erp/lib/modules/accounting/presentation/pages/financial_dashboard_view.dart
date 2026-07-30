@@ -6,6 +6,7 @@ import '../widgets/transaction_details_sheet.dart';
 import '../widgets/journal_entry_details_sheet.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
+import '../../../../shared/design_system/widgets/app_search_filter_bar.dart';
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
 
@@ -249,11 +250,17 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
               child: TabBarView(
                 controller: _tabController,
                 physics: const NeverScrollableScrollPhysics(),
-                children: const [
-                  _DashboardTab(key: ValueKey('dashboard')),
-                  ChartOfAccountsTab(key: ValueKey('coa')),
-                  JournalEntriesTab(key: ValueKey('journal')),
-                  FinancialReportsTab(key: ValueKey('reports')),
+                children: [
+                  _DashboardTab(
+                    key: const ValueKey('dashboard'),
+                    onSelectTab: (index) {
+                      _tabController.animateTo(index);
+                      setState(() => _activeTab = index);
+                    },
+                  ),
+                  const ChartOfAccountsTab(key: ValueKey('coa')),
+                  const JournalEntriesTab(key: ValueKey('journal')),
+                  const FinancialReportsTab(key: ValueKey('reports')),
                 ],
               ),
             ),
@@ -275,7 +282,8 @@ class _TabItem {
 // ─── Tab 1: Dashboard ──────────────────────────────────────────────────────────
 
 class _DashboardTab extends StatefulWidget {
-  const _DashboardTab({super.key});
+  final ValueChanged<int>? onSelectTab;
+  const _DashboardTab({super.key, this.onSelectTab});
 
   @override
   State<_DashboardTab> createState() => _DashboardTabState();
@@ -382,14 +390,18 @@ class _DashboardTabState extends State<_DashboardTab> {
                 label: 'دليل الحسابات',
                 icon: Icons.account_tree_rounded,
                 color: const Color(0xFF3B82F6),
-                onTap: () {},
+                onTap: () {
+                  widget.onSelectTab?.call(1);
+                },
               ),
               const SizedBox(width: 16),
               _QuickActionChip(
                 label: 'التقارير',
                 icon: Icons.pie_chart_rounded,
                 color: const Color(0xFFEC4899),
-                onTap: () {},
+                onTap: () {
+                  widget.onSelectTab?.call(3);
+                },
               ),
             ],
           ),
@@ -696,16 +708,40 @@ class ChartOfAccountsTab extends StatefulWidget {
 
 class _ChartOfAccountsTabState extends State<ChartOfAccountsTab> {
   String _search = '';
+  String _selectedTypeFilter = 'all';
   final Set<String> _expanded = {'acc_1', 'acc_5', 'acc_7', 'acc_9', 'acc_11'};
 
   Color _typeColor(String type) {
     switch (type) {
-      case 'Asset': return const Color(0xFF3B82F6);
-      case 'Liability': return const Color(0xFFEF4444);
-      case 'Equity': return const Color(0xFF8B5CF6);
-      case 'Revenue': return const Color(0xFF10B981);
-      case 'Expense': return const Color(0xFFF59E0B);
-      default: return Colors.grey;
+      case 'Asset':
+        return const Color(0xFF3B82F6);
+      case 'Liability':
+        return const Color(0xFFEF4444);
+      case 'Equity':
+        return const Color(0xFF8B5CF6);
+      case 'Revenue':
+        return const Color(0xFF10B981);
+      case 'Expense':
+        return const Color(0xFFF59E0B);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _typeLabelAr(String type) {
+    switch (type) {
+      case 'Asset':
+        return 'أصول';
+      case 'Liability':
+        return 'خصوم';
+      case 'Equity':
+        return 'حقوق ملكية';
+      case 'Revenue':
+        return 'إيرادات';
+      case 'Expense':
+        return 'مصروفات';
+      default:
+        return type;
     }
   }
 
@@ -716,6 +752,18 @@ class _ChartOfAccountsTabState extends State<ChartOfAccountsTab> {
 
   bool _hasChildren(String id) => _mockAccounts.any((a) => a.parentId == id);
 
+  void _expandAll() {
+    setState(() {
+      _expanded.addAll(_mockAccounts.where((a) => _hasChildren(a.id)).map((a) => a.id));
+    });
+  }
+
+  void _collapseAll() {
+    setState(() {
+      _expanded.clear();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -725,117 +773,269 @@ class _ChartOfAccountsTabState extends State<ChartOfAccountsTab> {
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
     final bgLight = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
 
-    final roots = _search.isEmpty
+    final totalAccounts = _mockAccounts.length;
+    final parentCount = _mockAccounts.where((a) => !a.allowPosting).length;
+    final postingCount = _mockAccounts.where((a) => a.allowPosting).length;
+
+    final filteredAccounts = _mockAccounts.where((a) {
+      final matchesSearch = _search.isEmpty ||
+          a.name.contains(_search) ||
+          a.code.contains(_search);
+      final matchesType = _selectedTypeFilter == 'all' || a.type == _selectedTypeFilter;
+      return matchesSearch && matchesType;
+    }).toList();
+
+    final roots = _search.isEmpty && _selectedTypeFilter == 'all'
         ? _children(null)
-        : _mockAccounts.where((a) => a.name.contains(_search) || a.code.contains(_search)).toList();
+        : filteredAccounts;
 
     return Column(
       children: [
-        // Header
+        // ── Ultra-Compact Combined Header & Toolbar Banner ──
         Container(
-          color: surface,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: surface,
+            border: Border(bottom: BorderSide(color: borderColor)),
+          ),
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              // Row 1: Title + Micro Stat Chip + Expand/Collapse + Add Account Button
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.account_tree_outlined,
+                      color: Color(0xFF6366F1),
+                      size: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'دليل الحسابات',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      color: textPrimary,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Micro Stats Chip
+                  Tooltip(
+                    message: '$totalAccounts حساب ($parentCount رئيسي • $postingCount فرعي)',
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: bgLight,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Text(
+                        '$totalAccounts حساب',
+                        style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6)),
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Expand & Collapse Icon Buttons
+                  InkWell(
+                    onTap: _expandAll,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bgLight,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Icon(Icons.unfold_more_rounded, size: 14, color: textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  InkWell(
+                    onTap: _collapseAll,
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: bgLight,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Icon(Icons.unfold_less_rounded, size: 14, color: textPrimary),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  // Add Account Button
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      AccountFormSheet.show(
+                        context,
+                        parentAccounts: _mockAccounts
+                            .where((a) => !a.allowPosting)
+                            .map((a) => {'id': a.id, 'code': a.code, 'name': a.name})
+                            .toList(),
+                        onSave: (data) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('تم إضافة الحساب: ${data['name']}')),
+                          );
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.add_rounded, size: 13, color: Colors.white),
+                    label: const Text('إضافة', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6366F1),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: const Size(0, 28),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                      elevation: 0,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+
+              // Row 2: Compact Search Bar & Type Filter Chips
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: SizedBox(
+                      height: 30,
+                      child: TextField(
+                        onChanged: (v) => setState(() => _search = v),
+                        style: TextStyle(fontSize: 11, color: textPrimary),
+                        decoration: InputDecoration(
+                          hintText: 'بحث بالأسم أو الرمز...',
+                          hintStyle: TextStyle(color: textSecondary, fontSize: 10),
+                          prefixIcon: Icon(Icons.search_rounded, color: textSecondary, size: 14),
+                          suffixIcon: _search.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.close_rounded, size: 12),
+                                  onPressed: () => setState(() => _search = ''),
+                                  padding: EdgeInsets.zero,
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: bgLight,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 6),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: BorderSide(color: borderColor),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                            borderSide: const BorderSide(color: Color(0xFF6366F1), width: 1.0),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    flex: 4,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
                         children: [
-                          Text('دليل الحسابات (شجرة الحسابات)',
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: textPrimary)),
-                          const SizedBox(height: 4),
-                          Text('هيكلة الحسابات المالية للنظام',
-                              style: TextStyle(fontSize: 14, color: textSecondary)),
+                          _buildFilterChip('all', 'الكل', Colors.indigo, isDark),
+                          _buildFilterChip('Asset', 'أصول', const Color(0xFF3B82F6), isDark),
+                          _buildFilterChip('Liability', 'خصوم', const Color(0xFFEF4444), isDark),
+                          _buildFilterChip('Equity', 'ملكية', const Color(0xFF8B5CF6), isDark),
+                          _buildFilterChip('Revenue', 'إيرادات', const Color(0xFF10B981), isDark),
+                          _buildFilterChip('Expense', 'مصروفات', const Color(0xFFF59E0B), isDark),
                         ],
                       ),
                     ),
-                    _ActionButton(
-                      label: '+ إضافة حساب',
-                      color: const Color(0xFF6366F1),
-                      textColor: Colors.white,
-                      onTap: () {
-                        AccountFormSheet.show(
-                          context,
-                          onSave: (data) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('تم إضافة الحساب: ${data['name']}')),
-                            );
-                          },
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-                child: TextField(
-                  onChanged: (v) => setState(() => _search = v),
-                  decoration: InputDecoration(
-                    hintText: 'ابحث برقم أو اسم الحساب...',
-                    hintStyle: TextStyle(color: textSecondary),
-                    prefixIcon: Icon(Icons.search_rounded, color: textSecondary),
-                    filled: true,
-                    fillColor: bgLight,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 18),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
-                    ),
                   ),
-                ),
+                ],
               ),
-              // Column headers
-              Container(
-                color: bgLight,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 56),
-                    SizedBox(
-                      width: 72,
-                      child: Text('الرمز', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textSecondary)),
-                    ),
-                    Expanded(
-                      child: Text('اسم الحساب', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textSecondary)),
-                    ),
-                    SizedBox(
-                      width: 90,
-                      child: Text('النوع', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textSecondary)),
-                    ),
-                    SizedBox(
-                      width: 60,
-                      child: Text('إجراء', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textSecondary), textAlign: TextAlign.center),
-                    ),
-                  ],
-                ),
-              ),
-              Divider(height: 1, color: borderColor),
             ],
           ),
         ),
-        // Account rows
+
+        // ── Optimized Column Headers Bar (Matching Data Columns) ──
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+          decoration: BoxDecoration(
+            color: bgLight,
+            border: Border(
+              bottom: BorderSide(color: borderColor),
+            ),
+          ),
+          child: Row(
+            children: [
+              const SizedBox(width: 32),
+              SizedBox(
+                width: 50,
+                child: Text(
+                  'الرمز',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textSecondary),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  'اسم الحساب (Account Title)',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textSecondary),
+                ),
+              ),
+              SizedBox(
+                width: 42,
+                child: Text(
+                  'النوع',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 40,
+                child: Text(
+                  'الحالة',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(width: 4),
+              SizedBox(
+                width: 34,
+                child: Text(
+                  'إجراء',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: textSecondary),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // ── Main Accounts Tree List Area (Fills 90%+ of Vertical Space) ──
         Expanded(
-          child: SingleChildScrollView(
-            child: Column(
-              children: [
-                ...(_search.isEmpty ? roots : _mockAccounts.where((a) => a.name.contains(_search) || a.code.contains(_search)).toList())
-                    .map((acc) => _search.isEmpty
-                        ? _buildAccountNode(context, acc, 0, borderColor, textPrimary, textSecondary, surface, bgLight)
-                        : _buildAccountRow(context, acc, 0, borderColor, textPrimary, textSecondary, surface, bgLight)),
-                const SizedBox(height: 40),
-              ],
+          child: Container(
+            color: bgLight,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+              child: Column(
+                children: [
+                  ...(_search.isEmpty && _selectedTypeFilter == 'all'
+                          ? roots
+                          : filteredAccounts)
+                      .map((acc) => (_search.isEmpty && _selectedTypeFilter == 'all')
+                          ? _buildAccountNode(context, acc, 0, borderColor, textPrimary, textSecondary, surface, bgLight)
+                          : _buildAccountRow(context, acc, 0, borderColor, textPrimary, textSecondary, surface, bgLight)),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
           ),
         ),
@@ -843,8 +1043,45 @@ class _ChartOfAccountsTabState extends State<ChartOfAccountsTab> {
     );
   }
 
-  Widget _buildAccountNode(BuildContext context, _MockAccount account, int depth,
-      Color borderColor, Color textPrimary, Color textSecondary, Color surface, Color bgLight) {
+  Widget _buildFilterChip(String key, String label, Color color, bool isDark) {
+    final isSelected = _selectedTypeFilter == key;
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: InkWell(
+        onTap: () => setState(() => _selectedTypeFilter = key),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withValues(alpha: 0.15) : (isDark ? AppColors.surfaceDark : Colors.white),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected ? color : (isDark ? AppColors.borderDark : const Color(0xFFE2E8F0)),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+              color: isSelected ? color : (isDark ? Colors.grey.shade300 : Colors.grey.shade700),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAccountNode(
+    BuildContext context,
+    _MockAccount account,
+    int depth,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+    Color surface,
+    Color bgLight,
+  ) {
     final hasKids = _hasChildren(account.id);
     final isExpanded = _expanded.contains(account.id);
 
@@ -853,122 +1090,230 @@ class _ChartOfAccountsTabState extends State<ChartOfAccountsTab> {
       children: [
         _buildAccountRow(context, account, depth, borderColor, textPrimary, textSecondary, surface, bgLight),
         if (hasKids && isExpanded)
-          ..._children(account.id).map((child) =>
-              _buildAccountNode(context, child, depth + 1, borderColor, textPrimary, textSecondary, surface, bgLight)),
+          ..._children(account.id).map(
+            (child) => _buildAccountNode(
+              context,
+              child,
+              depth + 1,
+              borderColor,
+              textPrimary,
+              textSecondary,
+              surface,
+              bgLight,
+            ),
+          ),
       ],
     );
   }
 
-  Widget _buildAccountRow(BuildContext context, _MockAccount account, int depth,
-      Color borderColor, Color textPrimary, Color textSecondary, Color surface, Color bgLight) {
+  Widget _buildAccountRow(
+    BuildContext context,
+    _MockAccount account,
+    int depth,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+    Color surface,
+    Color bgLight,
+  ) {
     final hasKids = _hasChildren(account.id);
     final isExpanded = _expanded.contains(account.id);
     final color = _typeColor(account.type);
 
-    return InkWell(
-      onTap: hasKids
-          ? () => setState(() {
-                if (_expanded.contains(account.id)) {
-                  _expanded.remove(account.id);
-                } else {
-                  _expanded.add(account.id);
-                }
-              })
-          : null,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: borderColor, width: 1.5)),
-        ),
-        padding: EdgeInsets.only(left: 20 + depth * 28.0, right: 20, top: 14, bottom: 14),
-        child: Row(
-          children: [
-            // Expand/collapse + folder/file icon
-            SizedBox(
-              width: 56,
-              child: Row(
-                children: [
-                  if (hasKids)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: InkWell(
+        onTap: hasKids
+            ? () => setState(() {
+                  if (_expanded.contains(account.id)) {
+                    _expanded.remove(account.id);
+                  } else {
+                    _expanded.add(account.id);
+                  }
+                })
+            : null,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          decoration: BoxDecoration(
+            color: surface,
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: depth == 0 ? color.withValues(alpha: 0.3) : borderColor,
+              width: depth == 0 ? 1.2 : 1.0,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          child: Row(
+            children: [
+              // Tree Indentation & Connector Lines
+              SizedBox(
+                width: 32.0 + (depth * 8.0),
+                child: Row(
+                  children: [
+                    if (depth > 0)
+                      Container(
+                        width: 1.5,
+                        height: 14,
+                        margin: const EdgeInsets.only(right: 2, left: 2),
+                        color: color.withValues(alpha: 0.4),
+                      ),
+                    if (hasKids)
+                      Icon(
+                        isExpanded
+                            ? Icons.keyboard_arrow_down_rounded
+                            : Icons.keyboard_arrow_left_rounded,
+                        size: 15,
+                        color: color,
+                      )
+                    else
+                      const SizedBox(width: 15),
                     Icon(
-                      isExpanded ? Icons.keyboard_arrow_down_rounded : Icons.keyboard_arrow_right_rounded,
-                      size: 22,
-                      color: textSecondary,
-                    )
-                  else
-                    const SizedBox(width: 22),
-                  const SizedBox(width: 8),
-                  account.allowPosting
-                      ? Icon(Icons.description_outlined, size: 20, color: textSecondary)
-                      : Icon(Icons.folder_rounded, size: 20, color: color),
-                ],
-              ),
-            ),
-            // Code
-            SizedBox(
-              width: 72,
-              child: Text(account.code, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: textPrimary)),
-            ),
-            // Name
-            Expanded(
-              child: Text(
-                account.name,
-                style: TextStyle(
-                  fontWeight: account.allowPosting ? FontWeight.w600 : FontWeight.w800,
-                  fontSize: 15,
-                  color: textPrimary,
+                      account.allowPosting
+                          ? Icons.description_outlined
+                          : Icons.folder_rounded,
+                      size: 14,
+                      color: color,
+                    ),
+                  ],
                 ),
               ),
-            ),
-            // Type badge
-            Container(
-              width: 90,
-              padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                account.type,
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color),
-                textAlign: TextAlign.center,
-              ),
-            ),
-            // Actions
-            SizedBox(
-              width: 60,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.shield_outlined, size: 20, color: const Color(0xFFF59E0B)),
-                  const SizedBox(width: 8),
-                  InkWell(
-                    borderRadius: BorderRadius.circular(8),
-                    onTap: () {
-                      AccountFormSheet.show(
-                        context,
-                        account: {
-                          'id': account.id,
-                          'code': account.code,
-                          'name': account.name,
-                          'type': account.type,
-                          'parentId': account.parentId,
-                          'allowPosting': account.allowPosting,
-                        },
-                        onSave: (data) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('تم تعديل الحساب: ${data['name']}')),
-                          );
-                        },
-                      );
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.all(4),
-                      child: Icon(Icons.edit_outlined, size: 20, color: textSecondary),
+              const SizedBox(width: 4),
+
+              // Account Code Chip
+              SizedBox(
+                width: 50,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                  decoration: BoxDecoration(
+                    color: bgLight,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Text(
+                    account.code,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      color: textPrimary,
+                      fontFamily: 'monospace',
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 6),
+
+              // Account Title (EXPANDED TO MAXIMUM WIDTH!)
+              Expanded(
+                child: Text(
+                  account.name,
+                  style: TextStyle(
+                    fontWeight: account.allowPosting
+                        ? FontWeight.w600
+                        : FontWeight.w900,
+                    fontSize: 12,
+                    color: textPrimary,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+              const SizedBox(width: 4),
+
+              // Account Type Badge (Ultra-Compact Column)
+              SizedBox(
+                width: 42,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: color.withValues(alpha: 0.3)),
+                  ),
+                  child: Text(
+                    _typeLabelAr(account.type),
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+
+              // Account Posting Type Badge (رئيسي vs فرعي - Ultra Compact)
+              SizedBox(
+                width: 40,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 2),
+                  decoration: BoxDecoration(
+                    color: account.allowPosting
+                        ? const Color(0xFF10B981).withValues(alpha: 0.1)
+                        : Colors.indigo.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    account.allowPosting ? 'فرعي' : 'رئيسي',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: account.allowPosting ? const Color(0xFF047857) : Colors.indigo.shade700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+
+              // Actions (Shield, Edit - Ultra Compact)
+              SizedBox(
+                width: 34,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'حساب محمي',
+                      child: Icon(
+                        Icons.shield_outlined,
+                        size: 13,
+                        color: const Color(0xFFF59E0B),
+                      ),
+                    ),
+                    const SizedBox(width: 2),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () {
+                        AccountFormSheet.show(
+                          context,
+                          parentAccounts: _mockAccounts
+                              .where((a) => !a.allowPosting)
+                              .map((a) => {'id': a.id, 'code': a.code, 'name': a.name})
+                              .toList(),
+                          account: {
+                            'id': account.id,
+                            'code': account.code,
+                            'name': account.name,
+                            'type': account.type,
+                            'parentId': account.parentId,
+                            'allowPosting': account.allowPosting,
+                          },
+                          onSave: (data) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('تم تعديل الحساب: ${data['name']}')),
+                            );
+                          },
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(1),
+                        child: Icon(Icons.edit_outlined, size: 13, color: textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1060,98 +1405,29 @@ class _JournalEntriesTabState extends State<JournalEntriesTab> {
 
               const SizedBox(height: 16),
 
-              // Search field
-              TextField(
-                onChanged: (v) => setState(() => _search = v),
-                decoration: InputDecoration(
-                  hintText: 'ابحث برقم القيد أو البيان...',
-                  hintStyle: TextStyle(color: textSecondary, fontSize: 14),
-                  prefixIcon: Icon(Icons.search_rounded, color: textSecondary),
-                  filled: true,
-                  fillColor: bgSurface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF3B82F6), width: 1.5),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Action buttons & Filters row
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _ActionButton(
-                      label: '+ قيد يدوي',
-                      color: const Color(0xFF10B981),
-                      textColor: Colors.white,
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('قيد يدوي جديد'))),
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      label: 'تصدير',
-                      icon: Icons.download_rounded,
-                      color: bgSurface,
-                      textColor: textPrimary,
-                      borderColor: borderColor,
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      label: 'تصفية',
-                      icon: Icons.tune_rounded,
-                      color: bgSurface,
-                      textColor: textPrimary,
-                      borderColor: borderColor,
-                      onTap: () {},
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Filter type pills
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: _filterTabs.map((ft) {
-                    final isActive = _filterType == ft.key;
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: GestureDetector(
-                        onTap: () => setState(() => _filterType = ft.key),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isActive ? const Color(0xFF10B981) : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                            borderRadius: BorderRadius.circular(50),
-                          ),
-                          child: Text(
-                            ft.label,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: isActive ? Colors.white : textSecondary,
-                            ),
-                          ),
-                        ),
-                      ),
+              AppSearchFilterBar(
+                searchHint: 'ابحث برقم القيد أو البيان...',
+                padding: EdgeInsets.zero,
+                onSearchChanged: (v) => setState(() => _search = v),
+                selectedFilterValue: _filterType,
+                onFilterSelected: (v) => setState(() => _filterType = v),
+                filterChips: _filterTabs
+                    .map((ft) => AppFilterChipData(label: ft.label, value: ft.key))
+                    .toList(),
+                trailingAction: _ActionButton(
+                  label: '+ قيد يدوي',
+                  color: const Color(0xFF10B981),
+                  textColor: Colors.white,
+                  onTap: () {
+                    JournalEntryFormSheet.show(
+                      context,
+                      onSave: (entry, lines) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('تم إضافة القيد اليومي بنجاح')),
+                        );
+                      },
                     );
-                  }).toList(),
+                  },
                 ),
               ),
               const SizedBox(height: 12),
@@ -1218,32 +1494,37 @@ class _JournalEntriesTabState extends State<JournalEntriesTab> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: conf.color.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(8),
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: conf.color.withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(conf.icon, size: 14, color: conf.color),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              conf.label,
+                                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: conf.color),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(conf.icon, size: 14, color: conf.color),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            conf.label,
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: conf.color),
-                                          ),
-                                        ],
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          entry.number,
+                                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      entry.number,
-                                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: textPrimary),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1278,9 +1559,25 @@ class _JournalEntriesTabState extends State<JournalEntriesTab> {
                                   'التاريخ: ${entry.date.day}/${entry.date.month}/${entry.date.year}',
                                   style: TextStyle(fontSize: 13, color: textSecondary),
                                 ),
-                                Text(
-                                  'إجمالي المدين: ${_formatNum(entry.totalDebit)} ر.ي',
-                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF8B5CF6)),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'الأسطر: 2',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: textSecondary),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${_formatNum(entry.totalDebit)} ر.ي',
+                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF8B5CF6)),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -2426,29 +2723,6 @@ class _JournalKpi extends StatelessWidget {
             ),
           ],
         ),
-    );
-  }
-}
-
-class _HeaderCell extends StatelessWidget {
-  final String text;
-  final int flex;
-
-  const _HeaderCell({required this.text, required this.flex});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w800,
-          color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
-        ),
-      ),
     );
   }
 }

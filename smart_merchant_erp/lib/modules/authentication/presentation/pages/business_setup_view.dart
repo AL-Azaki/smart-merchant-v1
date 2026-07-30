@@ -137,7 +137,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
 
                           return InkWell(
                             onTap: () => setState(
-                              () => _selectedBusinessType = type['id'],
+                              () => _selectedBusinessType = type['id']?.toString() ?? '',
                             ),
                             borderRadius: BorderRadius.circular(12),
                             child: AnimatedContainer(
@@ -158,7 +158,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    type['icon'],
+                                    type['icon'] as IconData?,
                                     color: isSelected
                                         ? const Color(0xFF0D9488)
                                         : AppColors.textSecondaryLight,
@@ -166,7 +166,7 @@ class _BusinessSetupViewState extends ConsumerState<BusinessSetupView> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    type['label'],
+                                    type['label']?.toString() ?? '',
                                     style: TextStyle(
                                       color: isSelected
                                           ? const Color(0xFF0D9488)

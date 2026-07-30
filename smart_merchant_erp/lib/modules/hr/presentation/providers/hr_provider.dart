@@ -20,15 +20,15 @@ class HrNotifier extends _$HrNotifier {
     try {
       final service = getIt<EmployeeApplicationService>();
       final command = EmployeeCommand(
-        id: data['id'],
-        employeeCode: data['employee_code'] ?? 'EMP',
-        name: data['name'],
-        nameEn: data['name_en'],
-        phone: data['phone'],
-        jobTitle: data['position'] ?? data['job_title'],
-        departmentId: data['department_id'],
+        id: data['id']?.toString(),
+        employeeCode: data['employee_code']?.toString() ?? 'EMP',
+        name: data['name']?.toString() ?? '',
+        nameEn: data['name_en']?.toString(),
+        phone: data['phone']?.toString(),
+        jobTitle: data['position']?.toString() ?? data['job_title']?.toString(),
+        departmentId: data['department_id']?.toString(),
         isActive: data['status'] == 'active',
-        salary: data['salary'],
+        salary: data['salary'] != null ? (data['salary'] as num?)?.toDouble() : null,
       );
       final result = await service.saveEmployee(command);
       return result.isRight();

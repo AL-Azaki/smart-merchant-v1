@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
+import '../../../../shared/design_system/widgets/app_status_badge.dart';
 import '../models/settings_card_item_model.dart';
-import 'settings_badge_chip_widget.dart';
 
 class SettingsCardWidget extends StatefulWidget {
   final SettingsCardItemModel item;
@@ -146,7 +146,7 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
                       spacing: AppSpacing.xs + 2,
                       runSpacing: AppSpacing.xs,
                       children: widget.item.stats.map((stat) {
-                        return SettingsBadgeChipWidget(label: stat);
+                        return AppStatusBadge.fromStatus(status: stat);
                       }).toList(),
                     ),
                   ],

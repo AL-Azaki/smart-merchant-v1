@@ -1,10 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../app/di/getit_providers.dart';
 import '../../../../app/di/injection.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/widgets/custom_text_field.dart';
-import '../../../../shared/forms/app_field_config.dart';
+import '../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../shared/design_system/widgets/app_text_field.dart';
 import '../../application/services/customer_application_service.dart';
 import '../providers/pos_provider.dart';
 
@@ -21,21 +20,9 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  
+
   bool _isLoading = false;
   String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController.addListener(() {
-      final value = _nameController.value;
-      print('ARABIC TEST [addListener] text: "${value.text}"');
-      print('ARABIC TEST [addListener] runes: ${value.text.runes.toList()}');
-      print('ARABIC TEST [addListener] selection: ${value.selection}');
-      print('ARABIC TEST [addListener] composing: ${value.composing}');
-    });
-  }
 
   @override
   void dispose() {
@@ -48,112 +35,58 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Container(
-        width: 450,
-        padding: const EdgeInsets.all(32),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Expanded(
-                    child: Row(
-                      children: [
-                        Icon(Icons.person_add_rounded, color: AppColors.primary),
-                        SizedBox(width: 12),
-                        Flexible(
-                          child: Text(
-                            'إضافة عميل جديد',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
-              CustomTextField(
-                label: 'اسم العميل / الشركة *',
-                controller: _nameController,
-                prefixIcon: const Icon(Icons.person_outline),
-                fieldType: AppFieldType.humanName,
-                isRequired: true,
-                style: const TextStyle(
-                  fontFamily: null,
-                  color: Colors.black,
-                  fontSize: 16,
-                  height: 1.5,
-                ),
-                onChanged: (val) {
-                  print('ARABIC TEST [onChanged] val: "$val"');
-                },
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'رقم الهاتف (اختياري)',
-                controller: _phoneController,
-                prefixIcon: const Icon(Icons.phone_outlined),
-                fieldType: AppFieldType.phone,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'البريد الإلكتروني (اختياري)',
-                controller: _emailController,
-                prefixIcon: const Icon(Icons.email_outlined),
-                fieldType: AppFieldType.email,
-              ),
-              const SizedBox(height: 16),
-              CustomTextField(
-                label: 'العنوان (اختياري)',
-                controller: _addressController,
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                fieldType: AppFieldType.generalText,
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _errorMessage!,
-                  style: const TextStyle(color: AppColors.error),
-                ),
-              ],
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _saveCustomer,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: _isLoading
-                  ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text(
-                      'حفظ واختيار العميل',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+    return AppModalSheet(
+      title: 'إضافة عميل جديد',
+      icon: Icons.person_add_outlined,
+      iconColor: AppColors.primary,
+      onClose: () => Navigator.pop(context),
+      primaryLabel: 'حفظ واختيار العميل',
+      onPrimary: _isLoading ? null : _saveCustomer,
+      isLoading: _isLoading,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTextField(
+              label: 'اسم العميل / الشركة *',
+              hint: 'أدخل الاسم الكامل للعميل أو المنشأة',
+              controller: _nameController,
+              prefixIcon: const Icon(Icons.person_outline, size: 20),
+              validator: (val) =>
+                  (val == null || val.trim().isEmpty) ? 'يرجى إدخال اسم العميل' : null,
+            ),
+            const SizedBox(height: 14),
+            AppTextField(
+              label: 'رقم الهاتف (اختياري)',
+              hint: '05xxxxxxxx أو 77xxxxxxx',
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+            ),
+            const SizedBox(height: 14),
+            AppTextField(
+              label: 'البريد الإلكتروني (اختياري)',
+              hint: 'example@domain.com',
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              prefixIcon: const Icon(Icons.email_outlined, size: 20),
+            ),
+            const SizedBox(height: 14),
+            AppTextField(
+              label: 'العنوان (اختياري)',
+              hint: 'المدينة، الشارع، المبنى',
+              controller: _addressController,
+              prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
+            ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 14),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ],
-          ),
+          ],
         ),
       ),
     );

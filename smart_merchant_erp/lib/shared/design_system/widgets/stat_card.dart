@@ -13,12 +13,12 @@ class StatCard extends StatelessWidget {
   final bool isTrendPositive;
 
   const StatCard({
-    super.key,
     required this.title,
     required this.value,
     required this.icon,
     required this.iconColor,
     required this.iconBackgroundColor,
+    super.key,
     this.trendText,
     this.isTrendPositive = true,
   });

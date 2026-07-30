@@ -36,21 +36,21 @@ class ProductsNotifier extends _$ProductsNotifier {
     
     final command = ProductCommand(
       id: id,
-      name: data['product_name'] ?? '',
-      nameEn: data['name_en'],
-      description: data['description'],
-      categoryId: data['category_id'],
-      brandId: data['brand_id'],
-      barcode: data['barcode'],
-      unitId: data['unit_id'],
+      name: data['product_name']?.toString() ?? '',
+      nameEn: data['name_en']?.toString(),
+      description: data['description']?.toString(),
+      categoryId: data['category_id']?.toString(),
+      brandId: data['brand_id']?.toString(),
+      barcode: data['barcode']?.toString(),
+      unitId: data['unit_id']?.toString(),
       purchasePrice: data['purchase_price'] != null ? double.tryParse(data['purchase_price'].toString()) : null,
       sellingPrice: data['selling_price'] != null ? double.tryParse(data['selling_price'].toString()) : null,
-      isActive: data['is_active'] ?? true,
-      trackStock: data['track_stock'] ?? true,
-      imagePath: data['image_url'],
-      currencyId: data['currency_id'],
-      showInStore: data['show_in_store'] ?? false,
-      openingWarehouseId: data['opening_warehouse_id'],
+      isActive: (data['is_active'] as bool?) ?? true,
+      trackStock: (data['track_stock'] as bool?) ?? true,
+      imagePath: data['image_url']?.toString(),
+      currencyId: data['currency_id']?.toString(),
+      showInStore: (data['show_in_store'] as bool?) ?? false,
+      openingWarehouseId: data['opening_warehouse_id']?.toString(),
       openingQuantity: data['opening_quantity'] != null ? double.tryParse(data['opening_quantity'].toString()) : null,
     );
 
@@ -92,9 +92,9 @@ class CategoriesNotifier extends _$CategoriesNotifier {
     
     final command = CategoryCommand(
       id: id,
-      name: data['category_name'] ?? '',
-      nameEn: data['name_en'],
-      isActive: data['is_active'] ?? true,
+      name: data['category_name']?.toString() ?? '',
+      nameEn: data['name_en']?.toString(),
+      isActive: (data['is_active'] as bool?) ?? true,
     );
 
     final result = await service.saveCategory(command);

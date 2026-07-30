@@ -40,6 +40,7 @@ void main() {
       updatedAt: DateTime.now(),
       syncStatus: 'synced',
       version: 1,
+      showInStore: true,
     );
 
     await tester.pumpWidget(

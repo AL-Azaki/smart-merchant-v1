@@ -140,7 +140,7 @@ class _LockedSubscriptionViewState
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      plan['name'],
+                                      plan['name']?.toString() ?? '',
                                       style: TextStyle(
                                         color: isSelected
                                             ? Colors.white
@@ -181,7 +181,7 @@ class _LockedSubscriptionViewState
                                   textBaseline: TextBaseline.alphabetic,
                                   children: [
                                     Text(
-                                      plan['price'],
+                                      plan['price']?.toString() ?? '',
                                       style: const TextStyle(
                                         color: Colors.white,
                                         fontSize: 24,
@@ -190,7 +190,7 @@ class _LockedSubscriptionViewState
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      'ر.ي / ${plan['duration']}',
+                                      'ر.ي / ${plan['duration']?.toString() ?? ''}',
                                       style: TextStyle(
                                         color: Colors.white.withOpacity(0.6),
                                         fontSize: 13,
@@ -233,7 +233,7 @@ class _LockedSubscriptionViewState
                               ],
                             ),
                           ),
-                          if (plan['isPopular'])
+                          if (plan['isPopular'] == true)
                             Positioned(
                               top: 0,
                               right: 24,

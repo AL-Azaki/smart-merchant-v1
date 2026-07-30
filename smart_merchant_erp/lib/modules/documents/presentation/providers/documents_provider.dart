@@ -16,11 +16,11 @@ class DocumentsNotifier extends _$DocumentsNotifier {
     try {
       final service = getIt<DocumentApplicationService>();
       final command = AttachmentCommand(
-        fileName: data['document_name'] ?? 'Doc',
-        documentType: data['document_type'],
-        entityType: data['reference_type'] ?? 'Unknown',
-        entityId: data['reference_id'] ?? 'Unknown',
-        remoteUrl: data['file_url'],
+        fileName: data['document_name']?.toString() ?? 'Doc',
+        documentType: data['document_type']?.toString(),
+        entityType: data['reference_type']?.toString() ?? 'Unknown',
+        entityId: data['reference_id']?.toString() ?? 'Unknown',
+        remoteUrl: data['file_url']?.toString(),
         fileType: 'pdf',
         fileSize: 0,
       );

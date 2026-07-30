@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../../../../shared/design_system/widgets/app_card.dart';
+import '../../../../../../shared/design_system/widgets/app_empty_state.dart';
+import '../../../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../../../shared/design_system/widgets/app_text_field.dart';
 import '../../../../../../database/daos/inventory_dao.dart' show StockBalanceView;
 import '../../../../../../kernel/storage/app_database.dart';
 import '../../../../application/usecases/save_stock_count_usecase.dart';
 import '../../../providers/inventory_provider.dart';
 import '../../../providers/stock_counts_provider.dart';
-
 
 class StockCountFormSheet extends ConsumerStatefulWidget {
   final StockCount? existingCount;
@@ -36,9 +38,9 @@ class _StockCountLine {
     required this.id,
     required this.productUnitId,
     required this.productId,
+    required this.expectedQuantity,
     this.productName = 'منتج',
     this.productCode = '',
-    required this.expectedQuantity,
     this.physicalQty,
   });
 
@@ -90,7 +92,9 @@ class _StockCountFormSheetState extends ConsumerState<StockCountFormSheet> {
   }
 
   void _addLine(StockBalanceView view) {
-    if (_lines.any((l) => l.productUnitId == view.productUnit.id)) return;
+    if (_lines.any((l) => l.productUnitId == view.productUnit.id)) {
+      return;
+    }
     setState(() {
       _lines.add(_StockCountLine(
         id: 'tmp_${DateTime.now().millisecondsSinceEpoch}',
@@ -111,7 +115,7 @@ class _StockCountFormSheetState extends ConsumerState<StockCountFormSheet> {
     });
   }
 
-  void _handleSave() async {
+  Future<void> _handleSave() async {
     if (_selectedWarehouseId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى اختيار المستودع أولاً.')),
@@ -159,301 +163,230 @@ class _StockCountFormSheetState extends ConsumerState<StockCountFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final mq = MediaQuery.of(context);
-    final bottomPadding = mq.viewInsets.bottom;
-    
-    final warehousesAsync = ref.watch(activeWarehousesProvider);
-
-    return Container(
-      height: mq.size.height * 0.9,
-      decoration: const BoxDecoration(
-        color: AppColors.backgroundLight,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Column(
-        children: [
-          _buildHeader(context),
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildWarehouseSelector(warehousesAsync),
-                        const SizedBox(height: 16),
-                        _buildNotesField(),
-                        const SizedBox(height: 24),
-                        if (_selectedWarehouseId != null)
-                          _buildProductSearch(),
-                      ],
-                    ),
-                  ),
-                ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      return _buildLineItemCard(_lines[index]);
-                    },
-                    childCount: _lines.length,
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: SizedBox(height: bottomPadding + 80), 
-                ),
-              ],
-            ),
-          ),
-          _buildFooter(context),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.surfaceDark : Colors.white,
-        border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : Colors.grey.shade200)),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final isEdit = widget.existingCount != null;
+
+    final warehousesAsync = ref.watch(activeWarehousesProvider);
+    final warehouses = warehousesAsync.valueOrNull ?? [];
+    final selectedWH = warehouses.cast<dynamic>().firstWhere((w) => w.id == _selectedWarehouseId, orElse: () => null);
+
+    return AppModalSheet(
+      title: isEdit ? 'تعديل مسودة جرد' : 'جرد مخزون جديد',
+      icon: Icons.inventory_2_outlined,
+      iconColor: Colors.blue,
+      onClose: () => Navigator.pop(context),
+      primaryLabel: 'حفظ كمسودة',
+      onPrimary: _handleSave,
+      maxHeightFactor: 0.9,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Expanded(
+                child: AppTextField(
+                  label: 'المستودع *',
+                  initialValue: selectedWH?.warehouseName?.toString() ?? 'اختر المستودع',
+                  readOnly: true,
+                  suffixIcon: PopupMenuButton<String>(
+                    icon: const Icon(Icons.arrow_drop_down),
+                    onSelected: isEdit ? null : (val) {
+                      setState(() {
+                        if (_selectedWarehouseId != val) {
+                          _lines.clear();
+                          _selectedWarehouseId = val;
+                        }
+                      });
+                    },
+                    itemBuilder: (ctx) => warehouses
+                        .map((w) => PopupMenuItem(value: w.id, child: Text(w.warehouseName)))
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: AppMultilineField(
+                  label: 'الملاحظات',
+                  hint: 'أدخل ملاحظات الجرد الدوري...',
+                  controller: _notesController,
+                  lines: 1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (_selectedWarehouseId != null) ...[
+            Text(
+              'بحث عن منتج لإضافته',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 6),
+            AppTextField(
+              label: '',
+              hint: 'بحث باسم المنتج أو الباركود...',
+              controller: _searchController,
+              prefixIcon: const Icon(Icons.search),
+            ),
+            if (_searchQuery.isNotEmpty) _buildSearchResultsList(borderColor),
+            const SizedBox(height: 16),
+          ],
+
+          // Items Counted
           Text(
-            widget.existingCount != null ? 'تعديل مسودة جرد' : 'جرد مخزون جديد',
+            'عناصر الجرد الدوري (${_lines.length})',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
               color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.close),
-            onPressed: () => Navigator.pop(context),
-          ),
+          const SizedBox(height: 8),
+
+          _lines.isEmpty
+              ? const AppEmptyState(
+                  title: 'لا يوجد منتجات في قائمة الجرد',
+                  subtitle: 'اختر المستودع وابحث عن المنتجات لإدراجها والجرد عليها',
+                  icon: Icons.inventory_outlined,
+                )
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: _lines.length,
+                  itemBuilder: (context, index) {
+                    final line = _lines[index];
+                    return AppCard(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      line.productName,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                    ),
+                                    Text(
+                                      'الكمية الدفترية: ${line.expectedQuantity}',
+                                      style: TextStyle(color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                onPressed: () => _removeLine(line.id),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: AppNumberField(
+                                  label: 'الجرد الفعلي',
+                                  hint: '0',
+                                  initialValue: line.physicalQty?.toString() ?? '',
+                                  onChanged: (val) {
+                                    setState(() {
+                                      line.physicalQty = double.tryParse(val);
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              if (line.physicalQty != null)
+                                Expanded(
+                                  flex: 1,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      const Text('الفرق', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                                      Text(
+                                        '${line.discrepancy > 0 ? '+' : ''}${line.discrepancy.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: line.discrepancy != 0
+                                              ? (line.discrepancy > 0 ? Colors.green : Colors.red)
+                                              : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
         ],
       ),
     );
   }
 
-  Widget _buildWarehouseSelector(AsyncValue<List<Warehouse>> asyncWarehouses) {
-    return asyncWarehouses.when(
-      data: (warehouses) {
-        return DropdownButtonFormField<String>(
-          value: _selectedWarehouseId,
-          decoration: const InputDecoration(
-            labelText: 'المستودع',
-            border: OutlineInputBorder(),
-          ),
-          items: warehouses.map((w) {
-            return DropdownMenuItem(
-              value: w.id,
-              child: Text(w.warehouseName),
-            );
-          }).toList(),
-          onChanged: widget.existingCount != null ? null : (val) { // Disabled if editing
-            setState(() {
-              if (_selectedWarehouseId != val) {
-                _lines.clear(); 
-                _selectedWarehouseId = val;
-              }
-            });
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, s) => Text('خطأ في تحميل المستودعات: $e'),
-    );
-  }
-
-  Widget _buildNotesField() {
-    return TextFormField(
-      controller: _notesController,
-      decoration: const InputDecoration(
-        labelText: 'الملاحظات',
-        border: OutlineInputBorder(),
-      ),
-      maxLines: 2,
-    );
-  }
-
-  Widget _buildProductSearch() {
+  Widget _buildSearchResultsList(Color borderColor) {
     final inventoryAsync = ref.watch(warehouseStockBalancesProvider(_selectedWarehouseId!));
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        TextFormField(
-          controller: _searchController,
-          focusNode: _searchFocus,
-          decoration: InputDecoration(
-            labelText: 'بحث عن منتج لإضافته...',
-            prefixIcon: const Icon(Icons.search),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-        if (_searchQuery.isNotEmpty)
-          Container(
-            constraints: const BoxConstraints(maxHeight: 200),
-            margin: const EdgeInsets.only(top: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(8),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                )
-              ],
-            ),
-            child: inventoryAsync.when(
-              data: (balances) {
-                final results = balances.where((b) {
-                  final matchesSearch = b.product.productName.contains(_searchQuery) ||
-                                        (b.product.productCode.contains(_searchQuery)) ||
-                                        (b.productUnit.barcode?.contains(_searchQuery) ?? false);
-                  return matchesSearch;
-                }).toList();
 
-                if (results.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.all(16.0),
-                    child: Text('لا توجد منتجات مطابقة في هذا المستودع.'),
-                  );
-                }
-
-                return ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: results.length,
-                  itemBuilder: (context, index) {
-                    final item = results[index];
-                    return ListTile(
-                      title: Text(item.product.productName),
-                      subtitle: Text('الباركود: ${item.productUnit.barcode ?? "-"} | الدفترية: ${item.inventory.quantity}'),
-                      onTap: () => _addLine(item),
-                    );
-                  },
-                );
-              },
-              loading: () => const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-              error: (e, s) => Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text('خطأ: $e'),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildLineItemCard(_StockCountLine line) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        line.productName,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'الكمية الدفترية: ${line.expectedQuantity}',
-                        style: TextStyle(color: Colors.grey.shade700),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                  onPressed: () => _removeLine(line.id),
-                ),
-              ],
-            ),
-            const Divider(),
-            Row(
-              children: [
-                const Expanded(
-                  flex: 1,
-                  child: Text('الجرد الفعلي:'),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: TextFormField(
-                    initialValue: line.physicalQty?.toString() ?? '',
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: InputDecoration(
-                      hintText: '0',
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onChanged: (val) {
-                      setState(() {
-                        line.physicalQty = double.tryParse(val);
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-            if (line.physicalQty != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Text(
-                      'الفرق: ${line.discrepancy}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: line.discrepancy != 0
-                          ? (line.discrepancy > 0 ? AppColors.success : AppColors.error)
-                          : (Theme.of(context).brightness == Brightness.dark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      constraints: const BoxConstraints(maxHeight: 180),
+      margin: const EdgeInsets.only(top: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
+        color: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceDark : Colors.white,
+        border: Border.all(color: borderColor),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: SafeArea(
-        child: PrimaryButton(
-          onPressed: _handleSave,
-          text: 'حفظ كمسودة',
-          icon: Icons.save,
+      child: inventoryAsync.when(
+        data: (balances) {
+          final results = balances.where((b) {
+            final matchesSearch = b.product.productName.contains(_searchQuery) ||
+                (b.product.productCode.contains(_searchQuery)) ||
+                (b.productUnit.barcode?.contains(_searchQuery) ?? false);
+            return matchesSearch;
+          }).toList();
+
+          if (results.isEmpty) {
+            return const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Text('لا توجد منتجات مطابقة في هذا المستودع.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+            );
+          }
+
+          return ListView.builder(
+            shrinkWrap: true,
+            itemCount: results.length,
+            itemBuilder: (context, index) {
+              final item = results[index];
+              return ListTile(
+                title: Text(item.product.productName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                subtitle: Text('الباركود: ${item.productUnit.barcode ?? "-"} | الدفترية: ${item.inventory.quantity}', style: const TextStyle(fontSize: 11)),
+                onTap: () => _addLine(item),
+              );
+            },
+          );
+        },
+        loading: () => const Padding(
+          padding: EdgeInsets.all(12.0),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+        error: (e, s) => Padding(
+          padding: const EdgeInsets.all(12.0),
+          child: Text('خطأ: $e', style: const TextStyle(fontSize: 12, color: Colors.red)),
         ),
       ),
     );

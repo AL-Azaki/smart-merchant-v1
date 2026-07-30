@@ -7,8 +7,8 @@ class ComingSoonView extends StatelessWidget {
   final String description;
 
   const ComingSoonView({
-    super.key,
     required this.title,
+    super.key,
     this.description =
         'هذه الوحدة قيد التطوير وسيتم إطلاقها قريباً لتجربة متكاملة.',
   });

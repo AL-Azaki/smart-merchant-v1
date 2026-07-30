@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/widgets/custom_text_field.dart';
-import '../../../../shared/forms/app_field_config.dart';
+import '../../../../shared/design_system/widgets/app_text_field.dart';
 import '../../../../shared/forms/app_input_formatters.dart';
 import '../providers/auth_provider.dart';
 
@@ -171,66 +170,64 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-
                         Row(
                           children: [
                             Expanded(
-                              child: CustomTextField(
+                              child: AppTextField(
                                 label: 'الاسم الأول *',
                                 controller: _firstNameController,
                                 hint: 'أحمد',
-                                fieldType: AppFieldType.humanName,
-                                isRequired: true,
+                                prefixIcon: const Icon(Icons.person_outline, size: 20),
+                                validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                               ),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: CustomTextField(
+                              child: AppTextField(
                                 label: 'اسم العائلة *',
                                 controller: _lastNameController,
                                 hint: 'محمد',
-                                fieldType: AppFieldType.humanName,
-                                isRequired: true,
+                                prefixIcon: const Icon(Icons.person_outline, size: 20),
+                                validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        CustomTextField(
+                        AppTextField(
                           label: 'اسم المستخدم *',
                           controller: _usernameController,
-                          hint: '@username',
-                          // This is a strictly technical field
-                          fieldType: AppFieldType.generalText, 
+                          hint: 'username',
                           inputFormatters: [AppInputFormatters.englishOnly],
-                          isRequired: true,
+                          prefixIcon: const Icon(Icons.alternate_email_outlined, size: 20),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                         ),
                         const SizedBox(height: 16),
-                        CustomTextField(
+                        AppTextField(
                           label: 'البريد الإلكتروني *',
                           controller: _emailController,
                           hint: 'email@example.com',
-                          fieldType: AppFieldType.email,
-                          isRequired: true,
+                          keyboardType: TextInputType.emailAddress,
+                          prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                         ),
                         const SizedBox(height: 16),
-                        CustomTextField(
+                        AppTextField(
                           label: 'رقم الهاتف *',
                           controller: _phoneController,
                           hint: '+967 77...',
-                          fieldType: AppFieldType.phone,
-                          isRequired: true,
+                          keyboardType: TextInputType.phone,
+                          prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                         ),
                         const SizedBox(height: 16),
-
-                        // Password
-                        CustomTextField(
+                        AppTextField(
                           label: 'كلمة المرور *',
                           controller: _passwordController,
                           hint: '••••••••',
                           obscureText: !_showPassword,
-                          fieldType: AppFieldType.password,
-                          isRequired: true,
+                          prefixIcon: const Icon(Icons.lock_outline, size: 20),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
                           suffixIcon: IconButton(
                             icon: Icon(
                               _showPassword
@@ -238,8 +235,11 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                                   : Icons.visibility_rounded,
                               color: AppColors.textSecondaryLight,
                             ),
-                            onPressed: () =>
-                                setState(() => _showPassword = !_showPassword),
+                            onPressed: () {
+                              setState(() {
+                                _showPassword = !_showPassword;
+                              });
+                            },
                           ),
                         ),
                         const SizedBox(height: 24),

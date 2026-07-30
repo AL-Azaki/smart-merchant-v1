@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../../kernel/sync/coordinator/sync_coordinator.dart';
+import '../../../../kernel/sync/coordinator/sync_coordinator.dart';
 
 part 'sync_provider.g.dart';
 

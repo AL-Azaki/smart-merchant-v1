@@ -6,17 +6,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
 import '../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../../shared/design_system/widgets/app_text_field.dart';
 import '../../../../system/application/services/archive_document_service.dart';
 
 class DocumentFormSheet extends StatefulWidget {
   final VoidCallback onClose;
-  final Function(ArchiveDocumentCommand) onSave;
+  final void Function(ArchiveDocumentCommand command) onSave;
 
   const DocumentFormSheet({
-    super.key,
     required this.onClose,
     required this.onSave,
+    super.key,
   });
 
   @override
@@ -63,13 +64,13 @@ class _DocumentFormSheetState extends State<DocumentFormSheet> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ في التقاط الصورة: \$e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('خطأ في التقاط الصورة: $e')));
       }
     }
   }
 
   Future<void> _showImageSourceDialog() async {
-    showModalBottomSheet(
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
@@ -111,7 +112,7 @@ class _DocumentFormSheetState extends State<DocumentFormSheet> {
         await archiveDir.create(recursive: true);
       }
       final ext = p.extension(file.path);
-      final newFileName = '\${const Uuid().v4()}\$ext';
+      final newFileName = '${const Uuid().v4()}$ext';
       final savedFile = await file.copy(p.join(archiveDir.path, newFileName));
       return savedFile.path;
     } catch (e) {
@@ -120,7 +121,9 @@ class _DocumentFormSheetState extends State<DocumentFormSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
     
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('يجب إرفاق صورة المستند')));
@@ -132,7 +135,9 @@ class _DocumentFormSheetState extends State<DocumentFormSheet> {
     final localPath = await _saveFileLocally(_selectedImage!);
     if (localPath == null) {
       setState(() => _isSaving = false);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ الملف محلياً')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل حفظ الملف محلياً')));
+      }
       return;
     }
 
@@ -152,206 +157,156 @@ class _DocumentFormSheetState extends State<DocumentFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
 
-    return Container(
-      width: 500,
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight)),
+    return AppModalSheet(
+      title: 'أرشفة مستند جديد',
+      icon: Icons.description_outlined,
+      iconColor: Colors.purple,
+      onClose: widget.onClose,
+      primaryLabel: 'أرشفة الآن',
+      onPrimary: _isSaving ? null : _submit,
+      isLoading: _isSaving,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTextField(
+              label: 'اسم الوثيقة / المستند *',
+              hint: 'مثال: رخصة مزاولة المهنة',
+              controller: _titleController,
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 16),
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.purple.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.description_outlined, color: Colors.purple),
+                Expanded(
+                  child: AppTextField(
+                    label: 'تصنيف المستند *',
+                    initialValue: _category == 'invoice'
+                        ? 'فاتورة مصورة'
+                        : (_category == 'contract'
+                            ? 'عقود واتفاقيات'
+                            : (_category == 'license' ? 'تراخيص وبطاقات' : 'أخرى')),
+                    readOnly: true,
+                    suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onSelected: (val) => setState(() => _category = val),
+                      itemBuilder: (ctx) => const [
+                        PopupMenuItem(value: 'invoice', child: Text('فاتورة مصورة')),
+                        PopupMenuItem(value: 'contract', child: Text('عقود واتفاقيات')),
+                        PopupMenuItem(value: 'license', child: Text('تراخيص وبطاقات')),
+                        PopupMenuItem(value: 'other', child: Text('أخرى')),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    const Text('أرشفة مستند جديد', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ],
+                  ),
                 ),
-                IconButton(onPressed: widget.onClose, icon: const Icon(Icons.close)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'رقم المرجع / الوثيقة',
+                    hint: 'REF-1234',
+                    controller: _refNumberController,
+                  ),
+                ),
               ],
             ),
-          ),
-          
-          // Form Body
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      controller: _titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'اسم الوثيقة / المستند *',
-                        border: OutlineInputBorder(),
-                        hintText: 'مثال: رخصة مزاولة المهنة',
-                      ),
-                      validator: (v) => v!.isEmpty ? 'مطلوب' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: _category,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'تصنيف المستند *',
-                              border: OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(value: 'invoice', child: Text('فاتورة مصورة')),
-                              DropdownMenuItem(value: 'contract', child: Text('عقود واتفاقيات')),
-                              DropdownMenuItem(value: 'license', child: Text('تراخيص وبطاقات')),
-                              DropdownMenuItem(value: 'other', child: Text('أخرى')),
-                            ],
-                            onChanged: (v) => setState(() => _category = v!),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _refNumberController,
-                            decoration: const InputDecoration(
-                              labelText: 'رقم المرجع / الوثيقة',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final d = await showDatePicker(context: context, initialDate: _issueDate, firstDate: DateTime(2000), lastDate: DateTime(2100));
-                              if (d != null) setState(() => _issueDate = d);
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'تاريخ الإصدار', border: OutlineInputBorder()),
-                              child: Text(DateFormat('yyyy/MM/dd').format(_issueDate)),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: InkWell(
-                            onTap: () async {
-                              final d = await showDatePicker(context: context, initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 365)), firstDate: DateTime(2000), lastDate: DateTime(2100));
-                              if (d != null) setState(() => _expiryDate = d);
-                            },
-                            child: InputDecorator(
-                              decoration: const InputDecoration(labelText: 'تاريخ الانتهاء (تنبيه)', border: OutlineInputBorder()),
-                              child: Text(_expiryDate != null ? DateFormat('yyyy/MM/dd').format(_expiryDate!) : 'غير محدد'),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Image Upload
-                    const Text('صورة المستند / الفاتورة *', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: _showImageSourceDialog,
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        width: double.infinity,
-                        height: _selectedImage == null ? 120 : 200,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight, style: BorderStyle.solid),
-                          borderRadius: BorderRadius.circular(16),
-                          color: isDark ? AppColors.backgroundDark : Colors.grey.shade50,
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: _selectedImage != null
-                            ? Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  Image.file(_selectedImage!, fit: BoxFit.cover),
-                                  Container(color: Colors.black38),
-                                  const Center(child: Icon(Icons.edit, color: Colors.white, size: 32)),
-                                ],
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 32),
-                                  const SizedBox(height: 8),
-                                  Text('إرفاق صورة أو التقاطها', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold)),
-                                ],
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    TextFormField(
-                      controller: _notesController,
-                      decoration: const InputDecoration(
-                        labelText: 'ملاحظات إضافية',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // Actions
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PrimaryButton(
-                            text: 'أرشفة الآن',
-                            onPressed: _isSaving ? null : _submit,
-                            isLoading: _isSaving,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: widget.onClose,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? AppColors.surfaceDark : Colors.grey.shade200,
-                              foregroundColor: isDark ? Colors.white : Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    label: 'تاريخ الإصدار',
+                    initialValue: DateFormat('yyyy/MM/dd').format(_issueDate),
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _issueDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (d != null) {
+                        setState(() => _issueDate = d);
+                      }
+                    },
+                  ),
                 ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'تاريخ الانتهاء (تنبيه)',
+                    initialValue: _expiryDate != null ? DateFormat('yyyy/MM/dd').format(_expiryDate!) : 'غير محدد',
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.event_outlined, size: 20),
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: _expiryDate ?? DateTime.now().add(const Duration(days: 365)),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (d != null) {
+                        setState(() => _expiryDate = d);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // مرفق الصورة
+            Text(
+              'صورة المستند / الفاتورة *',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: _showImageSourceDialog,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                width: double.infinity,
+                height: _selectedImage == null ? 110 : 180,
+                decoration: BoxDecoration(
+                  border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+                  borderRadius: BorderRadius.circular(14),
+                  color: isDark ? AppColors.backgroundDark : Colors.grey.shade50,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: _selectedImage != null
+                    ? Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.file(_selectedImage!, fit: BoxFit.cover),
+                          Container(color: Colors.black38),
+                          const Center(child: Icon(Icons.edit, color: Colors.white, size: 32)),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_outlined, color: Colors.grey.shade400, size: 30),
+                          const SizedBox(height: 6),
+                          Text('إرفاق صورة أو التقاطها', style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold, fontSize: 13)),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            AppMultilineField(
+              label: 'ملاحظات إضافية',
+              hint: 'أدخل أي ملاحظات حول أصل المستند أو تفاصيله',
+              controller: _notesController,
+              lines: 2,
+            ),
+          ],
+        ),
       ),
     );
   }

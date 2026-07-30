@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
-import '../tokens/typography.dart';
 import '../../forms/app_field_config.dart';
 
 class CustomTextField extends StatelessWidget {
@@ -21,8 +20,8 @@ class CustomTextField extends StatelessWidget {
   final TextStyle? style;
 
   const CustomTextField({
-    super.key,
     required this.label,
+    super.key,
     this.hint,
     this.controller,
     this.keyboardType,
@@ -62,7 +61,9 @@ class CustomTextField extends StatelessWidget {
     } else if (config?.validator != null && validator != null) {
       effectiveValidator = (val) {
         final configError = config!.validator!(val);
-        if (configError != null) return configError;
+        if (configError != null) {
+          return configError;
+        }
         return validator!(val);
       };
     }

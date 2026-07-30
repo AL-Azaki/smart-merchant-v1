@@ -17,15 +17,15 @@ class CrmNotifier extends _$CrmNotifier {
     try {
       final service = getIt<CustomerApplicationService>();
       final command = CustomerCommand(
-        id: data['id'],
-        name: data['name'],
-        nameEn: data['name_en'],
-        phone: data['phone'],
-        email: data['email'],
-        address: data['address'],
+        id: data['id']?.toString(),
+        name: data['name']?.toString() ?? '',
+        nameEn: data['name_en']?.toString(),
+        phone: data['phone']?.toString(),
+        email: data['email']?.toString(),
+        address: data['address']?.toString(),
         creditLimit: data['credit_limit'] != null ? double.tryParse(data['credit_limit'].toString()) : null,
         openingBalance: data['opening_balance'] != null ? double.tryParse(data['opening_balance'].toString()) : null,
-        openingBalanceType: data['opening_balance_type'],
+        openingBalanceType: data['opening_balance_type']?.toString(),
         openingBalanceDate: data['opening_balance_date'] != null ? DateTime.tryParse(data['opening_balance_date'].toString()) : null,
       );
       final result = await service.saveCustomer(command);
@@ -39,16 +39,16 @@ class CrmNotifier extends _$CrmNotifier {
     try {
       final service = getIt<SupplierApplicationService>();
       final command = SupplierCommand(
-        id: data['id'],
-        name: data['name'],
-        nameEn: data['name_en'],
-        contactPerson: data['contact_person'],
-        phone: data['phone'],
-        email: data['email'],
-        address: data['address'],
+        id: data['id']?.toString(),
+        name: data['name']?.toString() ?? '',
+        nameEn: data['name_en']?.toString(),
+        contactPerson: data['contact_person']?.toString(),
+        phone: data['phone']?.toString(),
+        email: data['email']?.toString(),
+        address: data['address']?.toString(),
         creditLimit: data['credit_limit'] != null ? double.tryParse(data['credit_limit'].toString()) : null,
         openingBalance: data['opening_balance'] != null ? double.tryParse(data['opening_balance'].toString()) : null,
-        openingBalanceType: data['opening_balance_type'],
+        openingBalanceType: data['opening_balance_type']?.toString(),
         openingBalanceDate: data['opening_balance_date'] != null ? DateTime.tryParse(data['opening_balance_date'].toString()) : null,
       );
       final result = await service.saveSupplier(command);

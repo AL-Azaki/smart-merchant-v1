@@ -378,14 +378,14 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         for (final item in params.items) {
           final inventory = await _inventoryRepository.getInventoryByUnitAndWarehouse(
             businessId,
-            params.warehouseId,
+            item.warehouseId,
             item.productUnitId,
           );
           if (inventory != null) {
             final oldQty = inventory.quantity;
             final oldAvgCost = inventory.averageCost;
             final newQty = item.quantity;
-            final newCost = item.unitPrice;
+            final newCost = item.unitCost;
             
             final updatedQty = oldQty + newQty;
             double updatedAvgCost = oldAvgCost;
@@ -404,10 +404,10 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
               InventoriesCompanion.insert(
                 id: _uuid.v4(),
                 businessId: businessId,
-                warehouseId: params.warehouseId,
+                warehouseId: item.warehouseId,
                 productUnitId: item.productUnitId,
                 quantity: drift.Value(item.quantity),
-                averageCost: drift.Value(item.unitPrice),
+                averageCost: drift.Value(item.unitCost),
               ),
             );
           }

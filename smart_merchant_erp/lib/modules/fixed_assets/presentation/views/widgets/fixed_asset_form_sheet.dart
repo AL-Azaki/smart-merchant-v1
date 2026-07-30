@@ -1,19 +1,17 @@
-import 'package:flutter/material.dart';
-import '../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../shared/design_system/widgets/primary_button.dart';
-import '../../../../../shared/design_system/widgets/custom_text_field.dart';
-import '../../../../../shared/forms/app_field_config.dart';
+﻿import 'package:flutter/material.dart';
+import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
+import '../../../../../shared/design_system/widgets/app_text_field.dart';
 
 class FixedAssetFormSheet extends StatefulWidget {
   final Map<String, dynamic>? asset;
   final VoidCallback onClose;
-  final Function(Map<String, dynamic>) onSave;
+  final void Function(Map<String, dynamic> data) onSave;
 
   const FixedAssetFormSheet({
-    super.key,
-    this.asset,
     required this.onClose,
     required this.onSave,
+    super.key,
+    this.asset,
   });
 
   @override
@@ -70,217 +68,131 @@ class _FixedAssetFormSheetState extends State<FixedAssetFormSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final isEdit = widget.asset != null;
 
-    return Container(
-      width: 500,
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: isDark ? AppColors.borderDark : AppColors.borderLight)),
+    return AppModalSheet(
+      title: isEdit ? 'تعديل بيانات الأصل' : 'تسجيل أصل ثابت جديد',
+      icon: Icons.account_balance_outlined,
+      iconColor: Colors.blue,
+      onClose: widget.onClose,
+      primaryLabel: 'حفظ الأصل',
+      onPrimary: _submit,
+      maxHeightFactor: 0.8,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppTextField(
+              label: 'اسم الأصل *',
+              hint: 'طابعة، مكيف، سيارة...',
+              controller: _nameController,
+              prefixIcon: const Icon(Icons.inventory_2_outlined),
+              validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال اسم الأصل' : null,
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 16),
+            Row(
               children: [
-                Text(
-                  widget.asset == null ? 'تسجيل أصل ثابت جديد' : 'تعديل بيانات الأصل',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: AppTextField(
+                    label: 'الكود / الرقم التسلسلي *',
+                    hint: 'AST-001',
+                    controller: _codeController,
+                    prefixIcon: const Icon(Icons.qr_code_outlined),
+                    validator: (v) => (v == null || v.trim().isEmpty) ? 'يرجى إدخال كود الأصل' : null,
+                  ),
                 ),
-                IconButton(
-                  onPressed: widget.onClose,
-                  icon: const Icon(Icons.close),
-                  style: IconButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.backgroundDark : Colors.grey.shade100,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'التصنيف',
+                    initialValue: _category,
+                    readOnly: true,
+                    suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onSelected: (val) => setState(() => _category = val),
+                      itemBuilder: (ctx) => const [
+                        PopupMenuItem(value: 'أجهزة إلكترونية', child: Text('أجهزة إلكترونية')),
+                        PopupMenuItem(value: 'أثاث ومعدات', child: Text('أثاث ومعدات')),
+                        PopupMenuItem(value: 'مركبات ووسائل نقل', child: Text('مركبات ووسائل نقل')),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-          
-          // Form Body
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomTextField(
-                      controller: _nameController,
-                      label: 'اسم الأصل *',
-                      hint: 'طابعة، مكيف، سيارة...',
-                      fieldType: AppFieldType.generalText,
-                      isRequired: true,
-                      validator: (v) => v!.isEmpty ? 'يرجى إدخال اسم الأصل' : null,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            controller: _codeController,
-                            label: 'الكود / الرقم التسلسلي *',
-                            fieldType: AppFieldType.generalText,
-                            isRequired: true,
-                            validator: (v) => v!.isEmpty ? 'يرجى إدخال كود الأصل' : null,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'التصنيف',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: _category,
-                                isExpanded: true,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                ),
-                                items: const [
-                                  DropdownMenuItem(value: 'أجهزة إلكترونية', child: Text('أجهزة إلكترونية', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                  DropdownMenuItem(value: 'أثاث ومعدات', child: Text('أثاث ومعدات', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                  DropdownMenuItem(value: 'مركبات ووسائل نقل', child: Text('مركبات ووسائل نقل', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                ],
-                                onChanged: (v) => setState(() => _category = v!),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: CustomTextField(
-                            controller: _costController,
-                            label: 'تكلفة الشراء (YER)',
-                            fieldType: AppFieldType.decimal,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: CustomTextField(
-                            controller: _dateController,
-                            label: 'تاريخ الشراء',
-                            fieldType: AppFieldType.generalText,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'موقع الأصل / المستودع',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: _location,
-                                isExpanded: true,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                ),
-                                items: const [
-                                  DropdownMenuItem(value: 'المستودع الرئيسي', child: Text('المستودع الرئيسي', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                  DropdownMenuItem(value: 'مستودع الفروع', child: Text('مستودع الفروع', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                ],
-                                onChanged: (v) => setState(() => _location = v!),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'حالة التشغيل',
-                                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                  color: isDark ? AppColors.textSecondaryDark : AppColors.textPrimaryLight,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: _status,
-                                isExpanded: true,
-                                decoration: InputDecoration(
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                ),
-                                items: const [
-                                  DropdownMenuItem(value: 'excellent', child: Text('يعمل بممتاز', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                  DropdownMenuItem(value: 'needs_maintenance', child: Text('يحتاج صيانة', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                  DropdownMenuItem(value: 'broken', child: Text('خارج الخدمة / تالف', overflow: TextOverflow.ellipsis, maxLines: 1)),
-                                ],
-                                onChanged: (v) => setState(() => _status = v!),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PrimaryButton(
-                            text: 'حفظ',
-                            onPressed: _submit,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: widget.onClose,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? AppColors.surfaceDark : Colors.grey.shade200,
-                              foregroundColor: isDark ? Colors.white : Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            child: const Text('إلغاء', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: AppNumberField(
+                    label: 'تكلفة الشراء (YER)',
+                    hint: '0.00',
+                    controller: _costController,
+                  ),
                 ),
-              ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'تاريخ الشراء',
+                    controller: _dateController,
+                    suffixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
+                    onTap: () async {
+                      final d = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.tryParse(_dateController.text) ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (d != null) {
+                        setState(() => _dateController.text = d.toIso8601String().split('T').first);
+                      }
+                    },
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: AppTextField(
+                    label: 'موقع الأصل / المستودع',
+                    initialValue: _location,
+                    readOnly: true,
+                    suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onSelected: (val) => setState(() => _location = val),
+                      itemBuilder: (ctx) => const [
+                        PopupMenuItem(value: 'المستودع الرئيسي', child: Text('المستودع الرئيسي')),
+                        PopupMenuItem(value: 'مستودع الفروع', child: Text('مستودع الفروع')),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: AppTextField(
+                    label: 'حالة التشغيل',
+                    initialValue: _status == 'excellent'
+                        ? 'يعمل بممتاز'
+                        : (_status == 'needs_maintenance' ? 'يحتاج صيانة' : 'خارج الخدمة / تالف'),
+                    readOnly: true,
+                    suffixIcon: PopupMenuButton<String>(
+                      icon: const Icon(Icons.arrow_drop_down),
+                      onSelected: (val) => setState(() => _status = val),
+                      itemBuilder: (ctx) => const [
+                        PopupMenuItem(value: 'excellent', child: Text('يعمل بممتاز')),
+                        PopupMenuItem(value: 'needs_maintenance', child: Text('يحتاج صيانة')),
+                        PopupMenuItem(value: 'broken', child: Text('خارج الخدمة / تالف')),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
