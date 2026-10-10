@@ -9,7 +9,7 @@ void main() {
   setUp(() {
     // نستخدم (NativeDatabase.memory) لإنشاء قاعدة بيانات وهمية في الذاكرة العشوائية (RAM)
     // هذا يضمن أن الاختبار سيكون سريعاً جداً كسرعة الضوء، ولا يمسح البيانات الحقيقية
-    database = AppDatabase(connection: NativeDatabase.memory());
+    database = AppDatabase.forTesting(NativeDatabase.memory());
   });
 
   // تنظيف بيئة الاختبار (تعمل بعد كل اختبار)
