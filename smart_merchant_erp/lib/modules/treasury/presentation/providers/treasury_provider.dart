@@ -1,6 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../kernel/error/failures.dart';
+import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/daos/treasury_dao.dart';
+import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/usecases/receive_payment_usecase.dart';
 
 part 'treasury_provider.g.dart';
@@ -169,3 +173,59 @@ class PaymentNotifier extends _$PaymentNotifier {
     );
   }
 }
+
+final receiptVouchersStreamProvider =
+    StreamProvider.autoDispose<List<Payment>>((ref) {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive || session.businessId == null) {
+    return const Stream.empty();
+  }
+  final repo = ref.watch(treasuryRepositoryProvider);
+  return repo.watchPayments(
+    PaymentFilter(
+      businessId: session.businessId!,
+      paymentType: 'Receipt',
+      limit: 200,
+    ),
+  );
+});
+
+final paymentVouchersStreamProvider =
+    StreamProvider.autoDispose<List<Payment>>((ref) {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive || session.businessId == null) {
+    return const Stream.empty();
+  }
+  final repo = ref.watch(treasuryRepositoryProvider);
+  return repo.watchPayments(
+    PaymentFilter(
+      businessId: session.businessId!,
+      paymentType: 'Payment',
+      limit: 200,
+    ),
+  );
+});
+
+final bankAccountsStreamProvider =
+    StreamProvider.autoDispose<List<BankAccount>>((ref) {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive || session.businessId == null) {
+    return const Stream.empty();
+  }
+  final repo = ref.watch(treasuryRepositoryProvider);
+  return repo.watchBankAccounts(
+    BankAccountFilter(businessId: session.businessId!),
+  );
+});
+
+final cashRegistersStreamProvider =
+    StreamProvider.autoDispose<List<CashRegister>>((ref) {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive || session.businessId == null) {
+    return const Stream.empty();
+  }
+  final repo = ref.watch(treasuryRepositoryProvider);
+  return repo.watchCashRegisters(
+    CashRegisterFilter(businessId: session.businessId!),
+  );
+});

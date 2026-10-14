@@ -67532,11 +67532,11 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final Index uqProductImagesPrimary = Index(
     'uq_product_images_primary',
-    'CREATE UNIQUE INDEX uq_product_images_primary ON product_images (product_id)',
+    'CREATE UNIQUE INDEX uq_product_images_primary ON product_images (product_id) WHERE is_primary = 1',
   );
   late final Index uqProductUnitsOneBase = Index(
     'uq_product_units_one_base',
-    'CREATE UNIQUE INDEX uq_product_units_one_base ON product_units (product_id)',
+    'CREATE UNIQUE INDEX uq_product_units_one_base ON product_units (product_id) WHERE is_base_unit = 1',
   );
   late final Index idxSalesInvoicesStatus = Index(
     'idx_sales_invoices_status',

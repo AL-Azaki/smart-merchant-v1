@@ -155,6 +155,454 @@ class _JournalEntryDetailsProviderElement
       (origin as JournalEntryDetailsProvider).journalEntryId;
 }
 
+String _$trialBalanceReportHash() =>
+    r'd90777e4ce95188f65eb103363484d65465041b7';
+
+/// See also [trialBalanceReport].
+@ProviderFor(trialBalanceReport)
+const trialBalanceReportProvider = TrialBalanceReportFamily();
+
+/// See also [trialBalanceReport].
+class TrialBalanceReportFamily extends Family<AsyncValue<TrialBalanceReport>> {
+  /// See also [trialBalanceReport].
+  const TrialBalanceReportFamily();
+
+  /// See also [trialBalanceReport].
+  TrialBalanceReportProvider call({DateTime? startDate, DateTime? endDate}) {
+    return TrialBalanceReportProvider(startDate: startDate, endDate: endDate);
+  }
+
+  @override
+  TrialBalanceReportProvider getProviderOverride(
+    covariant TrialBalanceReportProvider provider,
+  ) {
+    return call(startDate: provider.startDate, endDate: provider.endDate);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'trialBalanceReportProvider';
+}
+
+/// See also [trialBalanceReport].
+class TrialBalanceReportProvider
+    extends AutoDisposeFutureProvider<TrialBalanceReport> {
+  /// See also [trialBalanceReport].
+  TrialBalanceReportProvider({DateTime? startDate, DateTime? endDate})
+    : this._internal(
+        (ref) => trialBalanceReport(
+          ref as TrialBalanceReportRef,
+          startDate: startDate,
+          endDate: endDate,
+        ),
+        from: trialBalanceReportProvider,
+        name: r'trialBalanceReportProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$trialBalanceReportHash,
+        dependencies: TrialBalanceReportFamily._dependencies,
+        allTransitiveDependencies:
+            TrialBalanceReportFamily._allTransitiveDependencies,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+  TrialBalanceReportProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.startDate,
+    required this.endDate,
+  }) : super.internal();
+
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  @override
+  Override overrideWith(
+    FutureOr<TrialBalanceReport> Function(TrialBalanceReportRef provider)
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: TrialBalanceReportProvider._internal(
+        (ref) => create(ref as TrialBalanceReportRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        startDate: startDate,
+        endDate: endDate,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<TrialBalanceReport> createElement() {
+    return _TrialBalanceReportProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is TrialBalanceReportProvider &&
+        other.startDate == startDate &&
+        other.endDate == endDate;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, startDate.hashCode);
+    hash = _SystemHash.combine(hash, endDate.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin TrialBalanceReportRef
+    on AutoDisposeFutureProviderRef<TrialBalanceReport> {
+  /// The parameter `startDate` of this provider.
+  DateTime? get startDate;
+
+  /// The parameter `endDate` of this provider.
+  DateTime? get endDate;
+}
+
+class _TrialBalanceReportProviderElement
+    extends AutoDisposeFutureProviderElement<TrialBalanceReport>
+    with TrialBalanceReportRef {
+  _TrialBalanceReportProviderElement(super.provider);
+
+  @override
+  DateTime? get startDate => (origin as TrialBalanceReportProvider).startDate;
+  @override
+  DateTime? get endDate => (origin as TrialBalanceReportProvider).endDate;
+}
+
+String _$profitLossReportHash() => r'4c3bc0a8b663e7c9fb9ef81f10fc1a72c98ca72c';
+
+/// See also [profitLossReport].
+@ProviderFor(profitLossReport)
+const profitLossReportProvider = ProfitLossReportFamily();
+
+/// See also [profitLossReport].
+class ProfitLossReportFamily extends Family<AsyncValue<ProfitLossReport>> {
+  /// See also [profitLossReport].
+  const ProfitLossReportFamily();
+
+  /// See also [profitLossReport].
+  ProfitLossReportProvider call({DateTime? startDate, DateTime? endDate}) {
+    return ProfitLossReportProvider(startDate: startDate, endDate: endDate);
+  }
+
+  @override
+  ProfitLossReportProvider getProviderOverride(
+    covariant ProfitLossReportProvider provider,
+  ) {
+    return call(startDate: provider.startDate, endDate: provider.endDate);
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'profitLossReportProvider';
+}
+
+/// See also [profitLossReport].
+class ProfitLossReportProvider
+    extends AutoDisposeFutureProvider<ProfitLossReport> {
+  /// See also [profitLossReport].
+  ProfitLossReportProvider({DateTime? startDate, DateTime? endDate})
+    : this._internal(
+        (ref) => profitLossReport(
+          ref as ProfitLossReportRef,
+          startDate: startDate,
+          endDate: endDate,
+        ),
+        from: profitLossReportProvider,
+        name: r'profitLossReportProvider',
+        debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+            ? null
+            : _$profitLossReportHash,
+        dependencies: ProfitLossReportFamily._dependencies,
+        allTransitiveDependencies:
+            ProfitLossReportFamily._allTransitiveDependencies,
+        startDate: startDate,
+        endDate: endDate,
+      );
+
+  ProfitLossReportProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.startDate,
+    required this.endDate,
+  }) : super.internal();
+
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  @override
+  Override overrideWith(
+    FutureOr<ProfitLossReport> Function(ProfitLossReportRef provider) create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: ProfitLossReportProvider._internal(
+        (ref) => create(ref as ProfitLossReportRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        startDate: startDate,
+        endDate: endDate,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<ProfitLossReport> createElement() {
+    return _ProfitLossReportProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is ProfitLossReportProvider &&
+        other.startDate == startDate &&
+        other.endDate == endDate;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, startDate.hashCode);
+    hash = _SystemHash.combine(hash, endDate.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin ProfitLossReportRef on AutoDisposeFutureProviderRef<ProfitLossReport> {
+  /// The parameter `startDate` of this provider.
+  DateTime? get startDate;
+
+  /// The parameter `endDate` of this provider.
+  DateTime? get endDate;
+}
+
+class _ProfitLossReportProviderElement
+    extends AutoDisposeFutureProviderElement<ProfitLossReport>
+    with ProfitLossReportRef {
+  _ProfitLossReportProviderElement(super.provider);
+
+  @override
+  DateTime? get startDate => (origin as ProfitLossReportProvider).startDate;
+  @override
+  DateTime? get endDate => (origin as ProfitLossReportProvider).endDate;
+}
+
+String _$accountStatementReportHash() =>
+    r'6352b0aedf71b74a862f511161f0b5be3f8db3f1';
+
+/// See also [accountStatementReport].
+@ProviderFor(accountStatementReport)
+const accountStatementReportProvider = AccountStatementReportFamily();
+
+/// See also [accountStatementReport].
+class AccountStatementReportFamily
+    extends Family<AsyncValue<AccountStatementReport?>> {
+  /// See also [accountStatementReport].
+  const AccountStatementReportFamily();
+
+  /// See also [accountStatementReport].
+  AccountStatementReportProvider call({
+    required String accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
+    return AccountStatementReportProvider(
+      accountId: accountId,
+      startDate: startDate,
+      endDate: endDate,
+    );
+  }
+
+  @override
+  AccountStatementReportProvider getProviderOverride(
+    covariant AccountStatementReportProvider provider,
+  ) {
+    return call(
+      accountId: provider.accountId,
+      startDate: provider.startDate,
+      endDate: provider.endDate,
+    );
+  }
+
+  static const Iterable<ProviderOrFamily>? _dependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get dependencies => _dependencies;
+
+  static const Iterable<ProviderOrFamily>? _allTransitiveDependencies = null;
+
+  @override
+  Iterable<ProviderOrFamily>? get allTransitiveDependencies =>
+      _allTransitiveDependencies;
+
+  @override
+  String? get name => r'accountStatementReportProvider';
+}
+
+/// See also [accountStatementReport].
+class AccountStatementReportProvider
+    extends AutoDisposeFutureProvider<AccountStatementReport?> {
+  /// See also [accountStatementReport].
+  AccountStatementReportProvider({
+    required String accountId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) : this._internal(
+         (ref) => accountStatementReport(
+           ref as AccountStatementReportRef,
+           accountId: accountId,
+           startDate: startDate,
+           endDate: endDate,
+         ),
+         from: accountStatementReportProvider,
+         name: r'accountStatementReportProvider',
+         debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
+             ? null
+             : _$accountStatementReportHash,
+         dependencies: AccountStatementReportFamily._dependencies,
+         allTransitiveDependencies:
+             AccountStatementReportFamily._allTransitiveDependencies,
+         accountId: accountId,
+         startDate: startDate,
+         endDate: endDate,
+       );
+
+  AccountStatementReportProvider._internal(
+    super._createNotifier, {
+    required super.name,
+    required super.dependencies,
+    required super.allTransitiveDependencies,
+    required super.debugGetCreateSourceHash,
+    required super.from,
+    required this.accountId,
+    required this.startDate,
+    required this.endDate,
+  }) : super.internal();
+
+  final String accountId;
+  final DateTime? startDate;
+  final DateTime? endDate;
+
+  @override
+  Override overrideWith(
+    FutureOr<AccountStatementReport?> Function(
+      AccountStatementReportRef provider,
+    )
+    create,
+  ) {
+    return ProviderOverride(
+      origin: this,
+      override: AccountStatementReportProvider._internal(
+        (ref) => create(ref as AccountStatementReportRef),
+        from: from,
+        name: null,
+        dependencies: null,
+        allTransitiveDependencies: null,
+        debugGetCreateSourceHash: null,
+        accountId: accountId,
+        startDate: startDate,
+        endDate: endDate,
+      ),
+    );
+  }
+
+  @override
+  AutoDisposeFutureProviderElement<AccountStatementReport?> createElement() {
+    return _AccountStatementReportProviderElement(this);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is AccountStatementReportProvider &&
+        other.accountId == accountId &&
+        other.startDate == startDate &&
+        other.endDate == endDate;
+  }
+
+  @override
+  int get hashCode {
+    var hash = _SystemHash.combine(0, runtimeType.hashCode);
+    hash = _SystemHash.combine(hash, accountId.hashCode);
+    hash = _SystemHash.combine(hash, startDate.hashCode);
+    hash = _SystemHash.combine(hash, endDate.hashCode);
+
+    return _SystemHash.finish(hash);
+  }
+}
+
+@Deprecated('Will be removed in 3.0. Use Ref instead')
+// ignore: unused_element
+mixin AccountStatementReportRef
+    on AutoDisposeFutureProviderRef<AccountStatementReport?> {
+  /// The parameter `accountId` of this provider.
+  String get accountId;
+
+  /// The parameter `startDate` of this provider.
+  DateTime? get startDate;
+
+  /// The parameter `endDate` of this provider.
+  DateTime? get endDate;
+}
+
+class _AccountStatementReportProviderElement
+    extends AutoDisposeFutureProviderElement<AccountStatementReport?>
+    with AccountStatementReportRef {
+  _AccountStatementReportProviderElement(super.provider);
+
+  @override
+  String get accountId => (origin as AccountStatementReportProvider).accountId;
+  @override
+  DateTime? get startDate =>
+      (origin as AccountStatementReportProvider).startDate;
+  @override
+  DateTime? get endDate => (origin as AccountStatementReportProvider).endDate;
+}
+
 String _$chartOfAccountsNotifierHash() =>
     r'6111f57eff797fb4544ed261f901a6051e044e5f';
 

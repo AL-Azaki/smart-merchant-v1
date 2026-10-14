@@ -20,20 +20,28 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
   Widget build(BuildContext context) {
     final posState = ref.watch(posNotifierProvider);
     final customersAsync = ref.watch(customersNotifierProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final backgroundColor =
+        isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
+    final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
+    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      insetPadding: const EdgeInsets.all(24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       clipBehavior: Clip.antiAlias,
       child: Container(
-        width: 500,
-        height: 700,
-        color: AppColors.backgroundLight,
+        constraints: const BoxConstraints(maxWidth: 500, maxHeight: 680),
+        color: backgroundColor,
         child: Column(
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
@@ -44,21 +52,27 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.group_rounded, color: Colors.white),
-                          SizedBox(width: 12),
-                          Text(
-                            'اختر العميل',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
+                      const Expanded(
+                        child: Row(
+                          children: [
+                            Icon(Icons.group_rounded, color: Colors.white),
+                            SizedBox(width: 10),
+                            Flexible(
+                              child: Text(
+                                'اختر العميل',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             icon: const Icon(
@@ -68,10 +82,7 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                             tooltip: 'إضافة عميل جديد',
                             onPressed: () {
                               Navigator.pop(context); // إغلاق نافذة البحث
-                              showDialog(
-                                context: context,
-                                builder: (_) => const CustomerAddModal(),
-                              ); // فتح إضافة جديد
+                              CustomerAddModal.show(context);
                             },
                           ),
                           IconButton(
@@ -92,14 +103,14 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                     decoration: InputDecoration(
                       hintText: 'ابحث بالاسم أو رقم الهاتف...',
                       hintStyle: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                       prefixIcon: Icon(
                         Icons.search,
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                       ),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.15),
+                      fillColor: Colors.white.withValues(alpha: 0.15),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(16),
                         borderSide: BorderSide.none,
@@ -134,6 +145,10 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                         icon: Icons.person_rounded,
                         iconColor: AppColors.primary,
                         isSelected: posState.customerName == null,
+                        surfaceColor: surfaceColor,
+                        borderColor: borderColor,
+                        textColor: textColor,
+                        textSecondary: textSecondary,
                         onTap: () {
                           ref
                               .read(posNotifierProvider.notifier)
@@ -142,15 +157,15 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                         },
                       ),
 
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Divider(color: AppColors.borderLight),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Divider(color: borderColor),
                       ),
 
                       Text(
                         'العملاء المسجلين (${filtered.length})',
-                        style: const TextStyle(
-                          color: AppColors.textSecondaryLight,
+                        style: TextStyle(
+                          color: textSecondary,
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
                         ),
@@ -160,21 +175,36 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                       ...filtered.map(
                         (c) => Padding(
                           padding: const EdgeInsets.only(bottom: 12),
-                          child: _buildCustomerTile(
-                            context,
-                            ref,
-                            title: c.customerName,
-                            subtitle: c.phone ?? 'بدون رقم',
-                            icon: Icons.person_rounded,
-                            iconColor: AppColors.success,
-                            balance: c
-                                .openingBalance, // Fallback to opening balance if real time balance is not loaded
-                            isSelected: posState.customerName == c.customerName,
-                            onTap: () {
-                              ref
-                                  .read(posNotifierProvider.notifier)
-                                  .setCustomer(c.id, c.customerName);
-                              Navigator.pop(context);
+                          child: Consumer(
+                            builder: (context, ref, _) {
+                              final balanceAsync =
+                                  ref.watch(customerBalanceProvider(c.id));
+                              final liveBalance = balanceAsync.maybeWhen(
+                                data: (summary) =>
+                                    summary?.netBalance ?? c.openingBalance,
+                                orElse: () => c.openingBalance,
+                              );
+                              return _buildCustomerTile(
+                                context,
+                                ref,
+                                title: c.customerName,
+                                subtitle: c.phone ?? 'بدون رقم',
+                                icon: Icons.person_rounded,
+                                iconColor: AppColors.success,
+                                surfaceColor: surfaceColor,
+                                borderColor: borderColor,
+                                textColor: textColor,
+                                textSecondary: textSecondary,
+                                balance: liveBalance,
+                                isSelected:
+                                    posState.customerName == c.customerName,
+                                onTap: () {
+                                  ref
+                                      .read(posNotifierProvider.notifier)
+                                      .setCustomer(c.id, c.customerName);
+                                  Navigator.pop(context);
+                                },
+                              );
                             },
                           ),
                         ),
@@ -200,6 +230,10 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
     required IconData icon,
     required Color iconColor,
     required bool isSelected,
+    required Color surfaceColor,
+    required Color borderColor,
+    required Color textColor,
+    required Color textSecondary,
     required VoidCallback onTap,
     double? balance,
   }) {
@@ -209,16 +243,16 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: surfaceColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderLight,
+            color: isSelected ? AppColors.primary : borderColor,
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withOpacity(0.2),
+                    color: AppColors.primary.withValues(alpha: 0.2),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
@@ -231,7 +265,7 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
               width: 52,
               height: 52,
               decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.1),
+                color: iconColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(icon, color: iconColor, size: 24),
@@ -243,16 +277,17 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 15,
+                      color: textColor,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondaryLight,
+                    style: TextStyle(
+                      color: textSecondary,
                       fontSize: 13,
                     ),
                   ),
@@ -276,9 +311,9 @@ class _CustomerSelectModalState extends ConsumerState<CustomerSelectModal> {
             if (isSelected)
               const Icon(Icons.check_circle_rounded, color: AppColors.primary)
             else
-              const Icon(
+              Icon(
                 Icons.chevron_left_rounded,
-                color: AppColors.borderLight,
+                color: borderColor,
               ), // Arrow Left for RTL
           ],
         ),

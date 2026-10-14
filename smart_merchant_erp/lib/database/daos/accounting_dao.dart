@@ -136,6 +136,17 @@ class JournalEntryWithLines {
   const JournalEntryWithLines({required this.entry, required this.lines});
 }
 
+/// DTO holding a [JournalEntryLine] with its parent [JournalEntry] for reporting.
+class JournalLineWithEntry {
+  final JournalEntryLine line;
+  final JournalEntry entry;
+
+  const JournalLineWithEntry({
+    required this.line,
+    required this.entry,
+  });
+}
+
 /// Filter DTO for [OpeningBalances] queries.
 class OpeningBalanceFilter {
   final String businessId;
@@ -406,6 +417,54 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
           ),
         )
         .then((rows) => rows > 0);
+  }
+
+  /// Permanently removes a chart of account record if allowed.
+  Future<int> deleteChartOfAccount(String id, String businessId) {
+    if (businessId.trim().isEmpty) {
+      throw const TenantScopingException(
+        'deleteChartOfAccount requires businessId.',
+      );
+    }
+    return (delete(chartOfAccounts)
+          ..where((a) => a.id.equals(id) & a.businessId.equals(businessId)))
+        .go();
+  }
+
+  /// Checks if an account is referenced in any journal entry lines.
+  Future<bool> hasJournalEntries(String accountId, String businessId) async {
+    if (businessId.trim().isEmpty) return false;
+    final res = await (select(journalEntryLines)
+          ..where((l) =>
+              l.chartOfAccountId.equals(accountId) &
+              l.businessId.equals(businessId))
+          ..limit(1))
+        .get();
+    return res.isNotEmpty;
+  }
+
+  /// Checks if an account is mapped in system account mappings.
+  Future<bool> isAccountMapped(String accountId, String businessId) async {
+    if (businessId.trim().isEmpty) return false;
+    final res = await (select(accountMappings)
+          ..where((m) =>
+              m.chartOfAccountId.equals(accountId) &
+              m.businessId.equals(businessId))
+          ..limit(1))
+        .get();
+    return res.isNotEmpty;
+  }
+
+  /// Checks if an account has any child accounts.
+  Future<bool> hasChildAccounts(String accountId, String businessId) async {
+    if (businessId.trim().isEmpty) return false;
+    final res = await (select(chartOfAccounts)
+          ..where((a) =>
+              a.parentAccountId.equals(accountId) &
+              a.businessId.equals(businessId))
+          ..limit(1))
+        .get();
+    return res.isNotEmpty;
   }
 
   // ============================================================================
@@ -765,6 +824,54 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
             .get();
 
     return JournalEntryWithLines(entry: entry, lines: lines);
+  }
+
+  /// Retrieves journal entry lines with their parent journal entry for financial reporting.
+  Future<List<JournalLineWithEntry>> getJournalLinesForReporting({
+    required String businessId,
+    String? chartOfAccountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status = 'Posted',
+  }) async {
+    if (businessId.trim().isEmpty) {
+      throw const TenantScopingException(
+        'getJournalLinesForReporting requires businessId.',
+      );
+    }
+    final query = select(journalEntryLines).join([
+      innerJoin(
+        journalEntries,
+        journalEntries.id.equalsExp(journalEntryLines.journalEntryId) &
+            journalEntries.businessId.equalsExp(journalEntryLines.businessId),
+      ),
+    ])..where(journalEntryLines.businessId.equals(businessId));
+
+    if (status != null && status.isNotEmpty) {
+      query.where(journalEntries.status.equals(status));
+    }
+    if (chartOfAccountId != null && chartOfAccountId.isNotEmpty) {
+      query.where(journalEntryLines.chartOfAccountId.equals(chartOfAccountId));
+    }
+    if (startDate != null) {
+      query.where(journalEntries.documentDate.isBiggerOrEqualValue(startDate));
+    }
+    if (endDate != null) {
+      query.where(journalEntries.documentDate.isSmallerOrEqualValue(endDate));
+    }
+
+    query.orderBy([
+      OrderingTerm(expression: journalEntries.documentDate, mode: OrderingMode.asc),
+      OrderingTerm(expression: journalEntryLines.lineNumber, mode: OrderingMode.asc),
+    ]);
+
+    final rows = await query.get();
+    return rows.map((row) {
+      return JournalLineWithEntry(
+        line: row.readTable(journalEntryLines),
+        entry: row.readTable(journalEntries),
+      );
+    }).toList();
   }
 
   /// Lists journal entries matching the provided filter with pagination.

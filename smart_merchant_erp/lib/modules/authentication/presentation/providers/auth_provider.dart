@@ -63,6 +63,11 @@ class AuthNotifier extends _$AuthNotifier {
     state = AuthStatus.authenticated;
   }
 
+  /// Direct demo / offline bypass mode for instant trial without credentials.
+  void loginAsDemo() {
+    _bootstrapQaSession();
+  }
+
   /// Full login flow: authenticate → store token → bootstrap → register device.
   Future<LoginResult> loginWithLaravel({
     required String email,

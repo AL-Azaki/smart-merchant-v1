@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/widgets/app_card.dart';
@@ -254,13 +254,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                 ),
                 if (posState.customerName == null)
                   TextButton.icon(
-                    onPressed: () {
-                      showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => const CustomerAddModal(),
-                      );
-                    },
+                    onPressed: () => CustomerAddModal.show(context),
                     icon: const Icon(Icons.person_add_outlined, size: 18),
                     label: const Text('إضافة عميل', style: TextStyle(fontSize: 12)),
                   ),

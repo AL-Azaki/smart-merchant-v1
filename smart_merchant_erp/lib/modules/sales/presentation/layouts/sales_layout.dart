@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:smart_merchant_erp/l10n/app_localizations.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/typography.dart';
+import '../providers/online_orders_provider.dart';
+import '../providers/pos_provider.dart';
 import '../views/pos_view.dart';
 import '../views/sales_list_view.dart';
 import '../views/orders_list_view.dart';
@@ -28,15 +30,15 @@ class SalesTabScope extends InheritedWidget {
   }
 }
 
-class SalesLayout extends StatefulWidget {
+class SalesLayout extends ConsumerStatefulWidget {
   final int initialTabIndex;
   const SalesLayout({super.key, this.initialTabIndex = 0});
 
   @override
-  State<SalesLayout> createState() => _SalesLayoutState();
+  ConsumerState<SalesLayout> createState() => _SalesLayoutState();
 }
 
-class _SalesLayoutState extends State<SalesLayout>
+class _SalesLayoutState extends ConsumerState<SalesLayout>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -66,10 +68,22 @@ class _SalesLayoutState extends State<SalesLayout>
         ? AppColors.surfaceDark
         : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final unselectedColor = isDark
         ? AppColors.textSecondaryDark
         : AppColors.textSecondaryLight;
+
+    // Dynamic Live State Badges
+    final posState = ref.watch(posNotifierProvider);
+    final int cartItemsCount = posState.cart.fold(
+      0,
+      (sum, item) => sum + item.quantity.toInt(),
+    );
+
+    final ordersAsync = ref.watch(onlineOrdersNotifierProvider);
+    final int pendingOrdersCount = ordersAsync.asData?.value
+            .where((o) => o.status == 'PENDING' && o.deletedAt == null)
+            .length ??
+        0;
 
     return SalesTabScope(
       tabController: _tabController,
@@ -78,11 +92,13 @@ class _SalesLayoutState extends State<SalesLayout>
         appBar: AppBar(
           backgroundColor: surfaceColor,
           elevation: 0,
-          toolbarHeight: 0, // إخفاء العنوان بالكامل لتوفير مساحة
+          toolbarHeight: 0,
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(56),
+            preferredSize: const Size.fromHeight(60),
             child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
+                color: surfaceColor,
                 border: Border(
                   bottom: BorderSide(color: borderColor, width: 1.5),
                 ),
@@ -93,35 +109,69 @@ class _SalesLayoutState extends State<SalesLayout>
                 tabAlignment: MediaQuery.of(context).size.width < 600
                     ? TabAlignment.start
                     : TabAlignment.fill,
-                indicatorColor: AppColors.primary,
-                indicatorWeight: 4,
+                indicator: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: isDark ? 0.25 : 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.4),
+                    width: 1.5,
+                  ),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
                 labelColor: AppColors.primary,
                 unselectedLabelColor: unselectedColor,
                 labelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
                   fontFamily: 'Cairo',
                 ),
-                unselectedLabelStyle: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                unselectedLabelStyle: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: unselectedColor,
                   fontFamily: 'Cairo',
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 0),
                 tabs: [
+                  // Tab 1: New Invoice / POS
                   Tab(
-                    iconMargin: const EdgeInsets.only(bottom: 4),
+                    height: 44,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.add_shopping_cart_rounded, size: 20),
+                        const Icon(Icons.point_of_sale_rounded, size: 20),
                         const SizedBox(width: 8),
                         Text(loc.newInvoicePos),
+                        if (cartItemsCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$cartItemsCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
+
+                  // Tab 2: Sales Invoices
                   Tab(
-                    iconMargin: const EdgeInsets.only(bottom: 4),
+                    height: 44,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.receipt_long_rounded, size: 20),
                         const SizedBox(width: 8),
@@ -129,13 +179,37 @@ class _SalesLayoutState extends State<SalesLayout>
                       ],
                     ),
                   ),
+
+                  // Tab 3: Online Store Orders
                   Tab(
-                    iconMargin: const EdgeInsets.only(bottom: 4),
+                    height: 44,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Icon(Icons.shopping_bag_rounded, size: 20),
                         const SizedBox(width: 8),
                         Text(loc.ecommerceOrders),
+                        if (pendingOrdersCount > 0) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.warning,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '$pendingOrdersCount',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -144,11 +218,10 @@ class _SalesLayoutState extends State<SalesLayout>
             ),
           ),
         ),
-        // المحتوى الخاص بالتبويبات
+
         body: TabBarView(
           controller: _tabController,
-          physics:
-              const NeverScrollableScrollPhysics(), // منع السحب باليد لمنع أخطاء الكاشير أثناء البيع
+          physics: const NeverScrollableScrollPhysics(),
           children: const [PosView(), SalesListView(), OrdersListView()],
         ),
       ),

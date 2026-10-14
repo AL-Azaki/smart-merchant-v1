@@ -1,21 +1,21 @@
 # Sales POS QA Accounting Closure Report
-Date Generated: 2026-07-30T04:47:53.980353
+Date Generated: 2026-10-12T04:24:17.462600
 ==========================================
 ## Phase 1: Data Seeding
 - QA data seeded successfully (Idempotent).
 - Initial stock verified: 100.0 PCS of Test Smartphone.
 
 ## Phase 2: Cash Sale Execution
-- Cash Sale completed successfully. Invoice ID: d2233b16-33aa-40a3-bb60-1eb7a943cbe8
+- Cash Sale completed successfully. Invoice ID: 5d555e07-91b1-430f-a541-699757973c1e
 - Stock successfully deducted. New stock: 98.0 PCS.
 ### Cash Sale Accounting Entries:
-  - [Debit] Account ID: coa-ar, Amount: 1150.0
+  - [Debit] Account ID: coa-cash, Amount: 1150.0
   - [Credit] Account ID: coa-sales, Amount: 1150.0
   - [Debit] Account ID: coa-cogs, Amount: 210.0
   - [Credit] Account ID: coa-inv, Amount: 210.0
 
 ## Phase 3: Credit Sale Execution
-- Credit Sale completed successfully. Invoice ID: 7b1e47be-b586-4bf3-af84-21f1cf882afe
+- Credit Sale completed successfully. Invoice ID: 1dd4aace-2478-4ca8-b31e-eadebf8c64e7
 - Stock successfully deducted. New stock: 95.0 PCS.
 - Receivable created successfully. Remaining Amount: 1725.0
 ### Credit Sale Accounting Entries:

@@ -24,6 +24,10 @@ abstract class AccountingRepository {
     String businessId, {
     required bool isActive,
   });
+  Future<bool> deleteChartOfAccount(String id, String businessId);
+  Future<bool> hasJournalEntries(String accountId, String businessId);
+  Future<bool> isAccountMapped(String accountId, String businessId);
+  Future<bool> hasChildAccounts(String accountId, String businessId);
   Future<List<ChartOfAccount>> getPendingSyncChartOfAccounts(String businessId);
   Future<int> markChartOfAccountsAsSynced(List<String> ids, String businessId);
 
@@ -78,6 +82,13 @@ abstract class AccountingRepository {
     String businessId,
     String newStatus,
   );
+  Future<List<JournalLineWithEntry>> getJournalLinesForReporting({
+    required String businessId,
+    String? chartOfAccountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status = 'Posted',
+  });
 
   // Opening Balances
   Future<OpeningBalance?> getOpeningBalanceById(String id, String businessId);

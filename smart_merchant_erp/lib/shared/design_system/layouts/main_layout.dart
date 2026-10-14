@@ -219,14 +219,14 @@ class MainLayout extends ConsumerWidget {
       ),
 
       // 2. Main Content & Floating Dock
-      extendBody: true,
+      extendBody: false,
       body: child,
       bottomNavigationBar: SafeArea(
-        bottom: false,
+        bottom: true,
         child: Padding(
-          padding: const EdgeInsets.only(left: 24, right: 24, bottom: 24, top: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(22),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
@@ -236,21 +236,21 @@ class MainLayout extends ConsumerWidget {
                 ),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? AppColors.surfaceDark.withOpacity(0.8)
-                      : Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(24),
+                      ? AppColors.surfaceDark.withValues(alpha: 0.85)
+                      : Colors.white.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(22),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.05),
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(
-                        isDark ? 0.3 : 0.1,
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.3 : 0.08,
                       ),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),

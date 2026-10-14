@@ -35,6 +35,7 @@ import '../../modules/core/infrastructure/repositories/core_repository_impl.dart
 import '../../modules/catalog/domain/repositories/catalog_repository.dart';
 import '../../modules/catalog/infrastructure/repositories/catalog_repository_impl.dart';
 import '../../modules/catalog/application/services/catalog_application_service.dart';
+import '../../modules/catalog/application/services/product_unit_resolver.dart';
 
 import '../../modules/inventory/domain/repositories/inventory_repository.dart';
 import '../../modules/inventory/infrastructure/repositories/inventory_repository_impl.dart';
@@ -65,10 +66,17 @@ import '../../modules/accounting/domain/repositories/accounting_repository.dart'
 import '../../modules/accounting/infrastructure/repositories/accounting_repository_impl.dart';
 import '../../modules/accounting/application/services/accounting_application_service.dart';
 import '../../modules/accounting/application/usecases/post_journal_entry_usecase.dart';
+import '../../modules/accounting/application/services/trial_balance_service.dart';
+import '../../modules/accounting/application/services/profit_loss_service.dart';
+import '../../modules/accounting/application/services/account_statement_service.dart';
+import '../../modules/accounting/application/usecases/year_end_closing_usecase.dart';
 
 import '../../modules/treasury/domain/repositories/treasury_repository.dart';
 import '../../modules/treasury/infrastructure/repositories/treasury_repository_impl.dart';
 import '../../modules/treasury/application/usecases/receive_payment_usecase.dart';
+import '../../modules/treasury/application/usecases/record_disbursement_usecase.dart';
+import '../../modules/treasury/application/usecases/internal_fund_transfer_usecase.dart';
+import '../../modules/treasury/application/services/party_statement_service.dart';
 
 import '../../modules/hr/domain/repositories/hr_repository.dart';
 import '../../modules/hr/infrastructure/repositories/hr_repository_impl.dart';
@@ -149,9 +157,14 @@ Future<void> initDependencies() async {
   // UseCases & Services (Accounting)
   getIt.registerLazySingleton(() => AccountingApplicationService(getIt(), getIt()));
   getIt.registerLazySingleton(() => PostJournalEntryUseCase(getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => TrialBalanceService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => ProfitLossService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => AccountStatementService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => YearEndClosingUseCase(getIt(), getIt(), getIt(), getIt()));
 
   // Catalog
   getIt.registerLazySingleton(() => CatalogApplicationService(getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => ProductUnitResolver(getIt()));
 
   // Inventory
   getIt.registerLazySingleton(() => WarehouseContextService(getIt()));
@@ -165,16 +178,19 @@ Future<void> initDependencies() async {
   // Sales
   getIt.registerLazySingleton(() => CustomerApplicationService(getIt(), getIt()));
   getIt.registerLazySingleton(() => OnlineOrderService(getIt(), getIt()));
-  getIt.registerLazySingleton(() => CompleteSaleUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => CompleteSaleUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
   getIt.registerLazySingleton(() => ProcessSalesReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
 
   // Purchasing
   getIt.registerLazySingleton(() => SupplierApplicationService(getIt(), getIt()));
   getIt.registerLazySingleton(() => RecordPurchaseReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
-  getIt.registerLazySingleton(() => RecordPurchaseUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => RecordPurchaseUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
 
   // Treasury
   getIt.registerLazySingleton(() => ReceivePaymentUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => RecordDisbursementUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => InternalFundTransferUseCase(getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => PartyStatementService(getIt(), getIt(), getIt(), getIt()));
 
   // Hr
   getIt.registerLazySingleton(() => EmployeeApplicationService(getIt(), getIt()));

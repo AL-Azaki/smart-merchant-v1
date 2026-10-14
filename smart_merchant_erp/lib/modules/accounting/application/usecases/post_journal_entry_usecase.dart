@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart';
+
+import '../../../../core/utils/precision_math.dart';
+import '../../../../database/daos/accounting_dao.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
 import '../../../../kernel/core/usecase.dart';
@@ -25,8 +28,8 @@ class JournalEntryLineCommand {
 }
 
 class PostJournalEntryCommand {
-  final String fiscalYearId;
-  final String fiscalPeriodId;
+  final String? fiscalYearId;
+  final String? fiscalPeriodId;
   final DateTime documentDate;
   final String journalType;
   final String documentType;
@@ -38,11 +41,11 @@ class PostJournalEntryCommand {
   final List<JournalEntryLineCommand> lines;
 
   const PostJournalEntryCommand({
-    required this.fiscalYearId,
-    required this.fiscalPeriodId,
+    this.fiscalYearId,
+    this.fiscalPeriodId,
     required this.documentDate,
-    required this.journalType,
-    required this.documentType,
+    this.journalType = 'Manual',
+    this.documentType = 'Manual',
     this.documentId,
     this.documentNumber,
     required this.currencyId,
@@ -72,83 +75,120 @@ class PostJournalEntryUseCase
     final businessId = _context.currentBusinessId;
     final userId = _context.currentUserId;
 
-    if (params.lines.isEmpty) {
+    if (params.lines.length < 2) {
       return const Left(
-        ValidationFailure('Journal entry must have at least one line.'),
+        ValidationFailure('يجب أن يحتوي القيد على سطرين على الأقل (مدين ودائن).'),
       );
     }
 
-    // Calculate totals
+    // 1. Calculate totals and validate individual lines
     double totalDebit = 0.0;
     double totalCredit = 0.0;
     for (final line in params.lines) {
       if (line.debit < 0 || line.credit < 0) {
         return const Left(
-          ValidationFailure('Debit and credit amounts must be non-negative.'),
+          ValidationFailure('لا يمكن أن تكون مبالغ المدين أو الدائن سالبة.'),
         );
       }
       if (line.debit > 0 && line.credit > 0) {
         return const Left(
           ValidationFailure(
-            'A single journal line cannot have both debit and credit.',
+            'لا يمكن للسطر الواحد أن يحتوي على مبلغ مدين ودائن في نفس الوقت.',
           ),
         );
       }
+      if (line.debit == 0 && line.credit == 0) {
+        return const Left(
+          ValidationFailure('يجب تحديد مبلغ مدين أو دائن أكبر من الصفر لكل سطر.'),
+        );
+      }
+
+      // Check allowPosting on each account (Reject postings to parent accounts)
+      final account = await _accountingRepository.getChartOfAccountById(
+        line.accountId,
+        businessId,
+      );
+      if (account == null) {
+        return Left(ValidationFailure('الحساب المحدد غير موجود: ${line.accountId}'));
+      }
+      if (!account.allowPosting) {
+        return Left(
+          ValidationFailure(
+            'الحساب (${account.accountName}) حساب رئيسي ولا يقبل الترحيل المباشر.',
+          ),
+        );
+      }
+
       totalDebit += line.debit;
       totalCredit += line.credit;
     }
 
-    // Verify precision based on currency decimal places to avoid floating point issues
-    final currency = await _coreRepository.getCurrencyById(params.currencyId);
-    if (currency == null) {
-      return const Left(ValidationFailure('Invalid currency ID.'));
-    }
-
-    final multiplier = pow(10, currency.decimalPlaces).toDouble();
-    if ((totalDebit * multiplier).round() !=
-        (totalCredit * multiplier).round()) {
-      return const Left(
+    // 2. Double-entry balancing check
+    if (!PrecisionMath.areBalanced(totalDebit, totalCredit)) {
+      final diff = (totalDebit - totalCredit).abs().toStringAsFixed(2);
+      return Left(
         ValidationFailure(
-          'Journal entry must be balanced (Total Debit == Total Credit).',
+          'القيد غير متوازن! إجمالي المدين: ${totalDebit.toStringAsFixed(2)}، إجمالي الدائن: ${totalCredit.toStringAsFixed(2)}، الفارق: $diff',
         ),
       );
     }
 
-    // Verify fiscal period locking
-    try {
-      final isLocked = await _accountingRepository.checkPeriodLocked(
-        businessId,
-        params.documentDate,
+    // 3. Verify date is not in a locked period (AC-4.4)
+    final isLocked = await _accountingRepository.checkPeriodLocked(
+      businessId,
+      params.documentDate,
+    );
+    if (isLocked) {
+      return const Left(
+        ValidationFailure(
+          'لا يمكن ترحيل القيد في فترة محاسبية مغلقة أو مقفولة.',
+        ),
       );
-      if (isLocked) {
-        return const Left(
-          BusinessValidationFailure('Cannot post to a closed fiscal period.'),
-        );
-      }
-    } catch (e) {
-      // if checkPeriodLocked doesn't exist, we fallback to checking manually
+    }
+
+    // 4. Resolve active fiscal period
+    String effectiveFiscalYearId;
+    String effectiveFiscalPeriodId;
+
+    if (params.fiscalPeriodId != null && params.fiscalYearId != null) {
       final period = await _accountingRepository.getFiscalPeriodById(
-        params.fiscalPeriodId,
+        params.fiscalPeriodId!,
         businessId,
       );
-      if (period == null) {
-        return const Left(ValidationFailure('Fiscal period not found.'));
-      }
-      if (period.status != 'Open') {
+      if (period == null || period.status != 'Open') {
         return const Left(
-          BusinessValidationFailure('Cannot post to a closed fiscal period.'),
+          ValidationFailure(
+            'الفترة المالية المحددة مغلقة أو غير صالحة لترحيل القيود.',
+          ),
         );
       }
+      effectiveFiscalYearId = params.fiscalYearId!;
+      effectiveFiscalPeriodId = params.fiscalPeriodId!;
+    } else {
+      final periods = await _accountingRepository.listFiscalPeriods(
+        FiscalPeriodFilter(businessId: businessId, status: 'Open'),
+      );
+      if (periods.isEmpty) {
+        return const Left(
+          ValidationFailure(
+            'لا توجد فترة مالية مفتوحة في النظام لترحيل القيد.',
+          ),
+        );
+      }
+      final period = periods.first;
+      effectiveFiscalYearId = period.fiscalYearId;
+      effectiveFiscalPeriodId = period.id;
     }
 
     final journalId = _uuid.v4();
-    final journalNumber = 'JE-${DateTime.now().millisecondsSinceEpoch}';
+    final journalNumber = params.documentNumber ??
+        'JE-${DateTime.now().millisecondsSinceEpoch}';
 
     final entryCompanion = JournalEntriesCompanion.insert(
       id: journalId,
       businessId: businessId,
-      fiscalYearId: params.fiscalYearId,
-      fiscalPeriodId: params.fiscalPeriodId,
+      fiscalYearId: effectiveFiscalYearId,
+      fiscalPeriodId: effectiveFiscalPeriodId,
       journalNumber: journalNumber,
       documentDate: params.documentDate,
       postingDate: drift.Value(DateTime.now()),
@@ -159,7 +199,7 @@ class PostJournalEntryUseCase
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
       description: drift.Value(params.description),
-      status: drift.Value('Posted'),
+      status: const drift.Value('Posted'),
       createdBy: userId,
       postedBy: drift.Value(userId),
       postedAt: drift.Value(DateTime.now()),
@@ -168,6 +208,12 @@ class PostJournalEntryUseCase
 
     int sequence = 1;
     final linesCompanions = params.lines.map((line) {
+      final amount = max(line.debit, line.credit);
+      final baseAmount = PrecisionMath.toBaseAmount(
+        foreignAmount: amount,
+        exchangeRate: params.exchangeRate,
+      );
+
       return JournalEntryLinesCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
@@ -176,10 +222,8 @@ class PostJournalEntryUseCase
         currencyId: params.currencyId,
         lineNumber: sequence++,
         type: line.debit > 0 ? 'Debit' : 'Credit',
-        foreignAmount: drift.Value(max(line.debit, line.credit)),
-        baseAmount: drift.Value(
-          max(line.debit, line.credit) * params.exchangeRate,
-        ),
+        foreignAmount: drift.Value(amount),
+        baseAmount: drift.Value(baseAmount),
         description: drift.Value(line.description ?? params.description),
       );
     }).toList();

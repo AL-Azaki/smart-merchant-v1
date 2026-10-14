@@ -6,8 +6,16 @@ class ReturnsModal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: surfaceColor,
       child: Container(
         width: 800,
         height: 600,
@@ -17,29 +25,30 @@ class ReturnsModal extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.assignment_return_rounded,
                       color: AppColors.error,
                     ),
-                    SizedBox(width: 12),
+                    const SizedBox(width: 12),
                     Text(
                       'مرتجعات المبيعات',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w900,
+                        color: textColor,
                       ),
                     ),
                   ],
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close_rounded, color: textSecondary),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
             ),
-            const Divider(),
+            Divider(color: borderColor),
             Expanded(
               child: Center(
                 child: Column(
@@ -48,14 +57,14 @@ class ReturnsModal extends StatelessWidget {
                     Icon(
                       Icons.receipt_long_rounded,
                       size: 64,
-                      color: AppColors.textSecondaryLight.withOpacity(0.5),
+                      color: textSecondary.withValues(alpha: 0.4),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
+                    Text(
                       'لا توجد فواتير مرتجعة اليوم',
                       style: TextStyle(
                         fontSize: 16,
-                        color: AppColors.textSecondaryLight,
+                        color: textSecondary,
                       ),
                     ),
                     const SizedBox(height: 24),

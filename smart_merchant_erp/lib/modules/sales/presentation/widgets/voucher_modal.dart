@@ -13,8 +13,17 @@ class _VoucherModalState extends State<VoucherModal> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
+    final backgroundColor =
+        isDark ? AppColors.backgroundDark : const Color(0xFFF3F4F6);
+    final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
+    final textSecondary =
+        isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: surfaceColor,
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(24),
@@ -25,12 +34,16 @@ class _VoucherModalState extends State<VoucherModal> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'إضافة سند جديد',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: textColor,
+                  ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close_rounded, color: textSecondary),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -40,7 +53,7 @@ class _VoucherModalState extends State<VoucherModal> {
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: AppColors.backgroundLight,
+                color: backgroundColor,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -62,7 +75,7 @@ class _VoucherModalState extends State<VoucherModal> {
                           style: TextStyle(
                             color: isIncome
                                 ? Colors.white
-                                : AppColors.textSecondaryLight,
+                                : textSecondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -86,7 +99,7 @@ class _VoucherModalState extends State<VoucherModal> {
                           style: TextStyle(
                             color: !isIncome
                                 ? Colors.white
-                                : AppColors.textSecondaryLight,
+                                : textSecondary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

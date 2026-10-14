@@ -9,7 +9,8 @@ import '../../application/usecases/record_purchase_usecase.dart';
 import '../../../sales/presentation/providers/product_unit_provider.dart';
 import '../../../treasury/domain/repositories/treasury_repository.dart';
 import '../../../treasury/presentation/providers/treasury_provider.dart';
-import '../../../../app/di/getit_providers.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
+import '../../../../app/di/getit_instance.dart';
 
 class PurchaseItemState {
   final String id;
@@ -327,6 +328,9 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
           return false;
         },
         (invoiceId) {
+          if (getIt.isRegistered<CatalogRepository>()) {
+            ref.invalidate(posProductsNotifierProvider);
+          }
           state = state.copyWith(
             isSubmitting: false,
             successInvoiceId: invoiceId,

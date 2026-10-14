@@ -38,7 +38,16 @@ class AppModalSheet extends StatelessWidget {
     this.contentPadding = const EdgeInsets.all(20),
     this.primaryColor,
     this.hideActions = false,
+    this.maxWidth,
+    this.borderRadius,
+    this.showDragHandle = true,
+    this.alignment,
   });
+
+  final double? maxWidth;
+  final BorderRadiusGeometry? borderRadius;
+  final bool showDragHandle;
+  final AlignmentGeometry? alignment;
 
   @override
   Widget build(BuildContext context) {
@@ -51,119 +60,152 @@ class AppModalSheet extends StatelessWidget {
     final effectiveIconColor = iconColor ?? const Color(0xFF6366F1);
     final effectivePrimaryColor = primaryColor ?? const Color(0xFF6366F1);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-      ),
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * maxHeightFactor),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // مقبض السحب
-          Padding(
-            padding: const EdgeInsets.only(top: 12, bottom: 4),
-            child: Center(
-              child: Container(
-                width: 40, height: 4,
+    final effectiveRadius = borderRadius ?? const BorderRadius.vertical(top: Radius.circular(28));
+
+    return Material(
+      color: Colors.transparent,
+      child: Align(
+        alignment: alignment ?? (showDragHandle ? Alignment.bottomCenter : Alignment.center),
+        child: Container(
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: effectiveRadius,
+          ),
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * maxHeightFactor,
+            maxWidth: maxWidth ?? 600,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // مقبض السحب
+              if (showDragHandle)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 4),
+                  child: Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark ? Colors.white.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // الرأس
+              Container(
+                padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
                 decoration: BoxDecoration(
-                  color: isDark ? Colors.white.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(2),
+                  color: surface,
+                  borderRadius: effectiveRadius is BorderRadius
+                      ? BorderRadius.vertical(top: effectiveRadius.topLeft)
+                      : null,
+                  border: Border(bottom: BorderSide(color: borderColor)),
                 ),
-              ),
-            ),
-          ),
-
-          // الرأس
-          Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 12, 16),
-            decoration: BoxDecoration(
-              color: surface,
-              border: Border(bottom: BorderSide(color: borderColor)),
-            ),
-            child: Row(
-              children: [
-                if (icon != null) ...[
-                  Container(
-                    width: 42, height: 42,
-                    decoration: BoxDecoration(
-                      color: effectiveIconColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(icon, color: effectiveIconColor, size: 22),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 1,
-                  ),
-                ),
-                IconButton(
-                  onPressed: onClose,
-                  icon: Icon(Icons.close_rounded, color: textSecondary, size: 22),
-                  tooltip: 'إغلاق',
-                ),
-              ],
-            ),
-          ),
-
-          // المحتوى
-          Flexible(
-            child: SingleChildScrollView(padding: contentPadding, child: child),
-          ),
-
-          // الأزرار السفلية
-          if (!hideActions)
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-              decoration: BoxDecoration(
-                color: surface,
-                border: Border(top: BorderSide(color: borderColor)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: SizedBox(
-                      height: 50,
-                      child: OutlinedButton(
-                        onPressed: isLoading ? null : onClose,
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                          side: BorderSide.none,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                child: Row(
+                  children: [
+                    if (icon != null) ...[
+                      Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          color: effectiveIconColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(cancelLabel, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textSecondary)),
+                        child: Icon(icon, color: effectiveIconColor, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: isLoading ? null : onPrimary,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: effectivePrimaryColor,
-                          disabledBackgroundColor: effectivePrimaryColor.withValues(alpha: 0.5),
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: isLoading
-                            ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                            : Text(primaryLabel, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
-                      ),
+                    IconButton(
+                      onPressed: onClose,
+                      icon: Icon(Icons.close_rounded, color: textSecondary, size: 22),
+                      tooltip: 'إغلاق',
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+
+              // المحتوى
+              Flexible(
+                child: SingleChildScrollView(padding: contentPadding, child: child),
+              ),
+
+              // الأزرار السفلية
+              if (!hideActions)
+                Container(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  decoration: BoxDecoration(
+                    color: surface,
+                    border: Border(top: BorderSide(color: borderColor)),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: 50,
+                          child: OutlinedButton(
+                            onPressed: isLoading ? null : onClose,
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                              side: BorderSide.none,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                cancelLabel,
+                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: textSecondary),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: isLoading ? null : onPrimary,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: effectivePrimaryColor,
+                              disabledBackgroundColor: effectivePrimaryColor.withValues(alpha: 0.5),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      primaryLabel,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

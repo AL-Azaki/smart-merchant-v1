@@ -361,7 +361,40 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
+                      OutlinedButton.icon(
+                        onPressed: isLoading
+                            ? null
+                            : () {
+                                ref
+                                    .read(authNotifierProvider.notifier)
+                                    .loginAsDemo();
+                              },
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 52),
+                          side: const BorderSide(
+                            color: Color(0xFF10B981),
+                            width: 1.5,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        icon: const Icon(
+                          Icons.flash_on_rounded,
+                          color: Color(0xFF10B981),
+                        ),
+                        label: const Text(
+                          'دخول تجريبي فوري (وضع الديمو)',
+                          style: TextStyle(
+                            color: Color(0xFF10B981),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
                       Center(
                         child: TextButton(
                           onPressed: isLoading

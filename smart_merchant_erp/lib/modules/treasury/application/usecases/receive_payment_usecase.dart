@@ -1,6 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart';
+
+import '../../../../core/utils/precision_math.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
 import '../../../../kernel/core/usecase.dart';
@@ -23,23 +25,29 @@ class PaymentAllocationCommand {
 }
 
 class ReceivePaymentCommand {
-  final String customerId;
+  final String? customerId;
+  final String? incomeAccountId;
   final double amount;
   final String currencyId;
   final double exchangeRate;
   final String paymentMethodId;
   final String chartOfAccountId; // The bank/cash account receiving the funds
   final String? notes;
+  final String? cashRegisterId;
+  final String? bankAccountId;
   final List<PaymentAllocationCommand> allocations;
 
   const ReceivePaymentCommand({
-    required this.customerId,
+    this.customerId,
+    this.incomeAccountId,
     required this.amount,
     required this.currencyId,
     required this.paymentMethodId,
     required this.chartOfAccountId,
     this.exchangeRate = 1.0,
     this.notes,
+    this.cashRegisterId,
+    this.bankAccountId,
     this.allocations = const [],
   });
 }
@@ -79,7 +87,23 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       );
     }
 
-    // 1. Validate Allocations match total amount
+    // 1. Verify target cash/bank account exists and allows posting
+    final targetAccount = await _accountingRepository.getChartOfAccountById(
+      params.chartOfAccountId,
+      businessId,
+    );
+    if (targetAccount == null) {
+      return const Left(ValidationFailure('Target cash/bank account not found.'));
+    }
+    if (!targetAccount.allowPosting) {
+      return const Left(
+        ValidationFailure(
+          'Target account is a parent group and does not allow direct transactions.',
+        ),
+      );
+    }
+
+    // 2. Validate Allocations match total amount if provided
     double totalAllocated = 0.0;
     for (final allocation in params.allocations) {
       if (allocation.allocatedAmount <= 0) {
@@ -90,7 +114,6 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       totalAllocated += allocation.allocatedAmount;
     }
 
-    // Using rounding to avoid floating point precision issues
     if (params.allocations.isNotEmpty &&
         (totalAllocated * 100).round() != (params.amount * 100).round()) {
       return const Left(
@@ -98,19 +121,50 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       );
     }
 
-    // 2. Fetch Accounts Receivable Mapping for Journal
-    final arIdResult = await _accountingService.resolveAccountMapping(
-      'accounts_receivable',
-    );
-    if (arIdResult.isLeft())
-      return Left(arIdResult.fold((l) => l, (r) => throw Exception()));
-    final accountsReceivableId = arIdResult.getOrElse(() => '');
+    // 3. Resolve Credit Account (Accounts Receivable or Revenue Account)
+    String creditAccountId;
+    if (params.customerId != null && params.customerId!.trim().isNotEmpty) {
+      final arIdResult = await _accountingService.resolveAccountMapping(
+        'accounts_receivable',
+      );
+      if (arIdResult.isLeft()) {
+        return Left(arIdResult.fold((l) => l, (r) => throw Exception()));
+      }
+      creditAccountId = arIdResult.getOrElse(() => '');
+    } else {
+      if (params.incomeAccountId == null ||
+          params.incomeAccountId!.trim().isEmpty) {
+        return const Left(
+          ValidationFailure(
+            'Either customerId or incomeAccountId must be provided for receipt.',
+          ),
+        );
+      }
+      final incomeAcc = await _accountingRepository.getChartOfAccountById(
+        params.incomeAccountId!,
+        businessId,
+      );
+      if (incomeAcc == null) {
+        return const Left(ValidationFailure('Income account not found.'));
+      }
+      if (!incomeAcc.allowPosting) {
+        return const Left(
+          ValidationFailure(
+            'Income account is a parent group and does not allow direct transactions.',
+          ),
+        );
+      }
+      creditAccountId = params.incomeAccountId!;
+    }
 
     final paymentDate = DateTime.now();
     final paymentId = _uuid.v4();
     final paymentNumber = 'RCP-${paymentDate.millisecondsSinceEpoch}';
+    final roundedBaseAmount = PrecisionMath.roundMoney(
+      params.amount * params.exchangeRate,
+    );
 
-    // 3. Prepare Payment Entities
+    // 4. Prepare Payment Header
     final paymentCompanion = PaymentsCompanion.insert(
       id: paymentId,
       businessId: businessId,
@@ -121,10 +175,12 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       chartOfAccountId: params.chartOfAccountId,
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
-      amount: params.amount,
-      baseAmount: params.amount * params.exchangeRate,
+      amount: PrecisionMath.roundMoney(params.amount),
+      baseAmount: roundedBaseAmount,
       paymentType: 'Receipt',
-      contactType: const drift.Value('Customer'),
+      contactType: drift.Value(
+        params.customerId != null ? 'Customer' : 'Other',
+      ),
       contactId: drift.Value(params.customerId),
       status: const drift.Value('Posted'),
       notes: drift.Value(params.notes),
@@ -138,73 +194,52 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
         id: _uuid.v4(),
         businessId: businessId,
         paymentId: paymentId,
-        amount: alloc.allocatedAmount,
+        amount: PrecisionMath.roundMoney(alloc.allocatedAmount),
         documentType: 'CustomerReceivable',
         documentId: alloc.receivableId,
         createdBy: userId,
       );
     }).toList();
 
-    // 4. Validate and Prepare Receivable Updates
-    final List<Map<String, dynamic>> receivableUpdates = [];
-    for (final alloc in params.allocations) {
-      final receivable = await _salesRepository.getReceivableById(
-        alloc.receivableId,
-        businessId,
-      );
-      if (receivable == null) {
-        return Left(
-          ValidationFailure('Receivable not found: ${alloc.receivableId}'),
-        );
-      }
-      if (params.amount > receivable.remainingAmount) {
-        return Left(
-          ValidationFailure(
-            'Allocation exceeds remaining amount for receivable ${receivable.salesInvoiceId}',
-          ),
-        );
-      }
-
-      final newPaidAmount = receivable.paidAmount + alloc.allocatedAmount;
-      final newRemainingAmount =
-          receivable.remainingAmount - alloc.allocatedAmount;
-
-      final newStatus = newRemainingAmount <= 0.001
-          ? 'Paid'
-          : (newPaidAmount > 0 ? 'Partial' : 'Unpaid');
-
-      final entryCompanion = ReceivableEntriesCompanion.insert(
+    // 5. Optional Cash / Bank Transactions
+    CashTransactionsCompanion? cashTx;
+    if (params.cashRegisterId != null && params.cashRegisterId!.isNotEmpty) {
+      cashTx = CashTransactionsCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
-        customerReceivableId: receivable.id,
-        entryType: const drift.Value('Payment'),
-        paymentId: drift.Value(paymentId),
-        amount: alloc.allocatedAmount,
-        baseAmount: alloc.allocatedAmount * params.exchangeRate,
-        createdBy: userId,
+        cashRegisterId: params.cashRegisterId!,
+        transactionType: 'Receipt',
+        amount: PrecisionMath.roundMoney(params.amount),
+        documentType: const drift.Value('Payment'),
+        documentId: drift.Value(paymentId),
+        notes: drift.Value(params.notes ?? 'Receipt Voucher $paymentNumber'),
+        createdBy: drift.Value(userId),
       );
-
-      receivableUpdates.add({
-        'receivableId': alloc.receivableId,
-        'entryCompanion': entryCompanion,
-        'newPaidAmount': newPaidAmount,
-        'newRemainingAmount': newRemainingAmount,
-        'newBasePaidAmount': newPaidAmount * params.exchangeRate,
-        'newBaseRemainingAmount': newRemainingAmount * params.exchangeRate,
-        'newStatus': newStatus,
-        'id': receivable.id,
-        'salesInvoiceId': receivable.salesInvoiceId,
-        'referenceId': receivable.salesInvoiceId,
-      });
     }
 
-    // 5. Prepare Journal Entry
+    BankTransactionsCompanion? bankTx;
+    if (params.bankAccountId != null && params.bankAccountId!.isNotEmpty) {
+      bankTx = BankTransactionsCompanion.insert(
+        id: _uuid.v4(),
+        businessId: businessId,
+        bankAccountId: params.bankAccountId!,
+        transactionType: 'Deposit',
+        direction: 'Credit',
+        amount: PrecisionMath.roundMoney(params.amount),
+        documentType: const drift.Value('Payment'),
+        documentId: drift.Value(paymentId),
+        notes: drift.Value(params.notes ?? 'Receipt Voucher $paymentNumber'),
+        createdBy: drift.Value(userId),
+      );
+    }
+
+    // 6. Fetch Open Fiscal Period
     final periods = await _accountingRepository.listFiscalPeriods(
       FiscalPeriodFilter(businessId: businessId, status: 'Open'),
     );
     if (periods.isEmpty) {
       return const Left(
-        BusinessValidationFailure(
+        ValidationFailure(
           'No active fiscal period found for accounting posting.',
         ),
       );
@@ -213,7 +248,6 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
 
     final journalId = _uuid.v4();
     final journalNumber = 'JE-${paymentDate.millisecondsSinceEpoch}';
-    int lineSequence = 1;
 
     final entryCompanion = JournalEntriesCompanion.insert(
       id: journalId,
@@ -229,7 +263,11 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       documentNumber: drift.Value(paymentNumber),
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
-      description: drift.Value('Payment Receipt $paymentNumber'),
+      description: drift.Value(
+        params.customerId != null
+            ? 'Customer Receipt $paymentNumber'
+            : 'Revenue Receipt $paymentNumber',
+      ),
       status: const drift.Value('Posted'),
       createdBy: userId,
       postedBy: drift.Value(userId),
@@ -244,68 +282,45 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
         journalEntryId: journalId,
         chartOfAccountId: params.chartOfAccountId,
         currencyId: params.currencyId,
-        lineNumber: lineSequence++,
+        lineNumber: 1,
         type: 'Debit',
         foreignAmount: drift.Value(params.amount),
-        baseAmount: drift.Value(params.amount * params.exchangeRate),
-        description: const drift.Value('Payment Received'),
+        baseAmount: drift.Value(roundedBaseAmount),
+        description: const drift.Value('Cash/Bank Receipt'),
       ),
-      // Credit: Accounts Receivable
+      // Credit: Accounts Receivable or Revenue
       JournalEntryLinesCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
         journalEntryId: journalId,
-        chartOfAccountId: accountsReceivableId,
+        chartOfAccountId: creditAccountId,
         currencyId: params.currencyId,
-        lineNumber: lineSequence++,
+        lineNumber: 2,
         type: 'Credit',
         foreignAmount: drift.Value(params.amount),
-        baseAmount: drift.Value(params.amount * params.exchangeRate),
-        description: const drift.Value('Receivable Settlement'),
+        baseAmount: drift.Value(roundedBaseAmount),
+        description: drift.Value(
+          params.customerId != null
+              ? 'Receivable Settlement'
+              : 'Direct Revenue Receipt',
+        ),
       ),
     ];
 
-    // 6. Execute Transaction
+    if (!PrecisionMath.areBalanced(roundedBaseAmount, roundedBaseAmount)) {
+      return const Left(ValidationFailure('Journal entry lines are not balanced.'));
+    }
+
+    // 7. Execute Transaction
     try {
       await _transactionRunner.runInTransaction(() async {
-        // Record Payment & Allocations
+        // Record Payment & Allocations & Register balances
         await _treasuryRepository.recordPaymentWithAllocationsAndTransactions(
           payment: paymentCompanion,
           allocations: allocationCompanions,
+          cashTransaction: cashTx,
+          bankTransaction: bankTx,
         );
-
-        // Update Receivables & Invoices
-        for (final update in receivableUpdates) {
-          await _salesRepository.recordReceivableEntry(
-            update['entryCompanion'] as ReceivableEntriesCompanion,
-            customerReceivableId: update['receivableId'] as String,
-            businessId: businessId,
-            newPaidAmount: update['newPaidAmount'] as double,
-            newRemainingAmount: update['newRemainingAmount'] as double,
-            newBasePaidAmount: update['newBasePaidAmount'] as double,
-            newBaseRemainingAmount: update['newBaseRemainingAmount'] as double,
-            newStatus: update['newStatus'] as String,
-          );
-
-          // Update Invoice Payment Status if applicable
-          if (update['referenceId'] != null) {
-            final invoiceId = update['referenceId'] as String;
-            final invoice = await _salesRepository.getInvoiceById(
-              invoiceId,
-              businessId,
-            );
-            if (invoice != null) {
-              final newPaymentStatus = (update['newStatus'] as String) == 'Paid'
-                  ? 'Paid'
-                  : 'Partial';
-              await _salesRepository.updateInvoicePaymentStatus(
-                invoiceId,
-                businessId,
-                newPaymentStatus,
-              );
-            }
-          }
-        }
 
         // Post Accounting Journal
         await _accountingRepository.postJournalEntryWithLines(
@@ -320,8 +335,4 @@ class ReceivePaymentUseCase implements UseCase<String, ReceivePaymentCommand> {
       return Left(UnexpectedFailure(e.toString()));
     }
   }
-}
-
-class BusinessValidationFailure extends Failure {
-  const BusinessValidationFailure(super.message, [super.code]);
 }

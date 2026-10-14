@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/injection.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
@@ -10,6 +10,14 @@ import '../providers/pos_provider.dart';
 class CustomerAddModal extends ConsumerStatefulWidget {
   const CustomerAddModal({super.key});
 
+  /// Opens the customer add modal cleanly centered in the screen as a Dialog
+  static Future<void> show(BuildContext context) {
+    return showDialog<void>(
+      context: context,
+      builder: (_) => const CustomerAddModal(),
+    );
+  }
+
   @override
   ConsumerState<CustomerAddModal> createState() => _CustomerAddModalState();
 }
@@ -20,6 +28,8 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+
+  static const bool _showEmailField = false;
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -35,58 +45,72 @@ class _CustomerAddModalState extends ConsumerState<CustomerAddModal> {
 
   @override
   Widget build(BuildContext context) {
-    return AppModalSheet(
-      title: 'إضافة عميل جديد',
-      icon: Icons.person_add_outlined,
-      iconColor: AppColors.primary,
-      onClose: () => Navigator.pop(context),
-      primaryLabel: 'حفظ واختيار العميل',
-      onPrimary: _isLoading ? null : _saveCustomer,
-      isLoading: _isLoading,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppTextField(
-              label: 'اسم العميل / الشركة *',
-              hint: 'أدخل الاسم الكامل للعميل أو المنشأة',
-              controller: _nameController,
-              prefixIcon: const Icon(Icons.person_outline, size: 20),
-              validator: (val) =>
-                  (val == null || val.trim().isEmpty) ? 'يرجى إدخال اسم العميل' : null,
-            ),
-            const SizedBox(height: 14),
-            AppTextField(
-              label: 'رقم الهاتف (اختياري)',
-              hint: '05xxxxxxxx أو 77xxxxxxx',
-              controller: _phoneController,
-              keyboardType: TextInputType.phone,
-              prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-            ),
-            const SizedBox(height: 14),
-            AppTextField(
-              label: 'البريد الإلكتروني (اختياري)',
-              hint: 'example@domain.com',
-              controller: _emailController,
-              keyboardType: TextInputType.emailAddress,
-              prefixIcon: const Icon(Icons.email_outlined, size: 20),
-            ),
-            const SizedBox(height: 14),
-            AppTextField(
-              label: 'العنوان (اختياري)',
-              hint: 'المدينة، الشارع، المبنى',
-              controller: _addressController,
-              prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
-            ),
-            if (_errorMessage != null) ...[
-              const SizedBox(height: 14),
-              Text(
-                _errorMessage!,
-                style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.bold),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      elevation: 0,
+      clipBehavior: Clip.antiAlias,
+      child: AppModalSheet(
+        title: 'إضافة عميل جديد',
+        icon: Icons.person_add_outlined,
+        iconColor: AppColors.primary,
+        onClose: () => Navigator.pop(context),
+        primaryLabel: 'حفظ واختيار العميل',
+        onPrimary: _isLoading ? null : _saveCustomer,
+        isLoading: _isLoading,
+        borderRadius: BorderRadius.circular(24),
+        showDragHandle: false,
+        maxWidth: 480,
+        alignment: Alignment.center,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppTextField(
+                label: 'اسم العميل / الشركة *',
+                hint: 'أدخل الاسم الكامل للعميل أو المنشأة',
+                controller: _nameController,
+                prefixIcon: const Icon(Icons.person_outline, size: 20),
+                validator: (val) =>
+                    (val == null || val.trim().isEmpty) ? 'يرجى إدخال اسم العميل' : null,
               ),
+              const SizedBox(height: 14),
+              AppTextField(
+                label: 'رقم الهاتف (اختياري)',
+                hint: '05xxxxxxxx أو 77xxxxxxx',
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                prefixIcon: const Icon(Icons.phone_outlined, size: 20),
+              ),
+              // البريد الإلكتروني (مخفي مؤقتاً من الواجهات بناءً على التفضيل دون حذفه من المنظومة)
+              if (_showEmailField) ...[
+                const SizedBox(height: 14),
+                AppTextField(
+                  label: 'البريد الإلكتروني (اختياري)',
+                  hint: 'example@domain.com',
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined, size: 20),
+                ),
+              ],
+              const SizedBox(height: 14),
+              AppTextField(
+                label: 'العنوان (اختياري)',
+                hint: 'المدينة، الشارع، المبنى',
+                controller: _addressController,
+                prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
+              ),
+              if (_errorMessage != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  _errorMessage!,
+                  style: const TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.bold),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

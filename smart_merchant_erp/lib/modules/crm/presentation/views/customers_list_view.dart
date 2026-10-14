@@ -97,13 +97,7 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                     child: PrimaryButton(
                       text: 'إضافة عميل',
                       icon: Icons.add,
-                      onPressed: () {
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) => const CustomerAddModal(),
-                        );
-                      },
+                      onPressed: () => CustomerAddModal.show(context),
                     ),
                   ),
                 ],
@@ -222,8 +216,25 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            subtitle: Text(
-                              '${c.phone ?? 'لا يوجد هاتف'} - الرصيد: ${c.openingBalance} ${c.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}',
+                            subtitle: Consumer(
+                              builder: (context, ref, _) {
+                                final balAsync =
+                                    ref.watch(customerBalanceProvider(c.id));
+                                final balText = balAsync.maybeWhen(
+                                  data: (s) {
+                                    if (s == null) {
+                                      return '${c.openingBalance} ${c.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}';
+                                    }
+                                    final net = s.netBalance;
+                                    return '${net.abs().toStringAsFixed(2)} ${net < 0 ? 'له (دائن)' : 'عليه (مدين)'}';
+                                  },
+                                  orElse: () =>
+                                      '${c.openingBalance} ${c.openingBalanceType == 'credit' ? 'دائن' : 'مدين'}',
+                                );
+                                return Text(
+                                  '${c.phone ?? 'لا يوجد هاتف'} - الرصيد: $balText',
+                                );
+                              },
                             ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,

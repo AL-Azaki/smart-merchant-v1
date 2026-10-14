@@ -318,11 +318,15 @@ class TreasuryRepositoryImpl implements TreasuryRepository {
   Future<void> recordPaymentWithAllocationsAndTransactions({
     required PaymentsCompanion payment,
     required List<PaymentAllocationsCompanion> allocations,
+    BankTransactionsCompanion? bankTransaction,
+    CashTransactionsCompanion? cashTransaction,
   }) {
     return RepositoryErrorGuard.run(
       () => _dao.recordPaymentWithAllocationsAndTransactions(
         payment: payment,
         allocations: allocations,
+        bankTransaction: bankTransaction,
+        cashTransaction: cashTransaction,
       ),
     );
   }

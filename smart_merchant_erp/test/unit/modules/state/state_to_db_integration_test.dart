@@ -336,4 +336,63 @@ void main() {
       expect(journals.length, 1, reason: 'Accounting journal must be posted');
     },
   );
+
+  test(
+    'WALK-IN CASH SALE: Submitting sale with NO customer (state.customerId == null) succeeds with customerId == null in DB',
+    () async {
+      final container = ProviderContainer();
+
+      container.read(sessionNotifierProvider.notifier).setSession(
+        businessId: businessId,
+        branchId: 'BRANCH_1',
+        userId: 'u-owner',
+      );
+
+      final posNotifier = container.read(posNotifierProvider.notifier);
+
+      // Add product without setting customer (customerId is null by default)
+      posNotifier.addProduct(
+        id: productUnitId,
+        name: 'Walk-in Cash Product',
+        price: 50.0,
+      );
+
+      // Verify customerId is null in POS state
+      expect(container.read(posNotifierProvider).customerId, isNull);
+
+      // Ensure warehouse inventory exists
+      await db.into(db.warehouses).insert(
+        WarehousesCompanion.insert(
+          id: 'WH-DEFAULT-WALKIN',
+          businessId: businessId,
+          branchId: const Uuid().v4(),
+          warehouseCode: 'WH02',
+          warehouseName: 'Main Walkin',
+        ),
+      );
+      await db.into(db.inventories).insert(
+        InventoriesCompanion.insert(
+          id: const Uuid().v4(),
+          businessId: businessId,
+          warehouseId: 'WH-DEFAULT-WALKIN',
+          productUnitId: productUnitId,
+          quantity: drift.Value(100.0),
+          averageCost: drift.Value(10.0),
+        ),
+      );
+
+      await posNotifier.submitSale(cashReceived: 50.0, paymentMethodId: 'CASH');
+
+      final state = container.read(posNotifierProvider);
+      expect(state.error, isNull, reason: 'Walk-in cash sale must succeed without customer error');
+      expect(state.successInvoiceId, isNotNull);
+
+      // Verify that invoice in SQLite has NULL customerId
+      final savedInvoice = await (db.select(db.salesInvoices)
+            ..where((t) => t.id.equals(state.successInvoiceId!)))
+          .getSingle();
+      expect(savedInvoice.customerId, isNull);
+    },
+  );
 }
+

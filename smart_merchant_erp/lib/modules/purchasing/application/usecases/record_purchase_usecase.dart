@@ -1,5 +1,8 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
+import '../../../../core/utils/precision_math.dart';
+import '../../../catalog/application/services/product_unit_resolver.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
 import '../../../treasury/domain/repositories/treasury_repository.dart';
 import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
@@ -70,6 +73,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
   final TreasuryRepository _treasuryRepository;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
+  final ProductUnitResolver? _unitResolver;
   final Uuid _uuid = const Uuid();
 
   RecordPurchaseUseCase(
@@ -79,8 +83,13 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     this._accountingService,
     this._treasuryRepository,
     this._context,
-    this._transactionRunner,
-  );
+    this._transactionRunner, {
+    ProductUnitResolver? unitResolver,
+    CatalogRepository? catalogRepository,
+  }) : _unitResolver = unitResolver ??
+            (catalogRepository != null
+                ? ProductUnitResolver(catalogRepository)
+                : null);
 
   @override
   Future<Either<Failure, String>> call(RecordPurchaseCommand params) async {
@@ -339,6 +348,11 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     );
 
     int lineSequence = 1;
+    final baseGrandTotal = PrecisionMath.toBaseAmount(
+      foreignAmount: grandTotal,
+      exchangeRate: params.exchangeRate,
+    );
+
     final List<JournalEntryLinesCompanion> journalLines = [
       // Debit: Inventory Asset
       JournalEntryLinesCompanion.insert(
@@ -350,7 +364,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         lineNumber: lineSequence++,
         type: 'Debit',
         foreignAmount: drift.Value(grandTotal),
-        baseAmount: drift.Value(grandTotal * params.exchangeRate),
+        baseAmount: drift.Value(baseGrandTotal),
         description: const drift.Value('Inventory Addition'),
       ),
       // Credit: Accounts Payable (or Cash)
@@ -363,7 +377,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         lineNumber: lineSequence++,
         type: 'Credit',
         foreignAmount: drift.Value(grandTotal),
-        baseAmount: drift.Value(grandTotal * params.exchangeRate),
+        baseAmount: drift.Value(baseGrandTotal),
         description: drift.Value(
           params.isCreditPurchase ? 'Purchase Liability' : 'Cash Payment',
         ),
@@ -387,27 +401,49 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
               .cast<InventoryTransactionLinesCompanion>(),
         );
 
-        // Update actual stock quantities and calculate new average cost
+        // Update actual stock quantities and calculate new average cost in Base Currency
         for (final item in params.items) {
+          ResolvedUnitInfo? unitInfo;
+          if (_unitResolver != null) {
+            try {
+              unitInfo = await _unitResolver!.resolve(
+                item.productUnitId,
+                businessId,
+              );
+            } catch (_) {}
+          }
+
+          final targetUnitId = unitInfo?.baseUnit.id ?? item.productUnitId;
+          final baseQuantity = unitInfo != null
+              ? unitInfo.toBaseQuantity(item.quantity)
+              : PrecisionMath.roundQty(item.quantity);
+          final baseUnitCost = unitInfo != null
+              ? unitInfo.toBaseUnitCost(
+                  unitCost: item.unitCost,
+                  exchangeRate: params.exchangeRate,
+                )
+              : PrecisionMath.toBaseAmount(
+                  foreignAmount: item.unitCost,
+                  exchangeRate: params.exchangeRate,
+                  decimals: 4,
+                );
+
           final inventory = await _inventoryRepository
               .getInventoryByUnitAndWarehouse(
                 businessId,
                 item.warehouseId,
-                item.productUnitId,
+                targetUnitId,
               );
           if (inventory != null) {
             final oldQty = inventory.quantity;
             final oldAvgCost = inventory.averageCost;
-            final newQty = item.quantity;
-            final newCost = item.unitCost;
-
-
-            final updatedQty = oldQty + newQty;
-            double updatedAvgCost = oldAvgCost;
-            if (updatedQty > 0) {
-              updatedAvgCost =
-                  ((oldQty * oldAvgCost) + (newQty * newCost)) / updatedQty;
-            }
+            final updatedQty = PrecisionMath.roundQty(oldQty + baseQuantity);
+            final updatedAvgCost = PrecisionMath.calculateWac(
+              oldQty: oldQty,
+              oldAvgCost: oldAvgCost,
+              newQty: baseQuantity,
+              newUnitCostInBase: baseUnitCost,
+            );
 
             await _inventoryRepository.updateInventory(
               inventory
@@ -423,9 +459,9 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
                 id: _uuid.v4(),
                 businessId: businessId,
                 warehouseId: item.warehouseId,
-                productUnitId: item.productUnitId,
-                quantity: drift.Value(item.quantity),
-                averageCost: drift.Value(item.unitCost),
+                productUnitId: targetUnitId,
+                quantity: drift.Value(baseQuantity),
+                averageCost: drift.Value(baseUnitCost),
               ),
             );
           }

@@ -5,6 +5,9 @@ import 'package:smart_merchant_erp/l10n/app_localizations.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/stat_card.dart';
+import '../../../purchasing/presentation/widgets/purchase_invoice_modal.dart';
+import '../../../accounting/presentation/widgets/receipt_voucher_dialog.dart';
+import '../../../accounting/presentation/widgets/payment_voucher_dialog.dart';
 
 class HomeView extends StatelessWidget {
   const HomeView({super.key});
@@ -21,12 +24,11 @@ class HomeView extends StatelessWidget {
         : AppColors.textSecondaryLight;
 
     return SingleChildScrollView(
-      // Padding bottom 120 ensures content doesn't hide behind the floating dock
       padding: const EdgeInsets.only(
         left: AppSpacing.lg,
         right: AppSpacing.lg,
         top: AppSpacing.md,
-        bottom: 120,
+        bottom: AppSpacing.xl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,6 +134,10 @@ class HomeView extends StatelessWidget {
                 Icons.inventory_rounded,
                 const Color(0xFFEC4899),
                 isDark,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => const PurchaseInvoiceModal(),
+                ),
               ),
               _buildQuickActionCard(
                 context,
@@ -140,6 +146,10 @@ class HomeView extends StatelessWidget {
                 Icons.move_to_inbox_rounded,
                 AppColors.success,
                 isDark,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => const ReceiptVoucherDialog(),
+                ),
               ),
               _buildQuickActionCard(
                 context,
@@ -148,6 +158,10 @@ class HomeView extends StatelessWidget {
                 Icons.outbox_rounded,
                 AppColors.error,
                 isDark,
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => const PaymentVoucherDialog(),
+                ),
               ),
             ],
           ),
@@ -172,6 +186,7 @@ class HomeView extends StatelessWidget {
     Color baseColor,
     bool isDark, {
     String? route,
+    VoidCallback? onTap,
   }) {
     final bgColor = isDark ? AppColors.surfaceDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
@@ -193,7 +208,9 @@ class HomeView extends StatelessWidget {
       shadowColor: Colors.black.withValues(alpha: 0.05),
       child: InkWell(
         onTap: () {
-          if (route != null) {
+          if (onTap != null) {
+            onTap();
+          } else if (route != null) {
             GoRouter.of(context).push(route);
           }
         },

@@ -101,6 +101,8 @@ abstract class TreasuryRepository {
   Future<void> recordPaymentWithAllocationsAndTransactions({
     required PaymentsCompanion payment,
     required List<PaymentAllocationsCompanion> allocations,
+    BankTransactionsCompanion? bankTransaction,
+    CashTransactionsCompanion? cashTransaction,
   });
   Future<bool> updatePaymentStatus(
     String id,

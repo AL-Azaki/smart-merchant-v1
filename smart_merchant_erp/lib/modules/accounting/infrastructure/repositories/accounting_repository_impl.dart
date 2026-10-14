@@ -75,6 +75,34 @@ class AccountingRepositoryImpl implements AccountingRepository {
   }
 
   @override
+  Future<bool> deleteChartOfAccount(String id, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.deleteChartOfAccount(id, businessId).then((rows) => rows > 0),
+    );
+  }
+
+  @override
+  Future<bool> hasJournalEntries(String accountId, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.hasJournalEntries(accountId, businessId),
+    );
+  }
+
+  @override
+  Future<bool> isAccountMapped(String accountId, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.isAccountMapped(accountId, businessId),
+    );
+  }
+
+  @override
+  Future<bool> hasChildAccounts(String accountId, String businessId) {
+    return RepositoryErrorGuard.run(
+      () => _dao.hasChildAccounts(accountId, businessId),
+    );
+  }
+
+  @override
   Future<List<ChartOfAccount>> getPendingSyncChartOfAccounts(
     String businessId,
   ) {
@@ -251,6 +279,25 @@ class AccountingRepositoryImpl implements AccountingRepository {
   ) {
     return RepositoryErrorGuard.run(
       () => _dao.updateJournalEntryStatus(id, businessId, newStatus),
+    );
+  }
+
+  @override
+  Future<List<JournalLineWithEntry>> getJournalLinesForReporting({
+    required String businessId,
+    String? chartOfAccountId,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? status = 'Posted',
+  }) {
+    return RepositoryErrorGuard.run(
+      () => _dao.getJournalLinesForReporting(
+        businessId: businessId,
+        chartOfAccountId: chartOfAccountId,
+        startDate: startDate,
+        endDate: endDate,
+        status: status,
+      ),
     );
   }
 

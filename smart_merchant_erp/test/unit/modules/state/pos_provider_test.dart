@@ -92,7 +92,7 @@ void main() {
   });
 
   test(
-    'Successful submitSale preserves cart and sets successInvoiceId',
+    'Successful submitSale clears cart and sets successInvoiceId to prevent duplicate sales',
     () async {
       when(
         () => mockUseCase.call(any()),
@@ -111,8 +111,8 @@ void main() {
       expect(state.isSubmitting, isFalse);
       expect(state.error, isNull);
       expect(state.successInvoiceId, 'INV-123');
-      // Cart MUST NOT be cleared automatically
-      expect(state.cart.isNotEmpty, isTrue);
+      // Cart MUST be cleared automatically upon successful sale to prevent duplicates
+      expect(state.cart.isEmpty, isTrue);
 
       verify(() => mockUseCase.call(any())).called(1);
     },
@@ -168,4 +168,49 @@ void main() {
       verify(() => mockUseCase.call(any())).called(1); // Only called once
     },
   );
+
+  test('Multi-unit products create distinct cart line items and preserve unit names', () {
+    final container = createContainer();
+    final notifier = container.read(posNotifierProvider.notifier);
+
+    // Add Piece
+    notifier.addProduct(
+      id: 'prod-juice',
+      name: 'Orange Juice',
+      price: 500.0,
+      productUnitId: 'unit-piece-1',
+      unitName: 'حبة',
+      taxRate: 0.15,
+    );
+
+    // Add Carton of same product
+    notifier.addProduct(
+      id: 'prod-juice',
+      name: 'Orange Juice',
+      price: 5500.0,
+      productUnitId: 'unit-carton-1',
+      unitName: 'كرتون',
+      taxRate: 0.15,
+    );
+
+    var state = container.read(posNotifierProvider);
+    expect(state.cart.length, 2);
+    expect(state.cart[0].unitName, 'حبة');
+    expect(state.cart[0].unitPrice, 500.0);
+    expect(state.cart[1].unitName, 'كرتون');
+    expect(state.cart[1].unitPrice, 5500.0);
+
+    // Update quantity of piece only
+    notifier.updateQuantity('unit-piece-1', 3);
+    state = container.read(posNotifierProvider);
+    expect(state.cart[0].quantity, 3.0);
+    expect(state.cart[1].quantity, 1.0);
+
+    // Remove carton
+    notifier.removeProduct('unit-carton-1');
+    state = container.read(posNotifierProvider);
+    expect(state.cart.length, 1);
+    expect(state.cart[0].unitName, 'حبة');
+  });
 }
+

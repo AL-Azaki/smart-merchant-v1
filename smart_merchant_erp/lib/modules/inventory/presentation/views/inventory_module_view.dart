@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../catalog/presentation/views/products_view.dart';
 import '../../../purchasing/presentation/views/purchases_view.dart';
 import '../../../crm/presentation/views/contacts_view.dart';
-import '../../../hr/presentation/views/employees_view.dart';
-import '../../../fixed_assets/presentation/views/fixed_assets_view.dart';
-import '../../../documents/presentation/views/documents_view.dart';
 import 'stock_adjustments/stock_adjustments_view.dart';
 import 'stock_counts/stock_counts_view.dart';
 
@@ -35,17 +31,7 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
       'label': 'العملاء والموردين',
       'icon': Icons.people_outline,
     },
-    {'id': 'employees', 'label': 'الموظفين', 'icon': Icons.badge_outlined},
-    {
-      'id': 'assets',
-      'label': 'الأصول الثابتة',
-      'icon': Icons.business_center_outlined,
-    },
-    {
-      'id': 'documents',
-      'label': 'الأرشيف والمستندات',
-      'icon': Icons.folder_open_outlined,
-    },
+    // تم إخفاء الموظفين والأصول والأرشيف مؤقتاً لتجنب التزاحم في شريط التبويبات
     {
       'id': 'adjustments',
       'label': 'تسوية وجرد المخزون',
@@ -109,7 +95,6 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
               fontWeight: FontWeight.w600,
               fontFamily: 'Cairo',
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 0),
             tabs: _tabs.map((tab) {
               return Tab(
                 iconMargin: const EdgeInsets.only(bottom: 4),
@@ -131,9 +116,6 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
           ProductsView(),
           PurchasesView(),
           ContactsView(),
-          EmployeesView(),
-          FixedAssetsView(),
-          DocumentsView(),
           StockAdjustmentsView(),
           StockCountsView(),
         ],

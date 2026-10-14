@@ -4,6 +4,7 @@ import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../app/di/getit_instance.dart';
 import '../../../../database/seeders/qa_data_seeder.dart';
+import '../../../../database/seeders/default_coa_seeder.dart';
 
 part 'session_provider.g.dart';
 
@@ -102,7 +103,9 @@ class SessionNotifier extends _$SessionNotifier {
         userId: userId,
         accountId: 'qa-account-$businessId',
       );
-      debugPrint('QA Data Seeded Successfully for Tenant: $businessId');
+      final coaSeeder = DefaultChartOfAccountsSeeder(db);
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      debugPrint('QA Data and Chart of Accounts Seeded Successfully for Tenant: $businessId');
     } catch (e) {
       debugPrint('Failed to seed QA data: $e');
     }

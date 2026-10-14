@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'financial_dashboard_view.dart';
+import '../widgets/chart_of_accounts_tab.dart';
 
 class ChartOfAccountsView extends StatelessWidget {
   const ChartOfAccountsView({super.key});

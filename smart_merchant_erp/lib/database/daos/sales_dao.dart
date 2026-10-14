@@ -209,6 +209,14 @@ class CustomerBalanceSummary {
     required this.totalRemaining,
     this.openingBalanceType,
   });
+
+  /// Total outstanding net balance owed by the customer, including opening balance and all unpaid invoice receivables.
+  double get netBalance {
+    final isCredit = openingBalanceType?.toLowerCase() == 'credit' ||
+        openingBalanceType == 'دائن';
+    final effectiveOpening = isCredit ? -openingBalance : openingBalance;
+    return effectiveOpening + totalRemaining;
+  }
 }
 
 /// Module-Driven DAO for Domain: Sales & Customers (Phase 04).

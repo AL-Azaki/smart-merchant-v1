@@ -27,22 +27,26 @@ class JournalEntryLineModel {
 class JournalEntryFormSheet extends StatefulWidget {
   final VoidCallback onClose;
   final void Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave;
+  final List<Map<String, String>>? availableAccounts;
 
   const JournalEntryFormSheet({
     required this.onClose,
     required this.onSave,
+    this.availableAccounts,
     super.key,
   });
 
   static void show(
     BuildContext context, {
     required void Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave,
+    List<Map<String, String>>? availableAccounts,
   }) {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => JournalEntryFormSheet(
+        availableAccounts: availableAccounts,
         onClose: () => Navigator.of(ctx).pop(),
         onSave: (entry, lines) {
           Navigator.of(ctx).pop();
@@ -75,6 +79,11 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
 
   late List<JournalEntryLineModel> _lines;
 
+  List<Map<String, String>> get _effectiveAccounts =>
+      (widget.availableAccounts != null && widget.availableAccounts!.isNotEmpty)
+          ? widget.availableAccounts!
+          : _mockAccounts;
+
   @override
   void initState() {
     super.initState();
@@ -95,12 +104,29 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
 
   double get _totalDebit => _lines.fold(0.0, (sum, line) => sum + line.debit);
   double get _totalCredit => _lines.fold(0.0, (sum, line) => sum + line.credit);
-  bool get _isBalanced => _totalDebit == _totalCredit && _totalDebit > 0;
+  bool get _isBalanced => (_totalDebit - _totalCredit).abs() < 0.005 && _totalDebit > 0;
   double get _difference => (_totalDebit - _totalCredit).abs();
 
   void _addLine() {
     setState(() {
       _lines.add(JournalEntryLineModel(id: DateTime.now().millisecondsSinceEpoch.toString()));
+    });
+  }
+
+  void _autoBalance() {
+    if (_lines.isEmpty) return;
+    final diff = _totalDebit - _totalCredit;
+    if (diff.abs() < 0.005) return;
+
+    final lastLine = _lines.last;
+    setState(() {
+      if (diff > 0) {
+        lastLine.credit += diff;
+        lastLine.debit = 0.0;
+      } else {
+        lastLine.debit += diff.abs();
+        lastLine.credit = 0.0;
+      }
     });
   }
 
@@ -229,7 +255,7 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
             separatorBuilder: (ctx, idx) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final line = _lines[index];
-              final selectedAcc = _mockAccounts.cast<Map<String, String>?>().firstWhere(
+              final selectedAcc = _effectiveAccounts.cast<Map<String, String>?>().firstWhere(
                 (a) => a!['id'] == line.accountId,
                 orElse: () => null,
               );
@@ -245,14 +271,14 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
                       suffixIcon: PopupMenuButton<String>(
                         icon: const Icon(Icons.arrow_drop_down),
                         onSelected: (val) {
-                          final acc = _mockAccounts.firstWhere((a) => a['id'] == val);
+                          final acc = _effectiveAccounts.firstWhere((a) => a['id'] == val);
                           setState(() {
                             line.accountId = acc['id']!;
                             line.accountCode = acc['code']!;
                             line.accountName = acc['name']!;
                           });
                         },
-                        itemBuilder: (ctx) => _mockAccounts
+                        itemBuilder: (ctx) => _effectiveAccounts
                             .map((acc) => PopupMenuItem(
                                   value: acc['id'],
                                   child: Text('${acc['code']} - ${acc['name']}'),
@@ -321,13 +347,32 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
             },
           ),
           const SizedBox(height: 12),
-          TextButton.icon(
-            onPressed: _addLine,
-            icon: const Icon(Icons.add_circle_outline, color: Color(0xFF10B981), size: 20),
-            label: const Text(
-              'إضافة سطر جديد للقيد',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13),
-            ),
+          Row(
+            children: [
+              TextButton.icon(
+                onPressed: _addLine,
+                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF10B981), size: 20),
+                label: const Text(
+                  'إضافة سطر جديد للقيد',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13),
+                ),
+              ),
+              const Spacer(),
+              if (!_isBalanced && _difference > 0)
+                OutlinedButton.icon(
+                  onPressed: _autoBalance,
+                  icon: const Icon(Icons.balance_rounded, size: 16, color: Color(0xFF3B82F6)),
+                  label: Text(
+                    'موازنة تلقائية (${_difference.toStringAsFixed(0)})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3B82F6), fontSize: 12),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF3B82F6)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 16),
           Divider(color: borderColor),

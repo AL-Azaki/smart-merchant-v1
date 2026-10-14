@@ -589,14 +589,12 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
               ),
             ),
             const Divider(height: 1),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: state.items.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final row = state.items[index];
-                return Container(
+            for (int index = 0; index < state.items.length; index++) ...[
+              if (index > 0) const Divider(height: 1),
+              Builder(
+                builder: (context) {
+                  final row = state.items[index];
+                  return Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
@@ -875,9 +873,10 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       ),
                     ],
                   ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
+            ],
             Padding(
               padding: const EdgeInsets.all(16),
               child: SizedBox(
@@ -907,29 +906,13 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
   ) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.all(16),
-      itemCount: state.items.length + 1,
-      itemBuilder: (context, index) {
-        if (index == state.items.length) {
-          return Padding(
-            padding: const EdgeInsets.only(top: 16, bottom: 32),
-            child: OutlinedButton.icon(
-              onPressed: notifier.addRow,
-              icon: const Icon(Icons.add),
-              label: const Text('إضافة سطر جديد'),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size.fromHeight(50),
-                side: const BorderSide(color: AppColors.primary),
-              ),
-            ),
-          );
-        }
-
-        final row = state.items[index];
-        return Container(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final row in state.items)
+            Container(
           margin: const EdgeInsets.only(bottom: 16),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -1216,8 +1199,21 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
               ),
             ],
           ),
-        );
-      },
+            ),
+          Padding(
+            padding: const EdgeInsets.only(top: 16, bottom: 32),
+            child: OutlinedButton.icon(
+              onPressed: notifier.addRow,
+              icon: const Icon(Icons.add),
+              label: const Text('إضافة سطر جديد'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(50),
+                side: const BorderSide(color: AppColors.primary),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

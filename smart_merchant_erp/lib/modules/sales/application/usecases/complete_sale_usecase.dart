@@ -1,6 +1,10 @@
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart';
+import '../../../../core/utils/precision_math.dart';
+import '../../../catalog/application/services/product_unit_resolver.dart';
+import '../../../catalog/infrastructure/repositories/catalog_repository_impl.dart';
+import '../../../../database/daos/catalog_dao.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/core/transaction_runner.dart';
 import '../../../../kernel/core/usecase.dart';
@@ -15,6 +19,10 @@ import '../../../accounting/domain/repositories/accounting_repository.dart';
 import '../../../../database/daos/accounting_dao.dart';
 import '../../../inventory/domain/repositories/inventory_repository.dart';
 import '../../domain/repositories/sales_repository.dart';
+
+import '../../../treasury/domain/repositories/treasury_repository.dart';
+import '../../../treasury/infrastructure/repositories/treasury_repository_impl.dart';
+import '../../../../database/daos/treasury_dao.dart';
 
 class CompleteSaleItemCommand {
   final String productUnitId;
@@ -37,20 +45,22 @@ class CompleteSaleItemCommand {
 }
 
 class CompleteSaleCommand {
-  final String customerId;
+  final String? customerId;
   final String currencyId;
   final double exchangeRate;
   final List<CompleteSaleItemCommand> items;
   final String? notes;
   final bool isCreditSale; // true if unpaid/receivable, false if cash sale
+  final String? paymentMethodId; // 'CASH', 'CARD', or PaymentMethod ID
 
   const CompleteSaleCommand({
-    required this.customerId,
+    this.customerId,
     required this.currencyId,
     required this.items,
     this.exchangeRate = 1.0,
     this.notes,
     this.isCreditSale = true,
+    this.paymentMethodId,
   });
 }
 
@@ -59,9 +69,11 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
   final InventoryRepository _inventoryRepository;
   final AccountingRepository _accountingRepository;
   final AccountingApplicationService _accountingService;
+  final TreasuryRepository _treasuryRepository;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
   final AppDatabase _db;
+  final ProductUnitResolver? _unitResolver;
   final Uuid _uuid = const Uuid();
 
   CompleteSaleUseCase(
@@ -71,8 +83,13 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
     this._accountingService,
     this._context,
     this._transactionRunner,
-    this._db,
-  );
+    this._db, {
+    TreasuryRepository? treasuryRepository,
+    ProductUnitResolver? unitResolver,
+  }) : _treasuryRepository = treasuryRepository ??
+            TreasuryRepositoryImpl(TreasuryDao(_db)),
+       _unitResolver = unitResolver ??
+            ProductUnitResolver(CatalogRepositoryImpl(CatalogDao(_db)));
 
   @override
   Future<Either<Failure, String>> call(CompleteSaleCommand params) async {
@@ -136,15 +153,24 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       );
     }
 
-    // Validate Customer if provided
-    if (params.customerId != null) {
-      final customerCheck =
-          await (_db.select(_db.customers)..where(
-                (t) =>
-                    t.id.equals(params.customerId!) &
-                    t.businessId.equals(businessId),
-              ))
-              .getSingleOrNull();
+    // Validate Customer: walk-in cash customer is allowed for cash sales, but credit sales require registered customer
+    final isWalkInCustomer = params.customerId == null ||
+        params.customerId!.trim().isEmpty ||
+        params.customerId == 'DEFAULT-CUSTOMER';
+
+    if (params.isCreditSale && isWalkInCustomer) {
+      return const Left(
+        ValidationFailure('لا يمكن إنشاء فاتورة بيع آجل بدون تحديد عميل مسجل.'),
+      );
+    }
+
+    String? resolvedCustomerId;
+    if (!isWalkInCustomer) {
+      final customerCheck = await (_db.select(_db.customers)..where(
+            (t) =>
+                t.id.equals(params.customerId!) &
+                t.businessId.equals(businessId),
+          )).getSingleOrNull();
       if (customerCheck == null) {
         return Left(
           ValidationFailure(
@@ -152,16 +178,92 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           ),
         );
       }
+      resolvedCustomerId = params.customerId;
     }
 
-    // 1. Resolve Accounting Mappings
-    final accountsReceivableIdResult = await _accountingService
-        .resolveAccountMapping('accounts_receivable');
-    if (accountsReceivableIdResult.isLeft())
-      return Left(
-        accountsReceivableIdResult.fold((l) => l, (r) => throw Exception()),
-      );
-    final accountsReceivableId = accountsReceivableIdResult.getOrElse(() => '');
+    // 1. Resolve Accounting Mappings & Payment Method
+    PaymentMethod? resolvedPaymentMethod;
+    String resolvedDebitAccountId = '';
+
+    if (params.isCreditSale) {
+      final accountsReceivableIdResult = await _accountingService
+          .resolveAccountMapping('accounts_receivable');
+      if (accountsReceivableIdResult.isLeft()) {
+        return Left(
+          accountsReceivableIdResult.fold((l) => l, (r) => throw Exception()),
+        );
+      }
+      resolvedDebitAccountId = accountsReceivableIdResult.getOrElse(() => '');
+    } else {
+      // Resolve Cash or Bank Payment Method and Account
+      final rawMethodId = params.paymentMethodId?.trim();
+      if (rawMethodId != null && rawMethodId.isNotEmpty) {
+        if (rawMethodId == 'CARD' || rawMethodId == 'BANK') {
+          resolvedPaymentMethod =
+              await _treasuryRepository.getPaymentMethodByCode('BANK', businessId) ??
+              await _treasuryRepository.getPaymentMethodByCode('CARD', businessId);
+        } else if (rawMethodId == 'CASH') {
+          resolvedPaymentMethod =
+              await _treasuryRepository.getPaymentMethodByCode('CASH', businessId);
+        } else {
+          resolvedPaymentMethod =
+              await _treasuryRepository.getPaymentMethodById(rawMethodId, businessId) ??
+              await _treasuryRepository.getPaymentMethodByCode(rawMethodId, businessId);
+        }
+      }
+
+      resolvedPaymentMethod ??=
+          await _treasuryRepository.getPaymentMethodByCode('CASH', businessId);
+
+      if (resolvedPaymentMethod == null) {
+        final existingMethods = await _treasuryRepository.listPaymentMethods(
+          businessId,
+          isActive: true,
+        );
+        if (existingMethods.isNotEmpty) {
+          resolvedPaymentMethod = existingMethods.firstWhere(
+            (m) => m.paymentType == 'Cash',
+            orElse: () => existingMethods.first,
+          );
+        }
+      }
+
+      if (resolvedPaymentMethod == null) {
+        // Fallback: Resolve cash_main account mapping and seed a default Cash payment method
+        final cashMainResult =
+            await _accountingService.resolveAccountMapping('cash_main');
+        if (cashMainResult.isRight()) {
+          final cashAccountId = cashMainResult.getOrElse(() => '');
+          final newPmId = _uuid.v4();
+          await _treasuryRepository.insertPaymentMethod(
+            PaymentMethodsCompanion.insert(
+              id: newPmId,
+              businessId: businessId,
+              chartOfAccountId: cashAccountId,
+              methodCode: 'CASH',
+              methodName: 'نقدي',
+              paymentType: 'Cash',
+              isActive: const drift.Value(true),
+            ),
+          );
+          resolvedPaymentMethod =
+              await _treasuryRepository.getPaymentMethodById(newPmId, businessId);
+          resolvedDebitAccountId = cashAccountId;
+        } else {
+          // Graceful fallback: If cash_main is not yet mapped, fall back to accounts_receivable
+          final arFallback =
+              await _accountingService.resolveAccountMapping('accounts_receivable');
+          if (arFallback.isLeft()) {
+            return Left(cashMainResult.fold((l) => l, (r) => throw Exception()));
+          }
+          resolvedDebitAccountId = arFallback.getOrElse(() => '');
+        }
+      }
+
+      if (resolvedPaymentMethod != null) {
+        resolvedDebitAccountId = resolvedPaymentMethod.chartOfAccountId;
+      }
+    }
 
     final salesRevenueIdResult = await _accountingService.resolveAccountMapping(
       'sales_revenue',
@@ -234,34 +336,54 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
         validatedWarehouses.add(item.warehouseId);
       }
 
-      // Stock Check
+      // Resolve base unit and conversion ratio
+      ResolvedUnitInfo? unitInfo;
+      try {
+        unitInfo = await _unitResolver?.resolve(
+          item.productUnitId,
+          businessId,
+        );
+      } catch (_) {}
+
+      final targetUnitId = unitInfo?.baseUnit.id ?? item.productUnitId;
+      final baseQuantity = unitInfo != null
+          ? unitInfo.toBaseQuantity(item.quantity)
+          : PrecisionMath.roundQty(item.quantity);
+
+      // Stock Check against Base Unit
       final inventory = await _inventoryRepository
           .getInventoryByUnitAndWarehouse(
             businessId,
             item.warehouseId,
-            item.productUnitId,
+            targetUnitId,
           );
-      // Wait, let's verify if `inventory` model has `quantity` or `quantityOnHand`.
-      // From inventories_table.dart: `quantity` is used.
-      if (inventory == null || inventory.quantity < item.quantity) {
+
+      if (inventory == null || inventory.quantity < baseQuantity) {
         return const Left(ValidationFailure('Insufficient stock for product.'));
       }
 
-      final itemCost = inventory.averageCost ?? 0.0;
+      final itemCost = inventory.averageCost ?? 0.0; // Authoritative Cost in Base Currency
+      final lineCogsBase = PrecisionMath.roundMoney(baseQuantity * itemCost);
 
       subTotal += (item.quantity * item.unitPrice);
       discountTotal += item.discount;
       taxTotal += item.tax;
-      totalCost += (item.quantity * itemCost);
+      totalCost += lineCogsBase;
 
       itemsWithCost.add({
         'command': item,
         'costPrice': itemCost,
+        'baseQuantity': baseQuantity,
+        'lineCogsBase': lineCogsBase,
         'inventory': inventory,
       });
     }
 
     final grandTotal = subTotal - discountTotal + taxTotal;
+    final grandTotalInBase = PrecisionMath.toBaseAmount(
+      foreignAmount: grandTotal,
+      exchangeRate: params.exchangeRate,
+    );
 
     // 3. Prepare Sales Entities
     final invoiceId = _uuid.v4();
@@ -272,7 +394,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       id: invoiceId,
       businessId: businessId,
       branchId: branchId,
-      customerId: drift.Value(params.customerId),
+      customerId: drift.Value(resolvedCustomerId),
       invoiceNumber: invoiceNumber,
       invoiceDate: drift.Value(invoiceDate),
       currencyId: params.currencyId,
@@ -320,7 +442,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
         id: _uuid.v4(),
         businessId: businessId,
         salesInvoiceId: invoiceId,
-        customerId: params.customerId,
+        customerId: resolvedCustomerId!,
         currencyId: params.currencyId,
         originalAmount: grandTotal,
         paidAmount: const drift.Value(0.0),
@@ -383,6 +505,33 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           receivable: receivableCompanion,
         );
 
+        // If immediate/cash sale, record Treasury Receipt Voucher
+        if (!params.isCreditSale && resolvedPaymentMethod != null) {
+          final receiptCompanion = PaymentsCompanion.insert(
+            id: _uuid.v4(),
+            businessId: businessId,
+            branchId: branchId,
+            paymentNumber: 'RCP-${DateTime.now().millisecondsSinceEpoch}',
+            paymentDate: drift.Value(invoiceDate),
+            paymentMethodId: resolvedPaymentMethod.id,
+            chartOfAccountId: resolvedDebitAccountId,
+            currencyId: params.currencyId,
+            exchangeRate: drift.Value(params.exchangeRate),
+            amount: grandTotal,
+            baseAmount: grandTotalInBase,
+            paymentType: 'Receipt',
+            contactType:
+                drift.Value(resolvedCustomerId != null ? 'Customer' : null),
+            contactId: drift.Value(resolvedCustomerId),
+            status: const drift.Value('Posted'),
+            notes: drift.Value('Receipt for Sales Invoice $invoiceNumber'),
+            createdBy: userId,
+            postedBy: drift.Value(userId),
+            postedAt: drift.Value(invoiceDate),
+          );
+          await _treasuryRepository.insertPayment(receiptCompanion);
+        }
+
         // Deduct Inventory
         await _inventoryRepository.recordTransactionWithLines(
           transaction: inventoryTxCompanion,
@@ -392,9 +541,12 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
 
         // Update actual stock quantities
         for (final map in itemsWithCost) {
-          final item = map['command'] as CompleteSaleItemCommand;
           final inventory = map['inventory'] as Inventory;
-          final newQuantity = inventory.quantity - item.quantity;
+          final baseQty = (map['baseQuantity'] as double?) ??
+              ((map['command'] as CompleteSaleItemCommand).quantity);
+          final newQuantity =
+              PrecisionMath.roundQty(inventory.quantity - baseQty);
+
           await _inventoryRepository.updateInventory(
             inventory
                 .toCompanion(false)
@@ -438,20 +590,23 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
         int lineSequence = 1;
         final List<JournalEntryLinesCompanion> journalLines = [];
 
-        // Debit: Accounts Receivable or Cash
+        // Debit: Accounts Receivable or Cash/Bank
         journalLines.add(
           JournalEntryLinesCompanion.insert(
             id: _uuid.v4(),
             businessId: businessId,
             journalEntryId: journalId,
-            chartOfAccountId:
-                accountsReceivableId, // Or Cash account if not credit sale
+            chartOfAccountId: resolvedDebitAccountId,
             currencyId: params.currencyId,
             lineNumber: lineSequence++,
             type: 'Debit',
             foreignAmount: drift.Value(grandTotal),
-            baseAmount: drift.Value(grandTotal * params.exchangeRate),
-            description: const drift.Value('Sales Revenue Collection'),
+            baseAmount: drift.Value(grandTotalInBase),
+            description: drift.Value(
+              params.isCreditSale
+                  ? 'Sales Receivables (Credit)'
+                  : 'Cash/Bank Sales Collection',
+            ),
           ),
         );
 
@@ -466,9 +621,15 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             lineNumber: lineSequence++,
             type: 'Credit',
             foreignAmount: drift.Value(grandTotal),
-            baseAmount: drift.Value(grandTotal * params.exchangeRate),
+            baseAmount: drift.Value(grandTotalInBase),
             description: const drift.Value('Sales Revenue'),
           ),
+        );
+
+        final totalCostInBase = PrecisionMath.roundMoney(totalCost);
+        final totalCostInForeign = PrecisionMath.toForeignAmount(
+          baseAmount: totalCostInBase,
+          exchangeRate: params.exchangeRate,
         );
 
         // Debit: COGS
@@ -481,8 +642,8 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             currencyId: params.currencyId,
             lineNumber: lineSequence++,
             type: 'Debit',
-            foreignAmount: drift.Value(totalCost),
-            baseAmount: drift.Value(totalCost * params.exchangeRate),
+            foreignAmount: drift.Value(totalCostInForeign),
+            baseAmount: drift.Value(totalCostInBase),
             description: const drift.Value('Cost of Goods Sold'),
           ),
         );
@@ -497,8 +658,8 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             currencyId: params.currencyId,
             lineNumber: lineSequence++,
             type: 'Credit',
-            foreignAmount: drift.Value(totalCost),
-            baseAmount: drift.Value(totalCost * params.exchangeRate),
+            foreignAmount: drift.Value(totalCostInForeign),
+            baseAmount: drift.Value(totalCostInBase),
             description: const drift.Value('Inventory Deduction'),
           ),
         );

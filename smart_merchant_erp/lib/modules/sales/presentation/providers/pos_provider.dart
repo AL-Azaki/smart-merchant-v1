@@ -9,6 +9,8 @@ import '../../application/usecases/complete_sale_usecase.dart';
 import '../../application/services/online_order_service.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../../inventory/application/services/warehouse_context_service.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
+import 'product_unit_provider.dart';
 
 part 'pos_provider.g.dart';
 
@@ -22,6 +24,7 @@ class PosCartItem {
 
   // Real database IDs for submission
   final String? productUnitId;
+  final String? unitName;
 
   PosCartItem({
     required this.id,
@@ -30,6 +33,7 @@ class PosCartItem {
     required this.unitPrice,
     this.taxRate = 0.15, // Defaulting to 15% VAT for standard ERP
     this.productUnitId,
+    this.unitName,
   });
 
   PosCartItem copyWith({double? quantity}) {
@@ -40,6 +44,7 @@ class PosCartItem {
       unitPrice: unitPrice,
       taxRate: taxRate,
       productUnitId: productUnitId,
+      unitName: unitName,
     );
   }
 }
@@ -137,11 +142,15 @@ class PosNotifier extends _$PosNotifier {
     required double price,
     double taxRate = 0.15,
     String? productUnitId,
+    String? unitName,
   }) {
     if (state.isSubmitting) return;
 
+    final targetUnitId = productUnitId ?? id;
     final currentCart = List<PosCartItem>.from(state.cart);
-    final existingIndex = currentCart.indexWhere((item) => item.id == id);
+    final existingIndex = currentCart.indexWhere(
+      (item) => (item.productUnitId ?? item.id) == targetUnitId,
+    );
 
     if (existingIndex >= 0) {
       final existing = currentCart[existingIndex];
@@ -156,7 +165,8 @@ class PosNotifier extends _$PosNotifier {
           quantity: 1,
           unitPrice: price,
           taxRate: taxRate,
-          productUnitId: productUnitId ?? id,
+          productUnitId: targetUnitId,
+          unitName: unitName,
         ),
       );
     }
@@ -164,22 +174,34 @@ class PosNotifier extends _$PosNotifier {
     _recalculate(currentCart);
   }
 
-  void updateQuantity(String id, double newQuantity) {
+  void updateQuantity(String idOrUnitId, double newQuantity) {
     if (state.isSubmitting) return;
 
     if (newQuantity <= 0) {
-      final currentCart = state.cart.where((item) => item.id != id).toList();
+      final currentCart = state.cart
+          .where((item) =>
+              (item.productUnitId ?? item.id) != idOrUnitId &&
+              item.id != idOrUnitId)
+          .toList();
       _recalculate(currentCart);
       return;
     }
 
     final currentCart = List<PosCartItem>.from(state.cart);
-    final existingIndex = currentCart.indexWhere((item) => item.id == id);
+    final existingIndex = currentCart.indexWhere(
+      (item) =>
+          (item.productUnitId ?? item.id) == idOrUnitId ||
+          item.id == idOrUnitId,
+    );
     if (existingIndex >= 0) {
       final existing = currentCart[existingIndex];
       currentCart[existingIndex] = existing.copyWith(quantity: newQuantity);
       _recalculate(currentCart);
     }
+  }
+
+  void removeProduct(String idOrUnitId) {
+    updateQuantity(idOrUnitId, 0);
   }
 
   void _recalculate(List<PosCartItem> newCart) {
@@ -359,10 +381,16 @@ class PosNotifier extends _$PosNotifier {
       );
     }).toList();
 
+    final isCredit = paymentMethodId == 'CREDIT' ||
+        (paymentMethodId != 'CASH' &&
+            paymentMethodId != 'CARD' &&
+            cashReceived < (state.totals.grandTotal - 0.01));
+
     final command = CompleteSaleCommand(
-      customerId: state.customerId ?? 'DEFAULT-CUSTOMER',
+      customerId: state.customerId,
       currencyId: state.currencyId,
-      isCreditSale: cashReceived < state.totals.grandTotal,
+      isCreditSale: isCredit,
+      paymentMethodId: paymentMethodId,
       items: items,
     );
 
@@ -382,7 +410,23 @@ class PosNotifier extends _$PosNotifier {
           await service.markOrderFulfilled(state.sourceOrderId!);
         }
 
-        state = state.copyWith(
+        // Refresh products catalog in POS to reflect updated inventory stock
+        if (getIt.isRegistered<CatalogRepository>()) {
+          ref.invalidate(posProductsNotifierProvider);
+        }
+
+        // Successful sale commits invoice and inventory.
+        // Cart and totals MUST be cleared immediately to prevent duplicate submissions.
+        state = PosState(
+          cart: const [],
+          totals: InvoiceTotals(
+            rawSubtotal: 0,
+            totalDiscount: 0,
+            taxableAmount: 0,
+            taxTotal: 0,
+            grandTotal: 0,
+          ),
+          currencyId: state.currencyId,
           isSubmitting: false,
           successInvoiceId: invoiceId,
         );
@@ -390,3 +434,4 @@ class PosNotifier extends _$PosNotifier {
     );
   }
 }
+

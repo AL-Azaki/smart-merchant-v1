@@ -6,6 +6,7 @@ import 'package:smart_merchant_erp/l10n/app_localizations.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../kernel/locale/locale_provider.dart';
 import '../../../../shared/design_system/theme/theme_provider.dart';
+import '../providers/auth_provider.dart';
 
 class AuthGateView extends ConsumerWidget {
   const AuthGateView({super.key});
@@ -283,7 +284,31 @@ class AuthGateView extends ConsumerWidget {
                             ),
                           ),
 
-                          const SizedBox(height: 48),
+                          const SizedBox(height: 16),
+
+                          // Demo / Quick Trial CTA
+                          TextButton.icon(
+                            onPressed: () {
+                              ref.read(authNotifierProvider.notifier).loginAsDemo();
+                            },
+                            icon: const Icon(
+                              Icons.play_circle_fill_rounded,
+                              color: Color(0xFF10B981),
+                              size: 22,
+                            ),
+                            label: Text(
+                              'تجربة النظام مباشرة (حساب تجريبي / Demo)',
+                              style: TextStyle(
+                                color: isDark
+                                    ? const Color(0xFF34D399)
+                                    : const Color(0xFF059669),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
 
                           // Trust Indicators
                           Row(
