@@ -265,7 +265,9 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                                   onPressed: () {
                                     showDialog(
                                       context: context,
-                                      builder: (_) => const ReceiptVoucherDialog(),
+                                      builder: (_) => ReceiptVoucherDialog(
+                                        initialCustomerId: c.id,
+                                      ),
                                     );
                                   },
                                 ),

@@ -12,7 +12,9 @@ import '../../../sales/domain/repositories/sales_repository.dart';
 import '../../../treasury/application/usecases/receive_payment_usecase.dart';
 
 class ReceiptVoucherDialog extends ConsumerStatefulWidget {
-  const ReceiptVoucherDialog({super.key});
+  final String? initialCustomerId;
+
+  const ReceiptVoucherDialog({super.key, this.initialCustomerId});
 
   @override
   ConsumerState<ReceiptVoucherDialog> createState() =>
@@ -62,6 +64,9 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
           _customers = customers;
           _isLoadingData = false;
         });
+        if (widget.initialCustomerId != null) {
+          _onCustomerChanged(widget.initialCustomerId);
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingData = false);

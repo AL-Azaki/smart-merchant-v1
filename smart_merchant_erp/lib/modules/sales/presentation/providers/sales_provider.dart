@@ -21,3 +21,24 @@ class SalesInvoicesNotifier extends AutoDisposeStreamNotifier<List<SalesInvoice>
     );
   }
 }
+
+final salesReturnsNotifierProvider =
+    AutoDisposeStreamNotifierProvider<SalesReturnsNotifier, List<SalesReturn>>(
+  () => SalesReturnsNotifier(),
+);
+
+class SalesReturnsNotifier
+    extends AutoDisposeStreamNotifier<List<SalesReturn>> {
+  @override
+  Stream<List<SalesReturn>> build() {
+    final session = ref.watch(sessionNotifierProvider);
+    if (!session.isActive || session.businessId == null) {
+      return const Stream.empty();
+    }
+
+    final repo = ref.watch(salesRepositoryProvider);
+    return repo.watchReturns(
+      SalesReturnFilter(businessId: session.businessId!),
+    );
+  }
+}
