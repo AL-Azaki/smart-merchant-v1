@@ -14,26 +14,17 @@ class BusinessProfileView extends StatefulWidget {
 }
 
 class _BusinessProfileViewState extends State<BusinessProfileView> {
-  // Pre-filled Mock Controllers for Demo UI
-  final _arabicNameController = TextEditingController(
-    text: 'مؤسسة التقنية المتقدمة',
-  );
-  final _englishNameController = TextEditingController(
-    text: 'Advanced Tech Est.',
-  );
-  final _crNumberController = TextEditingController(text: '1010123456');
-  final _vatNumberController = TextEditingController(text: '300123456789003');
-  final _phoneController = TextEditingController(text: '+966 50 123 4567');
-  final _emailController = TextEditingController(text: 'info@adv-tech.com');
-  final _websiteController = TextEditingController(text: 'www.adv-tech.com');
-  final _timezoneController = TextEditingController(text: 'Riyadh (GMT+03:00)');
-  final _countryCityController = TextEditingController(
-    text: 'المملكة العربية السعودية، الرياض',
-  );
+  final _arabicNameController = TextEditingController();
+  final _englishNameController = TextEditingController();
+  final _crNumberController = TextEditingController();
+  final _vatNumberController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _websiteController = TextEditingController();
+  final _timezoneController = TextEditingController(text: 'Asia/Aden (GMT+03:00)');
+  final _countryCityController = TextEditingController();
   final _currencyController = TextEditingController(text: 'YER - ريال يمني');
-  final _addressController = TextEditingController(
-    text: 'الرياض، شارع العليا العام، مبنى رقم 12',
-  );
+  final _addressController = TextEditingController();
 
   bool _isSaving = false;
 

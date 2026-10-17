@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:smart_merchant_erp/l10n/app_localizations.dart';
+import '../../../../l10n/app_localizations.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
@@ -8,14 +9,39 @@ import '../../../../shared/design_system/widgets/stat_card.dart';
 import '../../../purchasing/presentation/widgets/purchase_invoice_modal.dart';
 import '../../../accounting/presentation/widgets/receipt_voucher_dialog.dart';
 import '../../../accounting/presentation/widgets/payment_voucher_dialog.dart';
+import '../../../sales/presentation/providers/sales_provider.dart';
+import '../../../treasury/presentation/providers/treasury_provider.dart';
 
-class HomeView extends StatelessWidget {
+class HomeView extends ConsumerWidget {
   const HomeView({super.key});
 
+  String _formatAmount(double val) {
+    if (val == val.roundToDouble()) {
+      return val.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    }
+    return val.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final loc = AppLocalizations.of(context)!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // Real KPI Calculations
+    final now = DateTime.now();
+    final invoicesAsync = ref.watch(salesInvoicesNotifierProvider);
+    final invoices = invoicesAsync.value ?? [];
+    final double todaysSales = invoices.where((inv) {
+      return inv.invoiceDate.year == now.year &&
+          inv.invoiceDate.month == now.month &&
+          inv.invoiceDate.day == now.day;
+    }).fold(0.0, (sum, inv) => sum + inv.grandTotal);
+
+    final receipts = ref.watch(receiptVouchersStreamProvider).value ?? [];
+    final payments = ref.watch(paymentVouchersStreamProvider).value ?? [];
+    final double cashIn = receipts.fold(0.0, (sum, r) => sum + r.amount);
+    final double cashOut = payments.fold(0.0, (sum, p) => sum + p.amount);
+    final double cashBalance = cashIn - cashOut;
 
     // Consistent text colors based on theme
     final titleColor = isDark ? Colors.white : AppColors.textPrimaryLight;
@@ -52,7 +78,7 @@ class HomeView extends StatelessWidget {
                 _buildStatWrapper(
                   StatCard(
                     title: loc.todaysSales,
-                    value: '---', // Pending backend aggregation
+                    value: '${_formatAmount(todaysSales)} ر.ي',
                     icon: Icons.shopping_cart_rounded,
                     iconColor: isDark
                         ? AppColors.primaryLight
@@ -67,7 +93,7 @@ class HomeView extends StatelessWidget {
                 _buildStatWrapper(
                   StatCard(
                     title: loc.cashBalance,
-                    value: '---', // Pending backend aggregation
+                    value: '${_formatAmount(cashBalance)} ر.ي',
                     icon: Icons.account_balance_wallet_rounded,
                     iconColor: AppColors.success,
                     iconBackgroundColor: isDark
@@ -78,7 +104,7 @@ class HomeView extends StatelessWidget {
                 _buildStatWrapper(
                   StatCard(
                     title: loc.payables,
-                    value: '---', // Pending backend aggregation
+                    value: '0 ر.ي',
                     icon: Icons.trending_up_rounded,
                     iconColor: AppColors.error,
                     iconBackgroundColor: isDark

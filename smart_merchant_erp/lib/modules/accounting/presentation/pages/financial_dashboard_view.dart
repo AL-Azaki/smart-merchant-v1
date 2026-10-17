@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
-import '../widgets/transaction_form_sheet.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/accounting_provider.dart';
+import '../../../treasury/presentation/providers/treasury_provider.dart';
+import '../widgets/receipt_voucher_dialog.dart';
+import '../widgets/payment_voucher_dialog.dart';
 import '../widgets/journal_entry_form_sheet.dart';
-import '../widgets/account_form_sheet.dart';
-import '../widgets/transaction_details_sheet.dart';
-import '../widgets/journal_entry_details_sheet.dart';
 import '../widgets/chart_of_accounts_tab.dart';
 import '../widgets/journal_entries_tab.dart';
 import '../widgets/financial_reports_tab.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/spacing.dart';
-import '../../../../shared/design_system/widgets/app_search_filter_bar.dart';
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
+// ─── Real Operation Representation ─────────────────────────────────────────────
 
-class _MockTransaction {
+class _RealFinancialOp {
   final String id;
-  final String type; // income | expense
-  final int amount;
+  final String type; // income | expense | journal
+  final double amount;
   final String category;
   final String description;
   final DateTime date;
   final String? ref;
 
-  const _MockTransaction({
+  const _RealFinancialOp({
     required this.id,
     required this.type,
     required this.amount,
@@ -32,12 +31,6 @@ class _MockTransaction {
     this.ref,
   });
 }
-
-final _mockTransactions = <_MockTransaction>[
-  _MockTransaction(id: 'tx_1', type: 'income', amount: 150000, category: 'sales', description: 'مبيعات الكاشير الوردية الصباحية', date: DateTime.now()),
-  _MockTransaction(id: 'tx_2', type: 'expense', amount: 12000, category: 'utilities', description: 'فاتورة كهرباء', date: DateTime.now().subtract(const Duration(days: 1))),
-  _MockTransaction(id: 'tx_3', type: 'expense', amount: 5000, category: 'other_expense', description: 'ضيافة للعملاء', date: DateTime.now().subtract(const Duration(days: 2))),
-];
 
 // ─── Main FinancialDashboardView ───────────────────────────────────────────────
 
@@ -205,35 +198,16 @@ class _TabItem {
   const _TabItem({required this.id, required this.label, required this.icon, required this.color});
 }
 
-// ─── Tab 1: Dashboard ──────────────────────────────────────────────────────────
-
-class _DashboardTab extends StatefulWidget {
+class _DashboardTab extends ConsumerStatefulWidget {
   final ValueChanged<int>? onSelectTab;
   const _DashboardTab({super.key, this.onSelectTab});
 
   @override
-  State<_DashboardTab> createState() => _DashboardTabState();
+  ConsumerState<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab> {
+class _DashboardTabState extends ConsumerState<_DashboardTab> {
   String _search = '';
-
-  String _getCategoryName(String key) {
-    const map = {
-      'sales': 'إيرادات مبيعات',
-      'services': 'إيرادات خدمات',
-      'investments': 'عوائد استثمار',
-      'other_income': 'إيرادات أخرى',
-      'salaries': 'رواتب وأجور',
-      'rent': 'إيجارات',
-      'utilities': 'فواتير خدمات (كهرباء، ماء)',
-      'marketing': 'تسويق وإعلان',
-      'maintenance': 'صيانة وإصلاح',
-      'office_supplies': 'مستلزمات مكتبية',
-      'other_expense': 'مصروفات أخرى',
-    };
-    return map[key] ?? key;
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -244,11 +218,44 @@ class _DashboardTabState extends State<_DashboardTab> {
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
     final bgSurface = isDark ? AppColors.backgroundDark : const Color(0xFFF1F5F9);
 
-    final totalIncome = _mockTransactions.where((t) => t.type == 'income').fold(0, (a, t) => a + t.amount);
-    final totalExpense = _mockTransactions.where((t) => t.type == 'expense').fold(0, (a, t) => a + t.amount);
-    final balance = totalIncome - totalExpense;
+    final receiptsAsync = ref.watch(receiptVouchersStreamProvider);
+    final paymentsAsync = ref.watch(paymentVouchersStreamProvider);
+    final journalEntriesAsync = ref.watch(journalEntriesNotifierProvider);
 
-    final filtered = _mockTransactions.where((t) {
+    final receipts = receiptsAsync.value ?? [];
+    final payments = paymentsAsync.value ?? [];
+    final journalEntries = journalEntriesAsync.value ?? [];
+
+    final double totalIncome = receipts.fold(0.0, (sum, p) => sum + p.amount);
+    final double totalExpense = payments.fold(0.0, (sum, p) => sum + p.amount);
+    final double balance = totalIncome - totalExpense;
+
+    final List<_RealFinancialOp> allOps = [
+      ...receipts.map((p) => _RealFinancialOp(
+        id: p.id,
+        type: 'income',
+        amount: p.amount,
+        category: 'سند قبض',
+        description: (p.notes != null && p.notes!.trim().isNotEmpty)
+            ? p.notes!
+            : 'سند قبض #${p.paymentNumber}',
+        date: p.paymentDate,
+        ref: p.paymentNumber,
+      )),
+      ...payments.map((p) => _RealFinancialOp(
+        id: p.id,
+        type: 'expense',
+        amount: p.amount,
+        category: 'سند صرف',
+        description: (p.notes != null && p.notes!.trim().isNotEmpty)
+            ? p.notes!
+            : 'سند صرف #${p.paymentNumber}',
+        date: p.paymentDate,
+        ref: p.paymentNumber,
+      )),
+    ]..sort((a, b) => b.date.compareTo(a.date));
+
+    final filtered = allOps.where((t) {
       if (_search.isEmpty) return true;
       return t.description.contains(_search) || t.category.contains(_search);
     }).toList();
@@ -267,14 +274,9 @@ class _DashboardTabState extends State<_DashboardTab> {
                 icon: Icons.north_east_rounded,
                 color: const Color(0xFF10B981),
                 onTap: () {
-                  TransactionFormSheet.show(
-                    context,
-                    initialType: 'income',
-                    onSave: (data, print) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ سند القبض بمبلغ ${data['amount']} ${data['currency_id']}')),
-                      );
-                    },
+                  showDialog(
+                    context: context,
+                    builder: (_) => const ReceiptVoucherDialog(),
                   );
                 },
               ),
@@ -284,14 +286,9 @@ class _DashboardTabState extends State<_DashboardTab> {
                 icon: Icons.south_west_rounded,
                 color: const Color(0xFFEF4444),
                 onTap: () {
-                  TransactionFormSheet.show(
-                    context,
-                    initialType: 'expense',
-                    onSave: (data, print) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ سند الصرف بمبلغ ${data['amount']} ${data['currency_id']}')),
-                      );
-                    },
+                  showDialog(
+                    context: context,
+                    builder: (_) => const PaymentVoucherDialog(),
                   );
                 },
               ),
@@ -305,7 +302,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                     context,
                     onSave: (entry, lines) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ وترحيل القيد اليومي بمبلغ ${entry['totalDebit']} ر.ي')),
+                        SnackBar(content: Text('تم حفظ القيد اليومي بمبلغ ${entry['totalDebit']} ر.ي')),
                       );
                     },
                   );
@@ -341,7 +338,6 @@ class _DashboardTabState extends State<_DashboardTab> {
           final crossCount = isWide ? 3 : 2;
           final aspect = isWide ? 1.6 : 1.2;
           return GridView.count(
-
             crossAxisCount: crossCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
@@ -352,7 +348,7 @@ class _DashboardTabState extends State<_DashboardTab> {
               // رصيد الصندوق - solid green
               _SolidKpiCard(
                 title: 'رصيد الصندوق',
-                value: '${balance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} ر.ي',
+                value: '${_formatNum(balance)} ر.ي',
                 gradient: const LinearGradient(
                   colors: [Color(0xFF10B981), Color(0xFF059669)],
                   begin: Alignment.topLeft,
@@ -363,7 +359,7 @@ class _DashboardTabState extends State<_DashboardTab> {
               // رصيد البنك - solid blue
               _SolidKpiCard(
                 title: 'رصيد البنك',
-                value: '1,450,000 ر.ي',
+                value: '0 ر.ي',
                 gradient: const LinearGradient(
                   colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
                   begin: Alignment.topLeft,
@@ -373,8 +369,8 @@ class _DashboardTabState extends State<_DashboardTab> {
               ),
               // إجمالي الإيرادات
               _BorderKpiCard(
-                title: 'إجمالي الإيرادات',
-                value: _formatNum(totalIncome),
+                title: 'إجمالي المقبوضات',
+                value: '${_formatNum(totalIncome)} ر.ي',
                 icon: Icons.north_east_rounded,
                 iconColor: const Color(0xFF3B82F6),
                 surface: surface,
@@ -385,7 +381,7 @@ class _DashboardTabState extends State<_DashboardTab> {
               // إجمالي المصروفات
               _BorderKpiCard(
                 title: 'إجمالي المصروفات',
-                value: _formatNum(totalExpense),
+                value: '${_formatNum(totalExpense)} ر.ي',
                 icon: Icons.south_west_rounded,
                 iconColor: const Color(0xFFEF4444),
                 surface: surface,
@@ -393,20 +389,20 @@ class _DashboardTabState extends State<_DashboardTab> {
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
               ),
-              // صافي الربح
+              // صافي التدفق
               _BorderKpiCard(
-                title: 'صافي الربح',
-                value: _formatNum(balance),
+                title: 'صافي الحركة النقدية',
+                value: '${_formatNum(balance)} ر.ي',
                 valueColor: balance >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
               ),
-              // عدد القيود اليوم
+              // عدد القيود اليومية
               _BorderKpiCard(
-                title: 'عدد القيود اليوم',
-                value: '0',
+                title: 'عدد القيود اليومية',
+                value: '${journalEntries.length}',
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
@@ -414,8 +410,8 @@ class _DashboardTabState extends State<_DashboardTab> {
               ),
               // عدد السندات
               _BorderKpiCard(
-                title: 'عدد السندات',
-                value: '${_mockTransactions.length}',
+                title: 'إجمالي عدد السندات',
+                value: '${receipts.length + payments.length}',
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
@@ -461,25 +457,11 @@ class _DashboardTabState extends State<_DashboardTab> {
               color: const Color(0xFF3B82F6),
               textColor: Colors.white,
               onTap: () {
-                TransactionFormSheet.show(
-                  context,
-                  initialType: 'income',
-                  onSave: (data, print) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('تم حفظ السند بمبلغ ${data['amount']} ${data['currency_id']}')),
-                    );
-                  },
+                showDialog(
+                  context: context,
+                  builder: (_) => const ReceiptVoucherDialog(),
                 );
               },
-            ),
-            const SizedBox(width: 8),
-            _ActionButton(
-              label: 'تصدير',
-              icon: Icons.download_rounded,
-              color: bgSurface,
-              textColor: textPrimary,
-              borderColor: borderColor,
-              onTap: () => _showSnack(context, 'جاري التصدير...'),
             ),
           ],
         ),
@@ -488,7 +470,7 @@ class _DashboardTabState extends State<_DashboardTab> {
 
         // ── آخر العمليات ──
         Text(
-          'آخر العمليات',
+          'آخر العمليات المالية',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
         ),
         const SizedBox(height: 12),
@@ -509,87 +491,68 @@ class _DashboardTabState extends State<_DashboardTab> {
                 final isIncome = trx.type == 'income';
                 return Column(
                   children: [
-                    InkWell(
-                      onTap: () {
-                        TransactionDetailsSheet.show(
-                          context,
-                          transaction: {
-                            'id': trx.id,
-                            'type': trx.type,
-                            'amount': trx.amount,
-                            'currency': 'ر.ي',
-                            'date': '${trx.date.year}-${trx.date.month.toString().padLeft(2, '0')}-${trx.date.day.toString().padLeft(2, '0')}',
-                            'category': trx.category,
-                            'description': trx.description,
-                            'ref': trx.ref,
-                            'entityType': 'عام',
-                            'entityName': 'جهة عملية',
-                          },
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: isIncome
-                                    ? const Color(0xFF3B82F6).withOpacity(0.1)
-                                    : const Color(0xFFEF4444).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                isIncome ? Icons.north_east_rounded : Icons.south_west_rounded,
-                                color: isIncome ? const Color(0xFF3B82F6) : const Color(0xFFEF4444),
-                                size: 24,
-                              ),
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: isIncome
+                                  ? const Color(0xFF10B981).withOpacity(0.1)
+                                  : const Color(0xFFEF4444).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    trx.description,
-                                    style: TextStyle(
-                                      fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary,
+                            child: Icon(
+                              isIncome ? Icons.north_east_rounded : Icons.south_west_rounded,
+                              color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 20),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  trx.description,
+                                  style: TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    Icon(Icons.description_outlined, size: 16, color: textSecondary),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        trx.category,
+                                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.description_outlined, size: 16, color: textSecondary),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          _getCategoryName(trx.category),
-                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(Icons.calendar_today_rounded, size: 16, color: textSecondary),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${trx.date.day}/${trx.date.month}/${trx.date.year}',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                    const SizedBox(width: 12),
+                                    Icon(Icons.calendar_today_rounded, size: 16, color: textSecondary),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${trx.date.day}/${trx.date.month}/${trx.date.year}',
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            Text(
-                              '${isIncome ? '+' : '-'}${_formatNum(trx.amount)}',
-                              style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w900,
-                                color: isIncome ? const Color(0xFF3B82F6) : const Color(0xFFEF4444),
-                              ),
+                          ),
+                          Text(
+                            '${isIncome ? '+' : '-'}${_formatNum(trx.amount)} ر.ي',
+                            style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w900,
+                              color: isIncome ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     if (!isLast) Divider(height: 1, color: borderColor),
@@ -598,11 +561,33 @@ class _DashboardTabState extends State<_DashboardTab> {
               }),
               if (filtered.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Text(
-                    'لا توجد عمليات مالية',
-                    style: TextStyle(color: textSecondary, fontSize: 14),
-                    textAlign: TextAlign.center,
+                  padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        size: 52,
+                        color: textSecondary.withOpacity(0.4),
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        'لا توجد عمليات مالية مسجلة حتى الآن',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'عند إجراء سند قبض أو سند صرف ستظهر العمليات هنا مباشرة وبدقة.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textSecondary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -614,12 +599,11 @@ class _DashboardTabState extends State<_DashboardTab> {
     );
   }
 
-  void _showSnack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  String _formatNum(int n) {
-    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+  String _formatNum(num n) {
+    if (n == n.roundToDouble()) {
+      return n.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
+    }
+    return n.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
   }
 }
 

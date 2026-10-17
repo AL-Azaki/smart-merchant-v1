@@ -303,6 +303,7 @@ class AppDatabase extends _$AppDatabase {
         // This prevents UNIQUE constraint failures on currencyCode when we auto-heal.
         await customStatement("DELETE FROM currencies WHERE currency_code = 'YER' AND id != 'YER';");
         
+        
         // Ensure default base currency 'YER' is ALWAYS present for offline-first usage.
         // This is necessary if the DB was created before the onCreate seeder was added.
         await into(currencies).insertOnConflictUpdate(
