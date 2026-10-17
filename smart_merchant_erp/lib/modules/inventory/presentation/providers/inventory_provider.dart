@@ -294,3 +294,13 @@ Stream<List<InventoryTransaction>> _stockAdjustmentsList(
   );
   return repo.watchTransactions(filter);
 }
+
+final warehouseTransfersStreamProvider = StreamProvider.autoDispose<List<InventoryTransfer>>((ref) {
+  final repo = getIt<InventoryRepository>();
+  final context = getIt<ApplicationContext>();
+  final filter = InventoryTransferFilter(
+    businessId: context.currentBusinessId,
+    limit: 100,
+  );
+  return repo.watchTransfers(filter);
+});

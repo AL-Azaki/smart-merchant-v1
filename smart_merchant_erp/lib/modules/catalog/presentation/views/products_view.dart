@@ -8,6 +8,7 @@ import '../../../../shared/design_system/widgets/primary_button.dart';
 import '../../../sales/presentation/providers/product_unit_provider.dart';
 import '../providers/catalog_provider.dart';
 import 'widgets/product_form_sheet.dart';
+import '../../../inventory/presentation/dialogs/product_stock_card_dialog.dart';
 
 class ProductsView extends ConsumerStatefulWidget {
   const ProductsView({super.key});
@@ -708,6 +709,20 @@ class _ProductsViewState extends ConsumerState<ProductsView> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                IconButton(
+                  tooltip: 'كارت حركة الصنف (سجل المخزون)',
+                  icon: const Icon(
+                    Icons.history_toggle_off,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () => ProductStockCardDialog.show(
+                    context,
+                    productId: item.product.id,
+                    productName: item.product.productName,
+                    productCode: item.product.productCode,
+                  ),
+                ),
                 IconButton(
                   tooltip: 'عرض تفاصيل الوحدات',
                   icon: const Icon(Icons.info_outline, size: 20),

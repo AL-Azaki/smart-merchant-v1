@@ -1,0 +1,7 @@
+.claude/
+.codex/
+.gemini/
+.impeccable/
+.idea/
+.vscode/
+*.log

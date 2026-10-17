@@ -16,6 +16,8 @@ import '../../../../database/daos/accounting_dao.dart';
 import '../../../inventory/domain/repositories/inventory_repository.dart';
 import '../../domain/repositories/purchasing_repository.dart';
 import '../../../../database/daos/purchasing_dao.dart';
+import '../../../../core/utils/precision_math.dart';
+import '../../../catalog/application/services/product_unit_resolver.dart';
 
 class PurchaseReturnItemCommand {
   final String purchaseInvoiceItemId;
@@ -59,6 +61,7 @@ class RecordPurchaseReturnUseCase
   final AccountingApplicationService _accountingService;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
+  final ProductUnitResolver? _unitResolver;
   final Uuid _uuid = const Uuid();
 
   RecordPurchaseReturnUseCase(
@@ -67,8 +70,9 @@ class RecordPurchaseReturnUseCase
     this._accountingRepository,
     this._accountingService,
     this._context,
-    this._transactionRunner,
-  );
+    this._transactionRunner, {
+    ProductUnitResolver? unitResolver,
+  }) : _unitResolver = unitResolver;
 
   @override
   Future<Either<Failure, String>> call(
@@ -290,6 +294,42 @@ class RecordPurchaseReturnUseCase
           lines: inventoryLineCompanions
               .cast<InventoryTransactionLinesCompanion>(),
         );
+
+        // Deduct actual stock quantities from inventory
+        for (final item in params.items) {
+          ResolvedUnitInfo? unitInfo;
+          if (_unitResolver != null) {
+            try {
+              unitInfo = await _unitResolver!.resolve(
+                item.productUnitId,
+                businessId,
+              );
+            } catch (_) {}
+          }
+
+          final targetUnitId = unitInfo?.baseUnit.id ?? item.productUnitId;
+          final baseQuantity = unitInfo != null
+              ? unitInfo.toBaseQuantity(item.quantity)
+              : PrecisionMath.roundQty(item.quantity);
+
+          final inventory = await _inventoryRepository
+              .getInventoryByUnitAndWarehouse(
+                businessId,
+                item.warehouseId,
+                targetUnitId,
+              );
+
+          if (inventory != null) {
+            final updatedQty = PrecisionMath.roundQty(
+              inventory.quantity - baseQuantity,
+            );
+            await _inventoryRepository.updateInventory(
+              inventory.toCompanion(false).copyWith(
+                quantity: drift.Value(updatedQty),
+              ),
+            );
+          }
+        }
 
         // 4. Post Journal Entry
         await _accountingRepository.postJournalEntryWithLines(

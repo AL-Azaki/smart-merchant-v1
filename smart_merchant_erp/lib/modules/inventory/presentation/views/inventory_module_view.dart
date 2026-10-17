@@ -6,6 +6,7 @@ import '../../../purchasing/presentation/views/purchases_view.dart';
 import '../../../crm/presentation/views/contacts_view.dart';
 import 'stock_adjustments/stock_adjustments_view.dart';
 import 'stock_counts/stock_counts_view.dart';
+import 'transfers/warehouse_transfers_view.dart';
 
 class InventoryModuleView extends ConsumerStatefulWidget {
   const InventoryModuleView({super.key});
@@ -32,6 +33,11 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
       'icon': Icons.people_outline,
     },
     // تم إخفاء الموظفين والأصول والأرشيف مؤقتاً لتجنب التزاحم في شريط التبويبات
+    {
+      'id': 'transfers',
+      'label': 'تحويلات المخزون',
+      'icon': Icons.swap_horiz_outlined,
+    },
     {
       'id': 'adjustments',
       'label': 'تسوية وجرد المخزون',
@@ -116,6 +122,7 @@ class _InventoryModuleViewState extends ConsumerState<InventoryModuleView>
           ProductsView(),
           PurchasesView(),
           ContactsView(),
+          WarehouseTransfersView(),
           StockAdjustmentsView(),
           StockCountsView(),
         ],

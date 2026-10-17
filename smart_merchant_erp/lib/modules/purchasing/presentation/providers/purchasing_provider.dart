@@ -414,3 +414,14 @@ Future<List<PaymentMethod>> _availablePaymentMethodsFuture(
   final repo = ref.watch(treasuryRepositoryProvider);
   return await repo.listPaymentMethods(session.businessId!, isActive: true);
 }
+
+final supplierBalanceSummaryProvider =
+    FutureProvider.autoDispose.family<SupplierBalanceSummary?, String>((
+  ref,
+  supplierId,
+) async {
+  final session = ref.watch(sessionNotifierProvider);
+  if (!session.isActive || session.businessId == null) return null;
+  final repo = ref.watch(purchasingRepositoryProvider);
+  return await repo.getSupplierBalanceSummary(supplierId, session.businessId!);
+});

@@ -23,6 +23,7 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
         ? AppColors.surfaceDark
         : AppColors.surfaceLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final returnsAsync = ref.watch(purchaseReturnsFutureProvider(null));
 
     return Column(
       children: [
@@ -57,13 +58,17 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      Text(
-                        '0 مرتجع',
-                        style: TextStyle(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
+                      returnsAsync.when(
+                        data: (list) => Text(
+                          '${list.length} فاتورة مرتجع',
+                          style: TextStyle(
+                            color: isDark
+                                ? AppColors.textSecondaryDark
+                                : AppColors.textSecondaryLight,
+                          ),
                         ),
+                        loading: () => const Text('جاري التحميل...'),
+                        error: (_, __) => const Text('0 مرتجع'),
                       ),
                     ],
                   ),
@@ -110,9 +115,7 @@ class _PurchaseReturnsViewState extends ConsumerState<PurchaseReturnsView> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: borderColor),
             ),
-            child: ref
-                .watch(purchaseReturnsFutureProvider(null))
-                .when(
+            child: returnsAsync.when(
                   data: (returns) {
                     if (returns.isEmpty) {
                       return const Center(

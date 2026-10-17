@@ -157,6 +157,19 @@ class SupplierBalanceSummary {
     required this.totalRemaining,
     this.openingBalanceType,
   });
+
+  /// Net balance owed to supplier (credit) or owed by supplier (debit).
+  /// Positive value means credit (علينا للمورد). Negative means debit (لنا عند المورد).
+  double get currentBalance {
+    final init = (openingBalanceType?.toLowerCase() == 'debit')
+        ? -openingBalance
+        : openingBalance;
+    return init + totalRemaining;
+  }
+
+  bool get isCredit => currentBalance > 0.0001;
+  bool get isDebit => currentBalance < -0.0001;
+  bool get isSettled => currentBalance.abs() <= 0.0001;
 }
 
 /// Module-Driven DAO for Domain: Purchasing & Suppliers (Phase 05).

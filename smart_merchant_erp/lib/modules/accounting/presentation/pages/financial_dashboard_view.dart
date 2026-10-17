@@ -1,62 +1,51 @@
 import 'package:flutter/material.dart';
-import '../widgets/transaction_form_sheet.dart';
-import '../widgets/journal_entry_form_sheet.dart';
-import '../widgets/account_form_sheet.dart';
-import '../widgets/transaction_details_sheet.dart';
-import '../widgets/journal_entry_details_sheet.dart';
-import '../widgets/chart_of_accounts_tab.dart';
-import '../widgets/journal_entries_tab.dart';
-import '../widgets/financial_reports_tab.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../app/di/getit_instance.dart';
+import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/spacing.dart';
-import '../../../../shared/design_system/widgets/app_search_filter_bar.dart';
-
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-class _MockTransaction {
-  final String id;
-  final String type; // income | expense
-  final int amount;
-  final String category;
-  final String description;
-  final DateTime date;
-  final String? ref;
-
-  const _MockTransaction({
-    required this.id,
-    required this.type,
-    required this.amount,
-    required this.category,
-    required this.description,
-    required this.date,
-    this.ref,
-  });
-}
-
-final _mockTransactions = <_MockTransaction>[
-  _MockTransaction(id: 'tx_1', type: 'income', amount: 150000, category: 'sales', description: 'مبيعات الكاشير الوردية الصباحية', date: DateTime.now()),
-  _MockTransaction(id: 'tx_2', type: 'expense', amount: 12000, category: 'utilities', description: 'فاتورة كهرباء', date: DateTime.now().subtract(const Duration(days: 1))),
-  _MockTransaction(id: 'tx_3', type: 'expense', amount: 5000, category: 'other_expense', description: 'ضيافة للعملاء', date: DateTime.now().subtract(const Duration(days: 2))),
-];
+import '../../../authentication/presentation/providers/session_provider.dart';
+import '../../../treasury/presentation/providers/treasury_provider.dart';
+import '../../application/usecases/post_journal_entry_usecase.dart';
+import '../providers/accounting_provider.dart';
+import '../widgets/chart_of_accounts_tab.dart';
+import '../widgets/financial_reports_tab.dart';
+import '../widgets/journal_entries_tab.dart';
+import '../widgets/journal_entry_form_sheet.dart';
+import '../widgets/payment_voucher_dialog.dart';
+import '../widgets/receipt_voucher_dialog.dart';
+import 'banks_and_cash_view.dart';
+import 'payment_vouchers_view.dart';
+import 'receipt_vouchers_view.dart';
 
 // ─── Main FinancialDashboardView ───────────────────────────────────────────────
 
-class FinancialDashboardView extends StatefulWidget {
+class FinancialDashboardView extends ConsumerStatefulWidget {
   const FinancialDashboardView({super.key});
 
   @override
-  State<FinancialDashboardView> createState() => _FinancialDashboardViewState();
+  ConsumerState<FinancialDashboardView> createState() => _FinancialDashboardViewState();
 }
 
-class _FinancialDashboardViewState extends State<FinancialDashboardView>
+class _FinancialDashboardViewState extends ConsumerState<FinancialDashboardView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
   int _activeTab = 0;
 
+  final tabs = const [
+    _TabItem(id: 'dashboard', label: 'لوحة التحكم', icon: Icons.dashboard_rounded, color: Color(0xFF10B981)),
+    _TabItem(id: 'receipts', label: 'سندات القبض', icon: Icons.call_received_rounded, color: Color(0xFF059669)),
+    _TabItem(id: 'payments', label: 'سندات الصرف', icon: Icons.call_made_rounded, color: Color(0xFFEF4444)),
+    _TabItem(id: 'banks', label: 'الخزينة والبنوك', icon: Icons.account_balance_rounded, color: Color(0xFF06B6D4)),
+    _TabItem(id: 'coa', label: 'دليل الحسابات', icon: Icons.account_tree_rounded, color: Color(0xFF3B82F6)),
+    _TabItem(id: 'journal', label: 'القيود اليومية', icon: Icons.receipt_long_rounded, color: Color(0xFF8B5CF6)),
+    _TabItem(id: 'reports', label: 'التقارير المالية', icon: Icons.pie_chart_rounded, color: Color(0xFFEC4899)),
+  ];
+
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: tabs.length, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() => _activeTab = _tabController.index);
@@ -70,18 +59,16 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
     super.dispose();
   }
 
+  void _switchTab(int index) {
+    _tabController.animateTo(index);
+    setState(() => _activeTab = index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
-
-    final tabs = [
-      _TabItem(id: 'dashboard', label: 'لوحة التحكم', icon: Icons.account_balance_wallet_rounded, color: const Color(0xFF10B981)),
-      _TabItem(id: 'coa', label: 'دليل الحسابات', icon: Icons.account_tree_rounded, color: const Color(0xFF3B82F6)),
-      _TabItem(id: 'journal', label: 'القيود اليومية', icon: Icons.receipt_long_rounded, color: const Color(0xFF8B5CF6)),
-      _TabItem(id: 'reports', label: 'التقارير', icon: Icons.pie_chart_rounded, color: const Color(0xFFEC4899)),
-    ];
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
@@ -90,16 +77,16 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
           children: [
             // ── Module Header ──
             Container(
-              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
               color: surface,
               child: Row(
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF10B981), size: 22),
                   ),
@@ -109,16 +96,18 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'المالية والمحاسبة',
+                          'المالية والمحاسبة والخزينة',
                           style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.w800,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
                             color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
                           ),
                         ),
                         Text(
-                          'إدارة الشؤون المالية والحسابات',
+                          'إدارة الحسابات، السندات، الخزينة والتقارير المالية العامة',
                           style: TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                             color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                           ),
                         ),
@@ -129,39 +118,37 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
               ),
             ),
 
-            // ── Tab Bar (native Flutter TabBar, RTL-safe, non-scrollable) ──
+            // ── Tab Bar ──
             Container(
               color: surface,
               child: TabBar(
                 controller: _tabController,
-                isScrollable: false,
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
                 onTap: (i) => setState(() => _activeTab = i),
                 indicatorColor: tabs[_activeTab].color,
                 indicatorWeight: 3,
-                indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: borderColor,
-                labelPadding: EdgeInsets.zero,
+                labelPadding: const EdgeInsets.symmetric(horizontal: 16),
                 tabs: tabs.map((tab) {
                   final isActive = tabs.indexOf(tab) == _activeTab;
-                  final tabColor = isActive ? tab.color
+                  final tabColor = isActive
+                      ? tab.color
                       : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight);
                   return Tab(
-                    height: 56,
-                    child: Column(
+                    height: 52,
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(tab.icon, size: 20, color: tabColor),
-                        const SizedBox(height: 4),
+                        Icon(tab.icon, size: 18, color: tabColor),
+                        const SizedBox(width: 8),
                         Text(
                           tab.label,
                           style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                            fontSize: 13,
+                            fontWeight: isActive ? FontWeight.w800 : FontWeight.w500,
                             color: tabColor,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -169,7 +156,6 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
                 }).toList(),
               ),
             ),
-
 
             // ── Tab Content ──
             Expanded(
@@ -179,11 +165,11 @@ class _FinancialDashboardViewState extends State<FinancialDashboardView>
                 children: [
                   _DashboardTab(
                     key: const ValueKey('dashboard'),
-                    onSelectTab: (index) {
-                      _tabController.animateTo(index);
-                      setState(() => _activeTab = index);
-                    },
+                    onSelectTab: _switchTab,
                   ),
+                  const ReceiptVouchersView(key: ValueKey('receipts')),
+                  const PaymentVouchersView(key: ValueKey('payments')),
+                  const BanksAndCashView(key: ValueKey('banks')),
                   const ChartOfAccountsTab(key: ValueKey('coa')),
                   const JournalEntriesTab(key: ValueKey('journal')),
                   const FinancialReportsTab(key: ValueKey('reports')),
@@ -205,34 +191,98 @@ class _TabItem {
   const _TabItem({required this.id, required this.label, required this.icon, required this.color});
 }
 
-// ─── Tab 1: Dashboard ──────────────────────────────────────────────────────────
+// ─── Tab 1: Real-time Live Dashboard ──────────────────────────────────────────
 
-class _DashboardTab extends StatefulWidget {
+class _DashboardTab extends ConsumerStatefulWidget {
   final ValueChanged<int>? onSelectTab;
   const _DashboardTab({super.key, this.onSelectTab});
 
   @override
-  State<_DashboardTab> createState() => _DashboardTabState();
+  ConsumerState<_DashboardTab> createState() => _DashboardTabState();
 }
 
-class _DashboardTabState extends State<_DashboardTab> {
+class _DashboardTabState extends ConsumerState<_DashboardTab> {
   String _search = '';
 
-  String _getCategoryName(String key) {
-    const map = {
-      'sales': 'إيرادات مبيعات',
-      'services': 'إيرادات خدمات',
-      'investments': 'عوائد استثمار',
-      'other_income': 'إيرادات أخرى',
-      'salaries': 'رواتب وأجور',
-      'rent': 'إيجارات',
-      'utilities': 'فواتير خدمات (كهرباء، ماء)',
-      'marketing': 'تسويق وإعلان',
-      'maintenance': 'صيانة وإصلاح',
-      'office_supplies': 'مستلزمات مكتبية',
-      'other_expense': 'مصروفات أخرى',
-    };
-    return map[key] ?? key;
+  String _formatNum(double n) {
+    return '${n.toStringAsFixed(2).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} ر.ي';
+  }
+
+  Future<void> _openCreateReceiptDialog() async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (_) => const ReceiptVoucherDialog(),
+    );
+    if (res == true && mounted) {
+      ref.invalidate(receiptVouchersStreamProvider);
+      ref.invalidate(chartOfAccountsNotifierProvider);
+      ref.invalidate(trialBalanceReportProvider());
+    }
+  }
+
+  Future<void> _openCreatePaymentDialog() async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (_) => const PaymentVoucherDialog(),
+    );
+    if (res == true && mounted) {
+      ref.invalidate(paymentVouchersStreamProvider);
+      ref.invalidate(chartOfAccountsNotifierProvider);
+      ref.invalidate(trialBalanceReportProvider());
+    }
+  }
+
+  void _openCreateJournalEntry() {
+    final coaAccounts = ref.read(chartOfAccountsNotifierProvider).value ?? [];
+    final available = coaAccounts
+        .map((a) => {'id': a.id, 'code': a.accountCode, 'name': a.accountName})
+        .toList();
+
+    JournalEntryFormSheet.show(
+      context,
+      availableAccounts: available,
+      onSave: (entry, lines) async {
+        final useCase = getIt<PostJournalEntryUseCase>();
+        final session = ref.read(sessionNotifierProvider);
+        if (!session.isActive || session.businessId == null) {
+          return;
+        }
+
+        final lineCommands = lines
+            .map((l) => JournalEntryLineCommand(
+                  accountId: l.accountId,
+                  debit: l.debit,
+                  credit: l.credit,
+                  description: l.description.isNotEmpty ? l.description : null,
+                ))
+            .toList();
+
+        final cmd = PostJournalEntryCommand(
+          documentDate: DateTime.now(),
+          currencyId: 'YER',
+          documentNumber: 'JE-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+          description: (entry['notes'] as String?) ?? (entry['description'] as String?) ?? 'قيد يدوي',
+          lines: lineCommands,
+        );
+
+        final result = await useCase(cmd);
+        if (mounted) {
+          result.fold(
+            (failure) => ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('فشل ترحيل القيد: ${failure.message}'), backgroundColor: Colors.red),
+            ),
+            (id) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('تم ترحيل القيد بنجاح'), backgroundColor: Colors.green),
+              );
+              ref.invalidate(journalEntriesNotifierProvider);
+              ref.invalidate(chartOfAccountsNotifierProvider);
+              ref.invalidate(trialBalanceReportProvider());
+            },
+          );
+        }
+      },
+    );
   }
 
   @override
@@ -242,106 +292,120 @@ class _DashboardTabState extends State<_DashboardTab> {
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final bgSurface = isDark ? AppColors.backgroundDark : const Color(0xFFF1F5F9);
 
-    final totalIncome = _mockTransactions.where((t) => t.type == 'income').fold(0, (a, t) => a + t.amount);
-    final totalExpense = _mockTransactions.where((t) => t.type == 'expense').fold(0, (a, t) => a + t.amount);
-    final balance = totalIncome - totalExpense;
+    final receiptsAsync = ref.watch(receiptVouchersStreamProvider);
+    final paymentsAsync = ref.watch(paymentVouchersStreamProvider);
+    final journalAsync = ref.watch(journalEntriesNotifierProvider);
+    final tbAsync = ref.watch(trialBalanceReportProvider());
 
-    final filtered = _mockTransactions.where((t) {
+    // Calculate real figures
+    double totalReceipts = 0.0;
+    receiptsAsync.whenData((receipts) {
+      for (final r in receipts) {
+        totalReceipts += r.amount;
+      }
+    });
+
+    double totalPayments = 0.0;
+    paymentsAsync.whenData((payments) {
+      for (final p in payments) {
+        totalPayments += p.amount;
+      }
+    });
+
+    double cashBalance = 0.0;
+    double bankBalance = 0.0;
+    tbAsync.whenData((tb) {
+      for (final item in tb.items) {
+        final bal = item.netDebit - item.netCredit;
+        if (item.accountCode.startsWith('11101') || item.accountName.contains('صندوق') || item.accountName.contains('خزينة')) {
+          cashBalance += bal;
+        } else if (item.accountCode.startsWith('11102') || item.accountName.contains('بنك') || item.accountName.contains('مصرف')) {
+          bankBalance += bal;
+        }
+      }
+    });
+
+    final netCashFlow = totalReceipts - totalPayments;
+    final totalVouchersCount = (receiptsAsync.value?.length ?? 0) + (paymentsAsync.value?.length ?? 0);
+    final totalJournalCount = journalAsync.value?.length ?? 0;
+
+    // Build real recent transactions from receipts & payments
+    final receiptsList = receiptsAsync.value ?? [];
+    final paymentsList = paymentsAsync.value ?? [];
+    final allVouchers = <Payment>[...receiptsList, ...paymentsList]
+      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
+
+    final filtered = allVouchers.where((v) {
       if (_search.isEmpty) return true;
-      return t.description.contains(_search) || t.category.contains(_search);
+      final q = _search.toLowerCase();
+      return (v.notes?.toLowerCase().contains(q) ?? false) ||
+          v.id.toLowerCase().contains(q) ||
+          v.paymentMethodId.toLowerCase().contains(q);
     }).toList();
 
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-
         // ── Quick Action Chips ──
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
               _QuickActionChip(
-                label: 'سند قبض',
+                label: 'سند قبض جديد',
                 icon: Icons.north_east_rounded,
                 color: const Color(0xFF10B981),
-                onTap: () {
-                  TransactionFormSheet.show(
-                    context,
-                    initialType: 'income',
-                    onSave: (data, print) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ سند القبض بمبلغ ${data['amount']} ${data['currency_id']}')),
-                      );
-                    },
-                  );
-                },
+                onTap: _openCreateReceiptDialog,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               _QuickActionChip(
-                label: 'سند صرف',
+                label: 'سند صرف جديد',
                 icon: Icons.south_west_rounded,
                 color: const Color(0xFFEF4444),
-                onTap: () {
-                  TransactionFormSheet.show(
-                    context,
-                    initialType: 'expense',
-                    onSave: (data, print) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ سند الصرف بمبلغ ${data['amount']} ${data['currency_id']}')),
-                      );
-                    },
-                  );
-                },
+                onTap: _openCreatePaymentDialog,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               _QuickActionChip(
-                label: 'قيد يومي',
+                label: 'قيد يومي يدوي',
                 icon: Icons.receipt_long_rounded,
                 color: const Color(0xFF8B5CF6),
-                onTap: () {
-                  JournalEntryFormSheet.show(
-                    context,
-                    onSave: (entry, lines) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم حفظ وترحيل القيد اليومي بمبلغ ${entry['totalDebit']} ر.ي')),
-                      );
-                    },
-                  );
-                },
+                onTap: _openCreateJournalEntry,
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
+              _QuickActionChip(
+                label: 'الخزينة والبنوك',
+                icon: Icons.account_balance_rounded,
+                color: const Color(0xFF06B6D4),
+                onTap: () => widget.onSelectTab?.call(3),
+              ),
+              const SizedBox(width: 14),
               _QuickActionChip(
                 label: 'دليل الحسابات',
                 icon: Icons.account_tree_rounded,
                 color: const Color(0xFF3B82F6),
-                onTap: () {
-                  widget.onSelectTab?.call(1);
-                },
+                onTap: () => widget.onSelectTab?.call(4),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               _QuickActionChip(
-                label: 'التقارير',
+                label: 'التقارير المالية',
                 icon: Icons.pie_chart_rounded,
                 color: const Color(0xFFEC4899),
-                onTap: () {
-                  widget.onSelectTab?.call(3);
-                },
+                onTap: () => widget.onSelectTab?.call(6),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
 
-        // ── KPI Cards Grid ──
+        // ── Real KPI Cards Grid ──
         LayoutBuilder(builder: (context, constraints) {
-          final isWide = constraints.maxWidth > 600;
+          final isWide = constraints.maxWidth > 700;
           final crossCount = isWide ? 3 : 2;
-          final aspect = isWide ? 1.6 : 1.2;
-          return GridView.count(
+          final aspect = isWide ? 1.6 : 1.25;
 
+          return GridView.count(
             crossAxisCount: crossCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
@@ -349,10 +413,10 @@ class _DashboardTabState extends State<_DashboardTab> {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             children: [
-              // رصيد الصندوق - solid green
+              // رصيد الصندوق
               _SolidKpiCard(
-                title: 'رصيد الصندوق',
-                value: '${balance.toStringAsFixed(0).replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} ر.ي',
+                title: 'رصيد الصندوق النقدي',
+                value: _formatNum(cashBalance),
                 gradient: const LinearGradient(
                   colors: [Color(0xFF10B981), Color(0xFF059669)],
                   begin: Alignment.topLeft,
@@ -360,10 +424,10 @@ class _DashboardTabState extends State<_DashboardTab> {
                 ),
                 shadowColor: const Color(0xFF10B981),
               ),
-              // رصيد البنك - solid blue
+              // رصيد البنك
               _SolidKpiCard(
-                title: 'رصيد البنك',
-                value: '1,450,000 ر.ي',
+                title: 'رصيد الحسابات البنكية',
+                value: _formatNum(bankBalance),
                 gradient: const LinearGradient(
                   colors: [Color(0xFF3B82F6), Color(0xFF2563EB)],
                   begin: Alignment.topLeft,
@@ -371,21 +435,21 @@ class _DashboardTabState extends State<_DashboardTab> {
                 ),
                 shadowColor: const Color(0xFF3B82F6),
               ),
-              // إجمالي الإيرادات
+              // إجمالي المقبوضات
               _BorderKpiCard(
-                title: 'إجمالي الإيرادات',
-                value: _formatNum(totalIncome),
+                title: 'إجمالي المقبوضات',
+                value: _formatNum(totalReceipts),
                 icon: Icons.north_east_rounded,
-                iconColor: const Color(0xFF3B82F6),
+                iconColor: const Color(0xFF10B981),
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
               ),
-              // إجمالي المصروفات
+              // إجمالي المدفوعات
               _BorderKpiCard(
-                title: 'إجمالي المصروفات',
-                value: _formatNum(totalExpense),
+                title: 'إجمالي المدفوعات',
+                value: _formatNum(totalPayments),
                 icon: Icons.south_west_rounded,
                 iconColor: const Color(0xFFEF4444),
                 surface: surface,
@@ -393,29 +457,20 @@ class _DashboardTabState extends State<_DashboardTab> {
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
               ),
-              // صافي الربح
+              // صافي حركة النقدية
               _BorderKpiCard(
-                title: 'صافي الربح',
-                value: _formatNum(balance),
-                valueColor: balance >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                title: 'صافي حركة النقدية',
+                value: _formatNum(netCashFlow),
+                valueColor: netCashFlow >= 0 ? const Color(0xFF10B981) : const Color(0xFFEF4444),
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
               ),
-              // عدد القيود اليوم
+              // عدد القيود والسندات
               _BorderKpiCard(
-                title: 'عدد القيود اليوم',
-                value: '0',
-                surface: surface,
-                borderColor: borderColor,
-                textPrimary: textPrimary,
-                textSecondary: textSecondary,
-              ),
-              // عدد السندات
-              _BorderKpiCard(
-                title: 'عدد السندات',
-                value: '${_mockTransactions.length}',
+                title: 'القيود / السندات المسجلة',
+                value: '$totalJournalCount قيد / $totalVouchersCount سند',
                 surface: surface,
                 borderColor: borderColor,
                 textPrimary: textPrimary,
@@ -425,7 +480,7 @@ class _DashboardTabState extends State<_DashboardTab> {
           );
         }),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 28),
 
         // ── Toolbar ──
         Row(
@@ -434,12 +489,12 @@ class _DashboardTabState extends State<_DashboardTab> {
               child: TextField(
                 onChanged: (v) => setState(() => _search = v),
                 decoration: InputDecoration(
-                  hintText: 'ابحث في العمليات المالية...',
-                  hintStyle: TextStyle(color: textSecondary, fontSize: 14),
+                  hintText: 'ابحث في السندات والعمليات المسجلة...',
+                  hintStyle: TextStyle(color: textSecondary, fontSize: 13),
                   prefixIcon: Icon(Icons.search_rounded, color: textSecondary),
                   filled: true,
                   fillColor: surface,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide(color: borderColor),
@@ -461,167 +516,157 @@ class _DashboardTabState extends State<_DashboardTab> {
               color: const Color(0xFF3B82F6),
               textColor: Colors.white,
               onTap: () {
-                TransactionFormSheet.show(
-                  context,
-                  initialType: 'income',
-                  onSave: (data, print) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('تم حفظ السند بمبلغ ${data['amount']} ${data['currency_id']}')),
-                    );
-                  },
+                showModalBottomSheet(
+                  context: context,
+                  backgroundColor: surface,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  builder: (ctx) => SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.north_east_rounded, color: Color(0xFF10B981)),
+                            ),
+                            title: const Text('سند قبض جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: const Text('استلام دفعة من عميل أو إيراد نقدي / بنكي'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _openCreateReceiptDialog();
+                            },
+                          ),
+                          const Divider(),
+                          ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEF4444).withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.south_west_rounded, color: Color(0xFFEF4444)),
+                            ),
+                            title: const Text('سند صرف جديد', style: TextStyle(fontWeight: FontWeight.bold)),
+                            subtitle: const Text('صرف دفعة لمورد أو مصروف تشغيلي'),
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _openCreatePaymentDialog();
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 );
               },
-            ),
-            const SizedBox(width: 8),
-            _ActionButton(
-              label: 'تصدير',
-              icon: Icons.download_rounded,
-              color: bgSurface,
-              textColor: textPrimary,
-              borderColor: borderColor,
-              onTap: () => _showSnack(context, 'جاري التصدير...'),
             ),
           ],
         ),
 
         const SizedBox(height: 24),
 
-        // ── آخر العمليات ──
-        Text(
-          'آخر العمليات',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: textPrimary),
+        // ── Real Recent Operations ──
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'آخر العمليات والسندات المسجلة فعلياً',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary),
+            ),
+            Text(
+              '${filtered.length} عملية',
+              style: TextStyle(fontSize: 13, color: textSecondary, fontWeight: FontWeight.bold),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
 
         Container(
           decoration: BoxDecoration(
             color: surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor, width: 1.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
           ),
           clipBehavior: Clip.hardEdge,
-          child: Column(
-            children: [
-              ...filtered.asMap().entries.map((entry) {
-                final i = entry.key;
-                final trx = entry.value;
-                final isLast = i == filtered.length - 1;
-                final isIncome = trx.type == 'income';
-                return Column(
-                  children: [
-                    InkWell(
-                      onTap: () {
-                        TransactionDetailsSheet.show(
-                          context,
-                          transaction: {
-                            'id': trx.id,
-                            'type': trx.type,
-                            'amount': trx.amount,
-                            'currency': 'ر.ي',
-                            'date': '${trx.date.year}-${trx.date.month.toString().padLeft(2, '0')}-${trx.date.day.toString().padLeft(2, '0')}',
-                            'category': trx.category,
-                            'description': trx.description,
-                            'ref': trx.ref,
-                            'entityType': 'عام',
-                            'entityName': 'جهة عملية',
-                          },
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: isIncome
-                                    ? const Color(0xFF3B82F6).withOpacity(0.1)
-                                    : const Color(0xFFEF4444).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                isIncome ? Icons.north_east_rounded : Icons.south_west_rounded,
-                                color: isIncome ? const Color(0xFF3B82F6) : const Color(0xFFEF4444),
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 20),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    trx.description,
-                                    style: TextStyle(
-                                      fontSize: 17, fontWeight: FontWeight.w800, color: textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.description_outlined, size: 16, color: textSecondary),
-                                      const SizedBox(width: 4),
-                                      Flexible(
-                                        child: Text(
-                                          _getCategoryName(trx.category),
-                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Icon(Icons.calendar_today_rounded, size: 16, color: textSecondary),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '${trx.date.day}/${trx.date.month}/${trx.date.year}',
-                                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Text(
-                              '${isIncome ? '+' : '-'}${_formatNum(trx.amount)}',
-                              style: TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w900,
-                                color: isIncome ? const Color(0xFF3B82F6) : const Color(0xFFEF4444),
-                              ),
-                            ),
-                          ],
+          child: filtered.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(48),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Icon(Icons.receipt_long_outlined, size: 48, color: textSecondary.withOpacity(0.4)),
+                        const SizedBox(height: 12),
+                        Text(
+                          'لا توجد سندات أو عمليات مالية مسجلة بعد',
+                          style: TextStyle(color: textSecondary, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: filtered.take(15).length,
+                  separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                  itemBuilder: (context, index) {
+                    final item = filtered[index];
+                    final isReceipt = item.paymentType == 'Receipt';
+                    final color = isReceipt ? const Color(0xFF10B981) : const Color(0xFFEF4444);
+
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: color.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          isReceipt ? Icons.north_east_rounded : Icons.south_west_rounded,
+                          color: color,
+                          size: 20,
                         ),
                       ),
-                    ),
-                    if (!isLast) Divider(height: 1, color: borderColor),
-                  ],
-                );
-              }),
-              if (filtered.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Text(
-                    'لا توجد عمليات مالية',
-                    style: TextStyle(color: textSecondary, fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
+                      title: Text(
+                        isReceipt ? 'سند قبض #${item.id.substring(0, 8)}' : 'سند صرف #${item.id.substring(0, 8)}',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary),
+                      ),
+                      subtitle: Text(
+                        '${item.paymentMethodId} • ${item.notes ?? 'بدون ملاحظات'} • ${item.createdAt.toString().substring(0, 16)}',
+                        style: TextStyle(fontSize: 12, color: textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Text(
+                        '${isReceipt ? '+' : '-'}${_formatNum(item.amount)}',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: color,
+                        ),
+                      ),
+                    );
+                  },
                 ),
-            ],
-          ),
         ),
 
-        const SizedBox(height: 100),
+        const SizedBox(height: 60),
       ],
     );
   }
-
-  void _showSnack(BuildContext context, String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
-  }
-
-  String _formatNum(int n) {
-    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},');
-  }
 }
+
+// ─── Shared Visual Components ──────────────────────────────────────────────────
 
 class _QuickActionChip extends StatelessWidget {
   final String label;
@@ -641,31 +686,32 @@ class _QuickActionChip extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
           color: color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 36,
-              height: 36,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, size: 20, color: color),
+              child: Icon(icon, size: 18, color: color),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
                 color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
               ),
             ),
@@ -695,8 +741,8 @@ class _SolidKpiCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         gradient: gradient,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: shadowColor.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 6))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: shadowColor.withOpacity(0.25), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,7 +753,7 @@ class _SolidKpiCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerRight,
-            child: Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1)),
+            child: Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white, height: 1.1)),
           ),
         ],
       ),
@@ -744,8 +790,8 @@ class _BorderKpiCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 1.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: borderColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -755,27 +801,27 @@ class _BorderKpiCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  width: 28,
-                  height: 28,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
-                    color: iconColor!.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: iconColor!.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
-                  child: Icon(icon, size: 16, color: iconColor),
+                  child: Icon(icon, size: 15, color: iconColor),
                 ),
                 const SizedBox(width: 6),
-                Expanded(child: Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                Expanded(child: Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis)),
               ],
             ),
           ] else
-            Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
+            Text(title, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondary), maxLines: 1, overflow: TextOverflow.ellipsis),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerRight,
             child: Text(
               value,
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: valueColor ?? textPrimary, height: 1.1),
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900, color: valueColor ?? textPrimary, height: 1.1),
             ),
           ),
         ],
@@ -786,10 +832,8 @@ class _BorderKpiCard extends StatelessWidget {
 
 class _ActionButton extends StatelessWidget {
   final String label;
-  final IconData? icon;
   final Color color;
   final Color textColor;
-  final Color? borderColor;
   final VoidCallback onTap;
 
   const _ActionButton({
@@ -797,43 +841,26 @@ class _ActionButton extends StatelessWidget {
     required this.color,
     required this.textColor,
     required this.onTap,
-    this.icon,
-    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: borderColor != null
-              ? BoxDecoration(
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: borderColor!, width: 1.5),
-                )
-              : null,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (icon != null) ...[
-                Icon(icon, size: 20, color: textColor),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                label,
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
-              ),
-            ],
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 18),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: textColor),
           ),
         ),
       ),
     );
   }
 }
-

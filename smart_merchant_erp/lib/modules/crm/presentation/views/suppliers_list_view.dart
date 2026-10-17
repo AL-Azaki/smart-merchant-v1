@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../accounting/presentation/widgets/payment_voucher_dialog.dart';
+import '../../../treasury/application/services/party_statement_service.dart';
+import '../../../treasury/presentation/widgets/party_statement_dialog.dart';
 import '../providers/crm_provider.dart';
 import 'widgets/contact_form_sheet.dart';
 import '../../../purchasing/presentation/providers/purchasing_provider.dart';
@@ -240,13 +244,38 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            subtitle: Text(
-                              '${s.phone ?? 'لا يوجد هاتف'} - الرصيد: ${s.openingBalance} ${s.openingBalanceType == 'credit' ? 'دائن (علينا)' : 'مدين (لنا)'}',
-                            ),
+                            subtitle: _SupplierBalanceSubtitle(supplier: s),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // زر كشف حساب المورد
                                 IconButton(
+                                  tooltip: 'كشف حساب المورد',
+                                  icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF8B5CF6)),
+                                  onPressed: () async {
+                                    final service = getIt<PartyStatementService>();
+                                    final report = await service.getSupplierStatement(s.id);
+                                    if (context.mounted) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => PartyStatementDialog(report: report),
+                                      );
+                                    }
+                                  },
+                                ),
+                                // زر سداد دفعة للمورد
+                                IconButton(
+                                  tooltip: 'سداد دفعة للمورد',
+                                  icon: const Icon(Icons.call_made_rounded, color: Color(0xFFEF4444)),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => PaymentVoucherDialog(initialSupplierId: s.id),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: 'تعديل بيانات المورد',
                                   icon: const Icon(Icons.edit_outlined),
                                   onPressed: () {
                                     showDialog(
@@ -303,6 +332,89 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (err, stack) => Center(child: Text('خطأ: $err')),
+    );
+  }
+}
+
+class _SupplierBalanceSubtitle extends ConsumerWidget {
+  final dynamic supplier;
+
+  const _SupplierBalanceSubtitle({required this.supplier});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final balanceAsync = ref.watch(supplierBalanceSummaryProvider(supplier.id));
+
+    return balanceAsync.when(
+      data: (summary) {
+        final phone = supplier.phone ?? 'لا يوجد هاتف';
+        if (summary == null) {
+          return Text(
+            '$phone • رصيد افتتاحي: ${supplier.openingBalance}',
+            style: const TextStyle(fontSize: 12),
+          );
+        }
+
+        final current = summary.currentBalance;
+        final formatted = current.abs().toStringAsFixed(2);
+
+        if (summary.isCredit) {
+          return Row(
+            children: [
+              Text('$phone • ', style: const TextStyle(fontSize: 12)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'مستحق للمورد: $formatted ر.ي (دائن)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFDC2626),
+                  ),
+                ),
+              ),
+            ],
+          );
+        } else if (summary.isDebit) {
+          return Row(
+            children: [
+              Text('$phone • ', style: const TextStyle(fontSize: 12)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'مستحق لنا: $formatted ر.ي (مدين)',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF059669),
+                  ),
+                ),
+              ),
+            ],
+          );
+        } else {
+          return Text(
+            '$phone • الحساب خالص (0.00 ر.ي)',
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          );
+        }
+      },
+      loading: () => Text(
+        '${supplier.phone ?? 'لا يوجد هاتف'} • جاري حساب الرصيد...',
+        style: const TextStyle(fontSize: 12, color: Colors.grey),
+      ),
+      error: (_, __) => Text(
+        '${supplier.phone ?? 'لا يوجد هاتف'} • رصيد افتتاحي: ${supplier.openingBalance}',
+        style: const TextStyle(fontSize: 12),
+      ),
     );
   }
 }

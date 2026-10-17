@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
+import 'general_ledger_tab.dart';
 import 'profit_loss_tab.dart';
 import 'trial_balance_tab.dart';
 import 'year_end_closing_dialog.dart';
@@ -21,7 +22,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
   @override
   void initState() {
     super.initState();
-    _reportsController = TabController(length: 2, vsync: this);
+    _reportsController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -90,6 +91,18 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                         ),
                       ),
                     ),
+                    Tab(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.auto_stories_rounded, size: 16),
+                            SizedBox(width: 8),
+                            Text('دفتر الأستاذ العام (General Ledger)', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -123,6 +136,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
             children: const [
               TrialBalanceTab(),
               ProfitLossTab(),
+              GeneralLedgerTab(),
             ],
           ),
         ),

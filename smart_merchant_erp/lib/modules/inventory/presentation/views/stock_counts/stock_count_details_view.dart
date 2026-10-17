@@ -6,17 +6,32 @@ import '../../../../../database/enums/stock_count_status.dart';
 import '../../providers/stock_counts_provider.dart';
 import 'widgets/stock_count_form_sheet.dart';
 
+import '../../../../../app/di/getit_instance.dart';
+import '../../../../../kernel/storage/app_database.dart';
+import '../../../application/usecases/get_stock_count_details_usecase.dart';
+
 class StockCountDetailsView extends ConsumerWidget {
   final String countId;
 
   const StockCountDetailsView({super.key, required this.countId});
 
+  Future<Map<String, dynamic>> _loadDetails(WidgetRef ref) async {
+    final details = await ref
+        .read(stockCountsNotifierProvider.notifier)
+        .getDetails(countId);
+    final db = getIt<AppDatabase>();
+    final productIds = details.items.map((i) => i.productId).toSet().toList();
+    final products = await (db.select(db.products)
+          ..where((p) => p.id.isIn(productIds)))
+        .get();
+    final productMap = {for (var p in products) p.id: p};
+    return {'details': details, 'productMap': productMap};
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return FutureBuilder(
-      future: ref
-          .read(stockCountsNotifierProvider.notifier)
-          .getDetails(countId),
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _loadDetails(ref),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -31,7 +46,9 @@ class StockCountDetailsView extends ConsumerWidget {
           );
         }
 
-        final details = snapshot.data!;
+        final data = snapshot.data!;
+        final details = data['details'] as StockCountDetails;
+        final productMap = data['productMap'] as Map<String, Product>;
         final count = details.count;
         final items = details.items;
         final isDraft = count.status == StockCountStatus.draft;
@@ -69,36 +86,82 @@ class StockCountDetailsView extends ConsumerWidget {
                       'تاريخ الجرد: ${DateFormat('yyyy/MM/dd HH:mm').format(count.countDate)}',
                     ),
                     const SizedBox(height: 8),
-                    if (count.notes != null) Text('ملاحظات: ${count.notes}'),
+                    if (count.notes != null && count.notes!.isNotEmpty)
+                      Text('ملاحظات: ${count.notes}'),
                     const SizedBox(height: 16),
                     Text(
-                      'العناصر (${items.length}):',
+                      'الأصناف المجرودة (${items.length}):',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
               ),
               Expanded(
-                child: ListView.builder(
+                child: ListView.separated(
                   itemCount: items.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final item = items[index];
+                    final product = productMap[item.productId];
+                    final productName =
+                        product?.productName ?? 'صنف (${item.productId.substring(0, 8)})';
+                    final productCode = product?.productCode ?? '';
+
+                    final diff = item.differenceQuantity;
+                    final diffColor = diff > 0
+                        ? AppColors.success
+                        : diff < 0
+                            ? AppColors.error
+                            : Colors.grey;
+                    final diffStr = diff > 0 ? '+$diff' : '$diff';
+
                     return ListTile(
                       title: Text(
-                        'المنتج: ${item.productId}',
-                      ), // ideally we fetch product name
-                      subtitle: Text(
-                        'الكمية الفعلية: ${item.countedQuantity} | الدفترية: ${item.expectedQuantity}',
-                      ),
-                      trailing: Text(
-                        'الفرق: ${item.differenceQuantity}',
-                        style: TextStyle(
-                          color: item.differenceQuantity > 0
-                              ? AppColors.success
-                              : item.differenceQuantity < 0
-                              ? AppColors.error
-                              : Colors.grey,
+                        productName,
+                        style: const TextStyle(
                           fontWeight: FontWeight.bold,
+                          fontFamily: 'Cairo',
+                        ),
+                      ),
+                      subtitle: Row(
+                        children: [
+                          if (productCode.isNotEmpty) ...[
+                            Text(
+                              'كود: $productCode',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text('|'),
+                            const SizedBox(width: 8),
+                          ],
+                          Text(
+                            'الفعلي: ${item.countedQuantity} | الدفتري: ${item.expectedQuantity}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontFamily: 'Cairo',
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: diffColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'الفرق: $diffStr',
+                          style: TextStyle(
+                            color: diffColor,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'monospace',
+                          ),
                         ),
                       ),
                     );

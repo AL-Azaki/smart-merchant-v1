@@ -81,20 +81,22 @@ class PartyStatementDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   _SummaryBox(
-                    label: isCustomer ? 'إجمالي المبيعات' : 'إجمالي السدادات (مدين)',
+                    label: isCustomer ? 'إجمالي المبيعات (مدين)' : 'إجمالي السدادات والمردودات (مدين)',
                     value: report.totalDebit,
                     color: const Color(0xFF10B981),
                   ),
                   const SizedBox(width: 8),
                   _SummaryBox(
-                    label: isCustomer ? 'إجمالي المقبوضات' : 'إجمالي المشتريات (دائن)',
+                    label: isCustomer ? 'إجمالي المقبوضات والمردودات (دائن)' : 'إجمالي المشتريات (دائن)',
                     value: report.totalCredit,
                     color: const Color(0xFFEF4444),
                   ),
                   const SizedBox(width: 8),
                   _SummaryBox(
-                    label: 'الرصيد النهائي المستحق',
-                    value: report.closingBalance,
+                    label: isCustomer
+                        ? (report.closingBalance >= 0 ? 'الرصيد المستحق (لنا)' : 'الرصيد الدائن (للعميل)')
+                        : (report.closingBalance >= 0 ? 'الرصيد المستحق (للمورد علينا)' : 'الرصيد المدين (لنا)'),
+                    value: report.closingBalance.abs(),
                     color: report.closingBalance > 0
                         ? (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFFEF4444))
                         : const Color(0xFF10B981),
@@ -125,6 +127,26 @@ class PartyStatementDialog extends StatelessWidget {
                             final dateStr =
                                 '${line.date.year}/${line.date.month.toString().padLeft(2, '0')}/${line.date.day.toString().padLeft(2, '0')}';
 
+                            Color badgeColor;
+                            String badgeLabel;
+                            switch (line.documentType.toLowerCase()) {
+                              case 'return':
+                                badgeColor = const Color(0xFFF59E0B);
+                                badgeLabel = 'مردود';
+                                break;
+                              case 'payment':
+                                badgeColor = const Color(0xFF10B981);
+                                badgeLabel = isCustomer ? 'قبض' : 'صرف';
+                                break;
+                              case 'invoice':
+                                badgeColor = const Color(0xFF3B82F6);
+                                badgeLabel = 'فاتورة';
+                                break;
+                              default:
+                                badgeColor = const Color(0xFF64748B);
+                                badgeLabel = 'افتتاحي';
+                            }
+
                             return Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                               child: Row(
@@ -139,14 +161,37 @@ class PartyStatementDialog extends StatelessWidget {
                                           dateStr,
                                           style: TextStyle(fontSize: 11, color: textSecondary),
                                         ),
-                                        Text(
-                                          line.documentNumber,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: textPrimary,
-                                            fontFamily: 'monospace',
-                                          ),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                              decoration: BoxDecoration(
+                                                color: badgeColor.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                badgeLabel,
+                                                style: TextStyle(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: badgeColor,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                line.documentNumber,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: textPrimary,
+                                                  fontFamily: 'monospace',
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),

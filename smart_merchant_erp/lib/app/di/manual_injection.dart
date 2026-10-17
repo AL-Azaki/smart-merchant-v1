@@ -183,7 +183,7 @@ Future<void> initDependencies() async {
 
   // Purchasing
   getIt.registerLazySingleton(() => SupplierApplicationService(getIt(), getIt()));
-  getIt.registerLazySingleton(() => RecordPurchaseReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => RecordPurchaseReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
   getIt.registerLazySingleton(() => RecordPurchaseUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
 
   // Treasury

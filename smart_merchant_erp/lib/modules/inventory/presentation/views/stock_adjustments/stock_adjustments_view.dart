@@ -5,7 +5,10 @@ import '../../../../../shared/design_system/tokens/colors.dart';
 import '../../../../../shared/design_system/tokens/spacing.dart';
 
 import '../../providers/inventory_provider.dart';
+import '../../../../../database/enums/inventory_transaction_status.dart';
+import '../../../../../database/enums/inventory_transaction_type.dart';
 import 'widgets/stock_adjustment_form_sheet.dart';
+import 'widgets/stock_adjustment_details_dialog.dart';
 
 class StockAdjustmentsView extends ConsumerStatefulWidget {
   const StockAdjustmentsView({super.key});
@@ -216,81 +219,130 @@ class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final adj = adjustments[index];
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          border: Border.all(color: borderColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? AppColors.surfaceDark
-                                    : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
+                      final isInbound =
+                          adj.transactionType == InventoryTransactionType.adjustmentIn;
+                      final accentColor = isInbound
+                          ? const Color(0xFF10B981)
+                          : const Color(0xFFEF4444);
+
+                      final typeTitle = isInbound
+                          ? 'تسوية مخزنية (فائض - إضافة)'
+                          : 'تسوية مخزنية (عجز - خصم)';
+
+                      final statusTitle =
+                          adj.status == InventoryTransactionStatus.posted
+                              ? 'معتمد'
+                              : (adj.status == InventoryTransactionStatus.draft
+                                  ? 'مسودة'
+                                  : 'ملغي');
+
+                      return InkWell(
+                        onTap: () => StockAdjustmentDetailsDialog.show(context, adj),
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: surfaceColor,
+                            border: Border.all(color: borderColor),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: accentColor.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.fact_check,
+                                  color: accentColor,
+                                ),
                               ),
-                              child: Icon(
-                                Icons.fact_check,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'تسوية ${adj.transactionType.name}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withOpacity(
-                                            0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          DateFormat(
-                                            'yyyy-MM-dd',
-                                          ).format(adj.transactionDate),
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 12,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          typeTitle,
+                                          style: const TextStyle(
                                             fontWeight: FontWeight.bold,
+                                            fontSize: 15,
+                                            fontFamily: 'Cairo',
                                           ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    adj.status.name,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.primary.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            DateFormat('yyyy/MM/dd  hh:mm a')
+                                                .format(adj.transactionDate),
+                                            style: TextStyle(
+                                              color: AppColors.primary,
+                                              fontSize: 11,
+                                              fontFamily: 'monospace',
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'رقم الحركة: ${adj.id.substring(0, 8)}',
+                                          style: TextStyle(
+                                            color: isDark
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondaryLight,
+                                            fontSize: 12,
+                                            fontFamily: 'monospace',
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 2,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.success.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            statusTitle,
+                                            style: const TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.success,
+                                              fontFamily: 'Cairo',
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                              IconButton(
+                                tooltip: 'عرض تفاصيل التسوية',
+                                icon: const Icon(Icons.chevron_left, size: 24),
+                                onPressed: () =>
+                                    StockAdjustmentDetailsDialog.show(context, adj),
+                              ),
+                            ],
+                          ),
                         ),
                       );
                     },
