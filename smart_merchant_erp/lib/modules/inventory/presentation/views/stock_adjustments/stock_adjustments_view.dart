@@ -1,300 +1,134 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../../../../shared/design_system/tokens/colors.dart';
-import '../../../../../shared/design_system/tokens/spacing.dart';
-
+import '../../../../../database/enums/inventory_transaction_type.dart';
 import '../../providers/inventory_provider.dart';
-import 'widgets/stock_adjustment_form_sheet.dart';
+import '../../widgets/inventory_section_header.dart';
+import '../../widgets/inventory_empty_state.dart';
+import '../stock_counts/widgets/stock_count_form_sheet.dart';
+import '../stock_counts/stock_count_details_view.dart';
+import 'widgets/stock_adjustment_details_dialog.dart';
 
 class StockAdjustmentsView extends ConsumerStatefulWidget {
   const StockAdjustmentsView({super.key});
-
   @override
   ConsumerState<StockAdjustmentsView> createState() =>
       _StockAdjustmentsViewState();
 }
 
 class _StockAdjustmentsViewState extends ConsumerState<StockAdjustmentsView> {
-  String _searchQuery = '';
-
+  String _query = '';
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark
-        ? AppColors.surfaceDark
-        : AppColors.surfaceLight;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
-
-    final adjustmentsAsync = ref.watch(stockAdjustmentsListProvider);
-    final allAdjustments = adjustmentsAsync.valueOrNull ?? [];
-
-    final adjustments = allAdjustments.where((adj) {
-      if (_searchQuery.isEmpty) return true;
-      final query = _searchQuery.toLowerCase();
-      final dateStr = DateFormat('yyyy-MM-dd').format(adj.transactionDate);
-      return adj.id.toLowerCase().contains(query) || dateStr.contains(query);
-    }).toList();
-
+    final state = ref.watch(stockAdjustmentsListProvider);
     return Column(
       children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: surfaceColor,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.fact_check_outlined,
-                      color: AppColors.warning,
-                    ),
+        InventorySectionHeader(
+          title: 'سجل تسويات المخزون',
+          subtitle: 'حركات الزيادة والنقص مرتبطة بالجرد الذي أنشأها',
+          icon: Icons.tune_rounded,
+          action: FilledButton.icon(
+            onPressed: () async {
+              final id = await StockCountFormSheet.show(context);
+              if (id != null && context.mounted) {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StockCountDetailsView(countId: id),
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'تسوية وجرد المخزون',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        '${allAdjustments.length} تسوية',
-                        style: TextStyle(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                );
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('جرد تصحيحي جديد'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: TextField(
+            onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+            decoration: const InputDecoration(
+              hintText: 'ابحث بتاريخ الحركة أو مرجعها',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: state.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => Center(
+              child: TextButton.icon(
+                onPressed: () => ref.invalidate(stockAdjustmentsListProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('تعذر تحميل التسويات، أعد المحاولة'),
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  showDialog(
-                    context: context,
-                    builder: (ctx) => Dialog(
-                      backgroundColor: Colors.transparent,
-                      insetPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 24,
-                      ),
-                      child: StockAdjustmentFormSheet(
-                        onClose: () => Navigator.pop(ctx),
-                        onSave: (data) async {
-                          final success = await ref
-                              .read(stockAdjustmentNotifierProvider.notifier)
-                              .submitAdjustment(data);
-                          if (success) {
-                            if (ctx.mounted) Navigator.pop(ctx);
-                          } else {
-                            final error = ref
-                                .read(stockAdjustmentNotifierProvider)
-                                .error;
-                            if (ctx.mounted && error != null) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed: ${error.message}'),
-                                ),
-                              );
-                            }
-                          }
-                        },
-                      ),
+            ),
+            data: (all) {
+              final items = all
+                  .where(
+                    (i) =>
+                        '${i.id} ${i.referenceId ?? ''} ${DateFormat('yyyy-MM-dd').format(i.transactionDate)}'
+                            .toLowerCase()
+                            .contains(_query),
+                  )
+                  .toList();
+              if (items.isEmpty) {
+                return InventoryEmptyState(
+                  icon: Icons.tune_rounded,
+                  title: all.isEmpty
+                      ? 'لا توجد تسويات مخزنية'
+                      : 'لا توجد تسويات تطابق البحث',
+                  message: 'عند اعتماد الجرد التصحيحي يظهر أثره المخزني هنا.',
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemCount: items.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (_, index) {
+                  final tx = items[index];
+                  final incoming =
+                      tx.transactionType ==
+                      InventoryTransactionType.adjustmentIn;
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
                     ),
+                    leading: Icon(
+                      incoming
+                          ? Icons.add_box_outlined
+                          : Icons.indeterminate_check_box_outlined,
+                      color: incoming
+                          ? const Color(0xFF047857)
+                          : Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(
+                      incoming ? 'زيادة مخزون' : 'نقص مخزون',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      DateFormat('yyyy/MM/dd HH:mm').format(tx.transactionDate),
+                    ),
+                    trailing: const Icon(Icons.chevron_left),
+                    onTap: () {
+                      if (tx.referenceId?.isNotEmpty ?? false) {
+                        Navigator.push<void>(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                StockCountDetailsView(countId: tx.referenceId!),
+                          ),
+                        );
+                      } else {
+                        StockAdjustmentDetailsDialog.show(context, tx);
+                      }
+                    },
                   );
                 },
-                icon: const Icon(Icons.add),
-                label: const Text('تسوية جديدة'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Toolbar
-        Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            children: [
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: surfaceColor,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: TextField(
-                    onChanged: (val) => setState(() => _searchQuery = val),
-                    decoration: const InputDecoration(
-                      hintText: 'ابحث برقم التسوية، التاريخ...',
-                      prefixIcon: Icon(Icons.search),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor),
-                ),
-                child: const Icon(Icons.filter_list),
-              ),
-            ],
-          ),
-        ),
-        // Data Grid / Empty State
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg,
-              vertical: AppSpacing.md,
-            ),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor),
-            ),
-            child: adjustments.isEmpty
-                ? const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_2_outlined,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'لا توجد تسويات مخزنية',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          'قم بإنشاء تسوية جديدة لعرضها هنا.',
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: adjustments.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final adj = adjustments[index];
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: surfaceColor,
-                          border: Border.all(color: borderColor),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark
-                                    ? AppColors.surfaceDark
-                                    : Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                Icons.fact_check,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'تسوية ${adj.transactionType.name}',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary.withOpacity(
-                                            0.1,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          DateFormat(
-                                            'yyyy-MM-dd',
-                                          ).format(adj.transactionDate),
-                                          style: TextStyle(
-                                            color: AppColors.primary,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    adj.status.name,
-                                    style: const TextStyle(
-                                      color: Colors.grey,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+              );
+            },
           ),
         ),
       ],

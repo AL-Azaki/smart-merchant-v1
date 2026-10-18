@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/pos_provider.dart';
 import 'customer_select_modal.dart';
+import 'payment_modal.dart';
 
 /// Ultra-compact, integrated checkout dock for POS cart.
 /// Combines financial totals and payment actions (Cash, Card, Credit) into a single
@@ -150,12 +151,12 @@ class PosCompactCheckoutDock extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          // 2. ACTION BUTTONS: [1-TAP CASH (PRIMARY)] + [CARD] + [CREDIT]
+          // 2. ACTION BUTTONS: [1-TAP CASH] + [CARD] + [CREDIT] + [SPLIT / MULTI MODAL]
           Row(
             children: [
-              // 2.1 ONE-TAP CASH (Primary, fast, high conviction)
+              // 2.1 ONE-TAP CASH (Primary, fast)
               Expanded(
-                flex: 4,
+                flex: 3,
                 child: SizedBox(
                   height: 44,
                   child: ElevatedButton(
@@ -169,7 +170,7 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                             );
                           },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
                       backgroundColor: AppColors.success,
                       foregroundColor: Colors.white,
                       disabledBackgroundColor:
@@ -198,11 +199,11 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                               Icons.check_circle_outline_rounded,
                               size: 18,
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 4),
                             const Text(
                               'كاش فوري',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w900,
                                 fontFamily: 'Cairo',
                               ),
@@ -215,7 +216,7 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
 
               // 2.2 CARD / NETWORK PAYMENT
               Expanded(
@@ -233,7 +234,7 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                             );
                           },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       foregroundColor: textColor,
                       side: BorderSide(
                         color: hasItems
@@ -265,7 +266,7 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
 
               // 2.3 CREDIT SALE (آجل)
               Expanded(
@@ -300,7 +301,7 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                             );
                           },
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
                       foregroundColor: textColor,
                       side: BorderSide(
                         color: hasItems
@@ -323,6 +324,54 @@ class PosCompactCheckoutDock extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 5),
+
+              // 2.4 MULTI / PARTIAL PAYMENT MODAL
+              Expanded(
+                flex: 3,
+                child: SizedBox(
+                  height: 44,
+                  child: ElevatedButton(
+                    onPressed: (!hasItems || posState.isSubmitting)
+                        ? null
+                        : () {
+                            showModalBottomSheet<void>(
+                              context: context,
+                              isScrollControlled: true,
+                              backgroundColor: Colors.transparent,
+                              builder: (_) => const PaymentModal(),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      backgroundColor: const Color(0xFF2563EB),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                    child: const FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.tune_rounded, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            'دفع متعدد / جزئي',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'Cairo',
                             ),
                           ),
                         ],

@@ -18751,6 +18751,51 @@ class $StockCountsTable extends StockCounts
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _financialStatusMeta = const VerificationMeta(
+    'financialStatus',
+  );
+  @override
+  late final GeneratedColumn<String> financialStatus = GeneratedColumn<String>(
+    'financial_status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('Legacy'),
+  );
+  static const VerificationMeta _financialJournalIdMeta =
+      const VerificationMeta('financialJournalId');
+  @override
+  late final GeneratedColumn<String> financialJournalId =
+      GeneratedColumn<String>(
+        'financial_journal_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _settlementJournalIdMeta =
+      const VerificationMeta('settlementJournalId');
+  @override
+  late final GeneratedColumn<String> settlementJournalId =
+      GeneratedColumn<String>(
+        'settlement_journal_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _financialSettledAtMeta =
+      const VerificationMeta('financialSettledAt');
+  @override
+  late final GeneratedColumn<DateTime> financialSettledAt =
+      GeneratedColumn<DateTime>(
+        'financial_settled_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.dateTime,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdByMeta = const VerificationMeta(
     'createdBy',
   );
@@ -18853,6 +18898,10 @@ class $StockCountsTable extends StockCounts
     countDate,
     status,
     notes,
+    financialStatus,
+    financialJournalId,
+    settlementJournalId,
+    financialSettledAt,
     createdBy,
     createdAt,
     updatedAt,
@@ -18927,6 +18976,42 @@ class $StockCountsTable extends StockCounts
       context.handle(
         _notesMeta,
         notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('financial_status')) {
+      context.handle(
+        _financialStatusMeta,
+        financialStatus.isAcceptableOrUnknown(
+          data['financial_status']!,
+          _financialStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('financial_journal_id')) {
+      context.handle(
+        _financialJournalIdMeta,
+        financialJournalId.isAcceptableOrUnknown(
+          data['financial_journal_id']!,
+          _financialJournalIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('settlement_journal_id')) {
+      context.handle(
+        _settlementJournalIdMeta,
+        settlementJournalId.isAcceptableOrUnknown(
+          data['settlement_journal_id']!,
+          _settlementJournalIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('financial_settled_at')) {
+      context.handle(
+        _financialSettledAtMeta,
+        financialSettledAt.isAcceptableOrUnknown(
+          data['financial_settled_at']!,
+          _financialSettledAtMeta,
+        ),
       );
     }
     if (data.containsKey('created_by')) {
@@ -19027,6 +19112,22 @@ class $StockCountsTable extends StockCounts
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
       ),
+      financialStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}financial_status'],
+      )!,
+      financialJournalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}financial_journal_id'],
+      ),
+      settlementJournalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}settlement_journal_id'],
+      ),
+      financialSettledAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}financial_settled_at'],
+      ),
       createdBy: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}created_by'],
@@ -19080,6 +19181,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
   final DateTime countDate;
   final StockCountStatus status;
   final String? notes;
+  final String financialStatus;
+  final String? financialJournalId;
+  final String? settlementJournalId;
+  final DateTime? financialSettledAt;
   final String createdBy;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -19097,6 +19202,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
     required this.countDate,
     required this.status,
     this.notes,
+    required this.financialStatus,
+    this.financialJournalId,
+    this.settlementJournalId,
+    this.financialSettledAt,
     required this.createdBy,
     this.createdAt,
     this.updatedAt,
@@ -19122,6 +19231,16 @@ class StockCount extends DataClass implements Insertable<StockCount> {
     }
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
+    }
+    map['financial_status'] = Variable<String>(financialStatus);
+    if (!nullToAbsent || financialJournalId != null) {
+      map['financial_journal_id'] = Variable<String>(financialJournalId);
+    }
+    if (!nullToAbsent || settlementJournalId != null) {
+      map['settlement_journal_id'] = Variable<String>(settlementJournalId);
+    }
+    if (!nullToAbsent || financialSettledAt != null) {
+      map['financial_settled_at'] = Variable<DateTime>(financialSettledAt);
     }
     map['created_by'] = Variable<String>(createdBy);
     if (!nullToAbsent || createdAt != null) {
@@ -19156,6 +19275,16 @@ class StockCount extends DataClass implements Insertable<StockCount> {
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
+      financialStatus: Value(financialStatus),
+      financialJournalId: financialJournalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(financialJournalId),
+      settlementJournalId: settlementJournalId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(settlementJournalId),
+      financialSettledAt: financialSettledAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(financialSettledAt),
       createdBy: Value(createdBy),
       createdAt: createdAt == null && nullToAbsent
           ? const Value.absent()
@@ -19191,6 +19320,16 @@ class StockCount extends DataClass implements Insertable<StockCount> {
       countDate: serializer.fromJson<DateTime>(json['countDate']),
       status: serializer.fromJson<StockCountStatus>(json['status']),
       notes: serializer.fromJson<String?>(json['notes']),
+      financialStatus: serializer.fromJson<String>(json['financialStatus']),
+      financialJournalId: serializer.fromJson<String?>(
+        json['financialJournalId'],
+      ),
+      settlementJournalId: serializer.fromJson<String?>(
+        json['settlementJournalId'],
+      ),
+      financialSettledAt: serializer.fromJson<DateTime?>(
+        json['financialSettledAt'],
+      ),
       createdBy: serializer.fromJson<String>(json['createdBy']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
@@ -19213,6 +19352,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
       'countDate': serializer.toJson<DateTime>(countDate),
       'status': serializer.toJson<StockCountStatus>(status),
       'notes': serializer.toJson<String?>(notes),
+      'financialStatus': serializer.toJson<String>(financialStatus),
+      'financialJournalId': serializer.toJson<String?>(financialJournalId),
+      'settlementJournalId': serializer.toJson<String?>(settlementJournalId),
+      'financialSettledAt': serializer.toJson<DateTime?>(financialSettledAt),
       'createdBy': serializer.toJson<String>(createdBy),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
       'updatedAt': serializer.toJson<DateTime?>(updatedAt),
@@ -19233,6 +19376,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
     DateTime? countDate,
     StockCountStatus? status,
     Value<String?> notes = const Value.absent(),
+    String? financialStatus,
+    Value<String?> financialJournalId = const Value.absent(),
+    Value<String?> settlementJournalId = const Value.absent(),
+    Value<DateTime?> financialSettledAt = const Value.absent(),
     String? createdBy,
     Value<DateTime?> createdAt = const Value.absent(),
     Value<DateTime?> updatedAt = const Value.absent(),
@@ -19250,6 +19397,16 @@ class StockCount extends DataClass implements Insertable<StockCount> {
     countDate: countDate ?? this.countDate,
     status: status ?? this.status,
     notes: notes.present ? notes.value : this.notes,
+    financialStatus: financialStatus ?? this.financialStatus,
+    financialJournalId: financialJournalId.present
+        ? financialJournalId.value
+        : this.financialJournalId,
+    settlementJournalId: settlementJournalId.present
+        ? settlementJournalId.value
+        : this.settlementJournalId,
+    financialSettledAt: financialSettledAt.present
+        ? financialSettledAt.value
+        : this.financialSettledAt,
     createdBy: createdBy ?? this.createdBy,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -19275,6 +19432,18 @@ class StockCount extends DataClass implements Insertable<StockCount> {
       countDate: data.countDate.present ? data.countDate.value : this.countDate,
       status: data.status.present ? data.status.value : this.status,
       notes: data.notes.present ? data.notes.value : this.notes,
+      financialStatus: data.financialStatus.present
+          ? data.financialStatus.value
+          : this.financialStatus,
+      financialJournalId: data.financialJournalId.present
+          ? data.financialJournalId.value
+          : this.financialJournalId,
+      settlementJournalId: data.settlementJournalId.present
+          ? data.settlementJournalId.value
+          : this.settlementJournalId,
+      financialSettledAt: data.financialSettledAt.present
+          ? data.financialSettledAt.value
+          : this.financialSettledAt,
       createdBy: data.createdBy.present ? data.createdBy.value : this.createdBy,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -19299,6 +19468,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
           ..write('countDate: $countDate, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
+          ..write('financialStatus: $financialStatus, ')
+          ..write('financialJournalId: $financialJournalId, ')
+          ..write('settlementJournalId: $settlementJournalId, ')
+          ..write('financialSettledAt: $financialSettledAt, ')
           ..write('createdBy: $createdBy, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -19321,6 +19494,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
     countDate,
     status,
     notes,
+    financialStatus,
+    financialJournalId,
+    settlementJournalId,
+    financialSettledAt,
     createdBy,
     createdAt,
     updatedAt,
@@ -19342,6 +19519,10 @@ class StockCount extends DataClass implements Insertable<StockCount> {
           other.countDate == this.countDate &&
           other.status == this.status &&
           other.notes == this.notes &&
+          other.financialStatus == this.financialStatus &&
+          other.financialJournalId == this.financialJournalId &&
+          other.settlementJournalId == this.settlementJournalId &&
+          other.financialSettledAt == this.financialSettledAt &&
           other.createdBy == this.createdBy &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -19361,6 +19542,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
   final Value<DateTime> countDate;
   final Value<StockCountStatus> status;
   final Value<String?> notes;
+  final Value<String> financialStatus;
+  final Value<String?> financialJournalId;
+  final Value<String?> settlementJournalId;
+  final Value<DateTime?> financialSettledAt;
   final Value<String> createdBy;
   final Value<DateTime?> createdAt;
   final Value<DateTime?> updatedAt;
@@ -19379,6 +19564,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
     this.countDate = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
+    this.financialStatus = const Value.absent(),
+    this.financialJournalId = const Value.absent(),
+    this.settlementJournalId = const Value.absent(),
+    this.financialSettledAt = const Value.absent(),
     this.createdBy = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -19398,6 +19587,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
     this.countDate = const Value.absent(),
     this.status = const Value.absent(),
     this.notes = const Value.absent(),
+    this.financialStatus = const Value.absent(),
+    this.financialJournalId = const Value.absent(),
+    this.settlementJournalId = const Value.absent(),
+    this.financialSettledAt = const Value.absent(),
     required String createdBy,
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -19422,6 +19615,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
     Expression<DateTime>? countDate,
     Expression<String>? status,
     Expression<String>? notes,
+    Expression<String>? financialStatus,
+    Expression<String>? financialJournalId,
+    Expression<String>? settlementJournalId,
+    Expression<DateTime>? financialSettledAt,
     Expression<String>? createdBy,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -19441,6 +19638,13 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
       if (countDate != null) 'count_date': countDate,
       if (status != null) 'status': status,
       if (notes != null) 'notes': notes,
+      if (financialStatus != null) 'financial_status': financialStatus,
+      if (financialJournalId != null)
+        'financial_journal_id': financialJournalId,
+      if (settlementJournalId != null)
+        'settlement_journal_id': settlementJournalId,
+      if (financialSettledAt != null)
+        'financial_settled_at': financialSettledAt,
       if (createdBy != null) 'created_by': createdBy,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -19462,6 +19666,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
     Value<DateTime>? countDate,
     Value<StockCountStatus>? status,
     Value<String?>? notes,
+    Value<String>? financialStatus,
+    Value<String?>? financialJournalId,
+    Value<String?>? settlementJournalId,
+    Value<DateTime?>? financialSettledAt,
     Value<String>? createdBy,
     Value<DateTime?>? createdAt,
     Value<DateTime?>? updatedAt,
@@ -19481,6 +19689,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
       countDate: countDate ?? this.countDate,
       status: status ?? this.status,
       notes: notes ?? this.notes,
+      financialStatus: financialStatus ?? this.financialStatus,
+      financialJournalId: financialJournalId ?? this.financialJournalId,
+      settlementJournalId: settlementJournalId ?? this.settlementJournalId,
+      financialSettledAt: financialSettledAt ?? this.financialSettledAt,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -19521,6 +19733,22 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
     }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
+    }
+    if (financialStatus.present) {
+      map['financial_status'] = Variable<String>(financialStatus.value);
+    }
+    if (financialJournalId.present) {
+      map['financial_journal_id'] = Variable<String>(financialJournalId.value);
+    }
+    if (settlementJournalId.present) {
+      map['settlement_journal_id'] = Variable<String>(
+        settlementJournalId.value,
+      );
+    }
+    if (financialSettledAt.present) {
+      map['financial_settled_at'] = Variable<DateTime>(
+        financialSettledAt.value,
+      );
     }
     if (createdBy.present) {
       map['created_by'] = Variable<String>(createdBy.value);
@@ -19563,6 +19791,10 @@ class StockCountsCompanion extends UpdateCompanion<StockCount> {
           ..write('countDate: $countDate, ')
           ..write('status: $status, ')
           ..write('notes: $notes, ')
+          ..write('financialStatus: $financialStatus, ')
+          ..write('financialJournalId: $financialJournalId, ')
+          ..write('settlementJournalId: $settlementJournalId, ')
+          ..write('financialSettledAt: $financialSettledAt, ')
           ..write('createdBy: $createdBy, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -19675,6 +19907,18 @@ class $StockCountItemsTable extends StockCountItems
         type: DriftSqlType.double,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _unitCostMeta = const VerificationMeta(
+    'unitCost',
+  );
+  @override
+  late final GeneratedColumn<double> unitCost = GeneratedColumn<double>(
+    'unit_cost',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   static const VerificationMeta _notesMeta = const VerificationMeta('notes');
   @override
   late final GeneratedColumn<String> notes = GeneratedColumn<String>(
@@ -19751,6 +19995,7 @@ class $StockCountItemsTable extends StockCountItems
     expectedQuantity,
     countedQuantity,
     differenceQuantity,
+    unitCost,
     notes,
     createdAt,
     updatedAt,
@@ -19846,6 +20091,12 @@ class $StockCountItemsTable extends StockCountItems
     } else if (isInserting) {
       context.missing(_differenceQuantityMeta);
     }
+    if (data.containsKey('unit_cost')) {
+      context.handle(
+        _unitCostMeta,
+        unitCost.isAcceptableOrUnknown(data['unit_cost']!, _unitCostMeta),
+      );
+    }
     if (data.containsKey('notes')) {
       context.handle(
         _notesMeta,
@@ -19923,6 +20174,10 @@ class $StockCountItemsTable extends StockCountItems
         DriftSqlType.double,
         data['${effectivePrefix}difference_quantity'],
       )!,
+      unitCost: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}unit_cost'],
+      )!,
       notes: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}notes'],
@@ -19965,6 +20220,9 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
   final double expectedQuantity;
   final double countedQuantity;
   final double differenceQuantity;
+
+  /// Frozen base-currency cost when quantities are corrected.
+  final double unitCost;
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -19980,6 +20238,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
     required this.expectedQuantity,
     required this.countedQuantity,
     required this.differenceQuantity,
+    required this.unitCost,
     this.notes,
     this.createdAt,
     this.updatedAt,
@@ -19998,6 +20257,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
     map['expected_quantity'] = Variable<double>(expectedQuantity);
     map['counted_quantity'] = Variable<double>(countedQuantity);
     map['difference_quantity'] = Variable<double>(differenceQuantity);
+    map['unit_cost'] = Variable<double>(unitCost);
     if (!nullToAbsent || notes != null) {
       map['notes'] = Variable<String>(notes);
     }
@@ -20025,6 +20285,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
       expectedQuantity: Value(expectedQuantity),
       countedQuantity: Value(countedQuantity),
       differenceQuantity: Value(differenceQuantity),
+      unitCost: Value(unitCost),
       notes: notes == null && nullToAbsent
           ? const Value.absent()
           : Value(notes),
@@ -20058,6 +20319,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
       differenceQuantity: serializer.fromJson<double>(
         json['differenceQuantity'],
       ),
+      unitCost: serializer.fromJson<double>(json['unitCost']),
       notes: serializer.fromJson<String?>(json['notes']),
       createdAt: serializer.fromJson<DateTime?>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
@@ -20078,6 +20340,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
       'expectedQuantity': serializer.toJson<double>(expectedQuantity),
       'countedQuantity': serializer.toJson<double>(countedQuantity),
       'differenceQuantity': serializer.toJson<double>(differenceQuantity),
+      'unitCost': serializer.toJson<double>(unitCost),
       'notes': serializer.toJson<String?>(notes),
       'createdAt': serializer.toJson<DateTime?>(createdAt),
       'updatedAt': serializer.toJson<DateTime?>(updatedAt),
@@ -20096,6 +20359,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
     double? expectedQuantity,
     double? countedQuantity,
     double? differenceQuantity,
+    double? unitCost,
     Value<String?> notes = const Value.absent(),
     Value<DateTime?> createdAt = const Value.absent(),
     Value<DateTime?> updatedAt = const Value.absent(),
@@ -20111,6 +20375,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
     expectedQuantity: expectedQuantity ?? this.expectedQuantity,
     countedQuantity: countedQuantity ?? this.countedQuantity,
     differenceQuantity: differenceQuantity ?? this.differenceQuantity,
+    unitCost: unitCost ?? this.unitCost,
     notes: notes.present ? notes.value : this.notes,
     createdAt: createdAt.present ? createdAt.value : this.createdAt,
     updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
@@ -20140,6 +20405,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
       differenceQuantity: data.differenceQuantity.present
           ? data.differenceQuantity.value
           : this.differenceQuantity,
+      unitCost: data.unitCost.present ? data.unitCost.value : this.unitCost,
       notes: data.notes.present ? data.notes.value : this.notes,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -20162,6 +20428,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
           ..write('expectedQuantity: $expectedQuantity, ')
           ..write('countedQuantity: $countedQuantity, ')
           ..write('differenceQuantity: $differenceQuantity, ')
+          ..write('unitCost: $unitCost, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -20182,6 +20449,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
     expectedQuantity,
     countedQuantity,
     differenceQuantity,
+    unitCost,
     notes,
     createdAt,
     updatedAt,
@@ -20201,6 +20469,7 @@ class StockCountItem extends DataClass implements Insertable<StockCountItem> {
           other.expectedQuantity == this.expectedQuantity &&
           other.countedQuantity == this.countedQuantity &&
           other.differenceQuantity == this.differenceQuantity &&
+          other.unitCost == this.unitCost &&
           other.notes == this.notes &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
@@ -20218,6 +20487,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
   final Value<double> expectedQuantity;
   final Value<double> countedQuantity;
   final Value<double> differenceQuantity;
+  final Value<double> unitCost;
   final Value<String?> notes;
   final Value<DateTime?> createdAt;
   final Value<DateTime?> updatedAt;
@@ -20234,6 +20504,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
     this.expectedQuantity = const Value.absent(),
     this.countedQuantity = const Value.absent(),
     this.differenceQuantity = const Value.absent(),
+    this.unitCost = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -20251,6 +20522,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
     required double expectedQuantity,
     required double countedQuantity,
     required double differenceQuantity,
+    this.unitCost = const Value.absent(),
     this.notes = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -20275,6 +20547,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
     Expression<double>? expectedQuantity,
     Expression<double>? countedQuantity,
     Expression<double>? differenceQuantity,
+    Expression<double>? unitCost,
     Expression<String>? notes,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -20292,6 +20565,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
       if (expectedQuantity != null) 'expected_quantity': expectedQuantity,
       if (countedQuantity != null) 'counted_quantity': countedQuantity,
       if (differenceQuantity != null) 'difference_quantity': differenceQuantity,
+      if (unitCost != null) 'unit_cost': unitCost,
       if (notes != null) 'notes': notes,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -20311,6 +20585,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
     Value<double>? expectedQuantity,
     Value<double>? countedQuantity,
     Value<double>? differenceQuantity,
+    Value<double>? unitCost,
     Value<String?>? notes,
     Value<DateTime?>? createdAt,
     Value<DateTime?>? updatedAt,
@@ -20328,6 +20603,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
       expectedQuantity: expectedQuantity ?? this.expectedQuantity,
       countedQuantity: countedQuantity ?? this.countedQuantity,
       differenceQuantity: differenceQuantity ?? this.differenceQuantity,
+      unitCost: unitCost ?? this.unitCost,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -20365,6 +20641,9 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
     if (differenceQuantity.present) {
       map['difference_quantity'] = Variable<double>(differenceQuantity.value);
     }
+    if (unitCost.present) {
+      map['unit_cost'] = Variable<double>(unitCost.value);
+    }
     if (notes.present) {
       map['notes'] = Variable<String>(notes.value);
     }
@@ -20400,6 +20679,7 @@ class StockCountItemsCompanion extends UpdateCompanion<StockCountItem> {
           ..write('expectedQuantity: $expectedQuantity, ')
           ..write('countedQuantity: $countedQuantity, ')
           ..write('differenceQuantity: $differenceQuantity, ')
+          ..write('unitCost: $unitCost, ')
           ..write('notes: $notes, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
@@ -67532,7 +67812,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final Index uqProductImagesPrimary = Index(
     'uq_product_images_primary',
-    'CREATE UNIQUE INDEX uq_product_images_primary ON product_images (product_id) WHERE is_primary = 1',
+    'CREATE UNIQUE INDEX uq_product_images_primary ON product_images (product_id)',
   );
   late final Index uqProductUnitsOneBase = Index(
     'uq_product_units_one_base',
@@ -77485,6 +77765,10 @@ typedef $$StockCountsTableCreateCompanionBuilder =
       Value<DateTime> countDate,
       Value<StockCountStatus> status,
       Value<String?> notes,
+      Value<String> financialStatus,
+      Value<String?> financialJournalId,
+      Value<String?> settlementJournalId,
+      Value<DateTime?> financialSettledAt,
       required String createdBy,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
@@ -77505,6 +77789,10 @@ typedef $$StockCountsTableUpdateCompanionBuilder =
       Value<DateTime> countDate,
       Value<StockCountStatus> status,
       Value<String?> notes,
+      Value<String> financialStatus,
+      Value<String?> financialJournalId,
+      Value<String?> settlementJournalId,
+      Value<DateTime?> financialSettledAt,
       Value<String> createdBy,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
@@ -77563,6 +77851,26 @@ class $$StockCountsTableFilterComposer
 
   ColumnFilters<String> get notes => $composableBuilder(
     column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get financialStatus => $composableBuilder(
+    column: $table.financialStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get financialJournalId => $composableBuilder(
+    column: $table.financialJournalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get settlementJournalId => $composableBuilder(
+    column: $table.settlementJournalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get financialSettledAt => $composableBuilder(
+    column: $table.financialSettledAt,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -77656,6 +77964,26 @@ class $$StockCountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get financialStatus => $composableBuilder(
+    column: $table.financialStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get financialJournalId => $composableBuilder(
+    column: $table.financialJournalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get settlementJournalId => $composableBuilder(
+    column: $table.settlementJournalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get financialSettledAt => $composableBuilder(
+    column: $table.financialSettledAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get createdBy => $composableBuilder(
     column: $table.createdBy,
     builder: (column) => ColumnOrderings(column),
@@ -77736,6 +78064,26 @@ class $$StockCountsTableAnnotationComposer
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
+  GeneratedColumn<String> get financialStatus => $composableBuilder(
+    column: $table.financialStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get financialJournalId => $composableBuilder(
+    column: $table.financialJournalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get settlementJournalId => $composableBuilder(
+    column: $table.settlementJournalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get financialSettledAt => $composableBuilder(
+    column: $table.financialSettledAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get createdBy =>
       $composableBuilder(column: $table.createdBy, builder: (column) => column);
 
@@ -77802,6 +78150,10 @@ class $$StockCountsTableTableManager
                 Value<DateTime> countDate = const Value.absent(),
                 Value<StockCountStatus> status = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String> financialStatus = const Value.absent(),
+                Value<String?> financialJournalId = const Value.absent(),
+                Value<String?> settlementJournalId = const Value.absent(),
+                Value<DateTime?> financialSettledAt = const Value.absent(),
                 Value<String> createdBy = const Value.absent(),
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -77820,6 +78172,10 @@ class $$StockCountsTableTableManager
                 countDate: countDate,
                 status: status,
                 notes: notes,
+                financialStatus: financialStatus,
+                financialJournalId: financialJournalId,
+                settlementJournalId: settlementJournalId,
+                financialSettledAt: financialSettledAt,
                 createdBy: createdBy,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -77840,6 +78196,10 @@ class $$StockCountsTableTableManager
                 Value<DateTime> countDate = const Value.absent(),
                 Value<StockCountStatus> status = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
+                Value<String> financialStatus = const Value.absent(),
+                Value<String?> financialJournalId = const Value.absent(),
+                Value<String?> settlementJournalId = const Value.absent(),
+                Value<DateTime?> financialSettledAt = const Value.absent(),
                 required String createdBy,
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -77858,6 +78218,10 @@ class $$StockCountsTableTableManager
                 countDate: countDate,
                 status: status,
                 notes: notes,
+                financialStatus: financialStatus,
+                financialJournalId: financialJournalId,
+                settlementJournalId: settlementJournalId,
+                financialSettledAt: financialSettledAt,
                 createdBy: createdBy,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -77903,6 +78267,7 @@ typedef $$StockCountItemsTableCreateCompanionBuilder =
       required double expectedQuantity,
       required double countedQuantity,
       required double differenceQuantity,
+      Value<double> unitCost,
       Value<String?> notes,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
@@ -77921,6 +78286,7 @@ typedef $$StockCountItemsTableUpdateCompanionBuilder =
       Value<double> expectedQuantity,
       Value<double> countedQuantity,
       Value<double> differenceQuantity,
+      Value<double> unitCost,
       Value<String?> notes,
       Value<DateTime?> createdAt,
       Value<DateTime?> updatedAt,
@@ -77976,6 +78342,11 @@ class $$StockCountItemsTableFilterComposer
 
   ColumnFilters<double> get differenceQuantity => $composableBuilder(
     column: $table.differenceQuantity,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get unitCost => $composableBuilder(
+    column: $table.unitCost,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -78059,6 +78430,11 @@ class $$StockCountItemsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get unitCost => $composableBuilder(
+    column: $table.unitCost,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get notes => $composableBuilder(
     column: $table.notes,
     builder: (column) => ColumnOrderings(column),
@@ -78135,6 +78511,9 @@ class $$StockCountItemsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<double> get unitCost =>
+      $composableBuilder(column: $table.unitCost, builder: (column) => column);
+
   GeneratedColumn<String> get notes =>
       $composableBuilder(column: $table.notes, builder: (column) => column);
 
@@ -78201,6 +78580,7 @@ class $$StockCountItemsTableTableManager
                 Value<double> expectedQuantity = const Value.absent(),
                 Value<double> countedQuantity = const Value.absent(),
                 Value<double> differenceQuantity = const Value.absent(),
+                Value<double> unitCost = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -78217,6 +78597,7 @@ class $$StockCountItemsTableTableManager
                 expectedQuantity: expectedQuantity,
                 countedQuantity: countedQuantity,
                 differenceQuantity: differenceQuantity,
+                unitCost: unitCost,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -78235,6 +78616,7 @@ class $$StockCountItemsTableTableManager
                 required double expectedQuantity,
                 required double countedQuantity,
                 required double differenceQuantity,
+                Value<double> unitCost = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime?> createdAt = const Value.absent(),
                 Value<DateTime?> updatedAt = const Value.absent(),
@@ -78251,6 +78633,7 @@ class $$StockCountItemsTableTableManager
                 expectedQuantity: expectedQuantity,
                 countedQuantity: countedQuantity,
                 differenceQuantity: differenceQuantity,
+                unitCost: unitCost,
                 notes: notes,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

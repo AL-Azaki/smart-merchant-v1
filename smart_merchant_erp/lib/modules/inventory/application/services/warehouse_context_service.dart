@@ -18,20 +18,38 @@ class WarehouseContextService {
     String businessId,
     String branchId,
   ) async {
-    final warehouse = await _inventoryRepository.getDefaultWarehouseByBranch(
+    var warehouse = await _inventoryRepository.getDefaultWarehouseByBranch(
       businessId,
       branchId,
     );
 
+    if (warehouse == null || !warehouse.isActive) {
+      // Fallback 1: Any default warehouse for this business
+      final defaultWhs = await _inventoryRepository.listWarehouses(
+        WarehouseFilter(businessId: businessId, isDefault: true, isActive: true),
+      );
+      if (defaultWhs.isNotEmpty) {
+        warehouse = defaultWhs.first;
+      } else {
+        // Fallback 2: Any active warehouse for this business
+        final anyWhs = await _inventoryRepository.listWarehouses(
+          WarehouseFilter(businessId: businessId, isActive: true),
+        );
+        if (anyWhs.isNotEmpty) {
+          warehouse = anyWhs.first;
+        }
+      }
+    }
+
     if (warehouse == null) {
       throw const ValidationFailure(
-        'No default operational warehouse found for the current branch.',
+        'لم يتم العثور على أي مخزن نشط لهذا النشاط التجاري. يرجى إضافة مخزن من شاشة المخازن أولاً.',
       );
     }
 
     if (!warehouse.isActive) {
       throw const ValidationFailure(
-        'The default warehouse for this branch is inactive.',
+        'المخزن المحدد غير نشط. يرجى تفعيله من شاشة المخازن.',
       );
     }
 

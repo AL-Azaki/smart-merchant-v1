@@ -1,0 +1,8 @@
+.claude/
+.codex/
+.gemini/
+.impeccable/
+.idea/
+.vscode/
+*.log
+flutter_*.png

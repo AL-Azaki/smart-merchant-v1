@@ -1,189 +1,193 @@
+import '../../../../../kernel/storage/app_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../shared/design_system/tokens/colors.dart';
+import 'package:intl/intl.dart';
 import '../../../../../database/enums/stock_count_status.dart';
-import '../../../../../kernel/storage/app_database.dart';
 import '../../providers/stock_counts_provider.dart';
+import '../../providers/inventory_provider.dart';
+import '../../widgets/inventory_section_header.dart';
+import '../../widgets/inventory_empty_state.dart';
 import 'widgets/stock_count_form_sheet.dart';
 import 'stock_count_details_view.dart';
-import 'package:intl/intl.dart';
 
-class StockCountsView extends ConsumerWidget {
+String stockCountStatusLabel(
+  bool draft,
+  String financial, {
+  bool cancelled = false,
+}) => cancelled
+    ? 'ملغي'
+    : draft
+    ? 'مسودة'
+    : switch (financial) {
+        'Pending' => 'بانتظار المعالجة',
+        'Settled' => 'مكتمل',
+        'NotRequired' => 'دون فروقات مالية',
+        _ => 'جرد سابق',
+      };
+
+class StockCountsView extends ConsumerStatefulWidget {
   const StockCountsView({super.key});
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(stockCountsNotifierProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark
-        ? AppColors.surfaceDark
-        : AppColors.surfaceLight;
-    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
+  ConsumerState<StockCountsView> createState() => _StockCountsViewState();
+}
 
+class _StockCountsViewState extends ConsumerState<StockCountsView> {
+  String _query = '', _filter = 'all';
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(stockCountsNotifierProvider);
+    final warehouseNames = {
+      for (final w
+          in ref.watch(activeWarehousesProvider).valueOrNull ?? <Warehouse>[])
+        w.id: w.warehouseName,
+    };
+    final theme = Theme.of(context);
     return Column(
       children: [
-        // Header
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          color: surfaceColor,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(
-                      Icons.inventory_outlined,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'جلسات الجرد',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      Text(
-                        'جرد المخزون الفعلي',
-                        style: TextStyle(
-                          color: isDark
-                              ? AppColors.textSecondaryDark
-                              : AppColors.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _showStockCountForm(context, ref),
-                icon: const Icon(Icons.add),
-                label: const Text('جلسة جرد جديدة'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        // Data Grid / Empty State
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: borderColor),
-            ),
-            child: state.when(
-              data: (counts) {
-                if (counts.isEmpty) {
-                  return const Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inventory_outlined,
-                          size: 48,
-                          color: Colors.grey,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          'لا يوجد جلسات جرد سابقة',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }
-                return RefreshIndicator(
-                  onRefresh: () => ref
-                      .read(stockCountsNotifierProvider.notifier)
-                      .refreshCounts(),
-                  child: ListView.separated(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: counts.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final count = counts[index];
-                      return _buildCountCard(context, count);
-                    },
+        InventorySectionHeader(
+          title: 'الجرد التصحيحي',
+          subtitle: 'عدّ المنتجات، صحّح الرصيد، ثم عالج الفروقات',
+          icon: Icons.fact_check_outlined,
+          action: FilledButton.icon(
+            onPressed: () async {
+              final id = await StockCountFormSheet.show(context);
+              if (id != null && context.mounted) {
+                await Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => StockCountDetailsView(countId: id),
                   ),
                 );
-              },
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(child: Text('خطأ: $err')),
+              }
+            },
+            icon: const Icon(Icons.add),
+            label: const Text('جرد جديد'),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: TextField(
+            onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+            decoration: const InputDecoration(
+              hintText: 'ابحث برقم الجرد أو المستودع أو الملاحظات',
+              prefixIcon: Icon(Icons.search),
+              border: OutlineInputBorder(),
             ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final option in {
+                  'all': 'الكل',
+                  'draft': 'المسودات',
+                  'pending': 'بانتظار المعالجة',
+                  'done': 'المكتمل',
+                }.entries)
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                      label: Text(option.value),
+                      selected: _filter == option.key,
+                      onSelected: (_) => setState(() => _filter = option.key),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        Expanded(
+          child: state.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, _) => Center(
+              child: TextButton.icon(
+                onPressed: () => ref.invalidate(stockCountsNotifierProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('تعذر تحميل الجرد، أعد المحاولة'),
+              ),
+            ),
+            data: (counts) {
+              final filtered = counts.where((c) {
+                final draft = c.status == StockCountStatus.draft;
+                if (_filter == 'draft' && !draft ||
+                    _filter == 'pending' &&
+                        (c.status != StockCountStatus.posted ||
+                            c.financialStatus != 'Pending') ||
+                    _filter == 'done' &&
+                        (c.status != StockCountStatus.posted ||
+                            ![
+                              'Settled',
+                              'NotRequired',
+                            ].contains(c.financialStatus))) {
+                  return false;
+                }
+                return '${c.countNumber} ${c.notes ?? ''} ${warehouseNames[c.warehouseId] ?? ''}'
+                    .toLowerCase()
+                    .contains(_query);
+              }).toList();
+              if (filtered.isEmpty) {
+                return InventoryEmptyState(
+                  icon: Icons.fact_check_outlined,
+                  title: counts.isEmpty
+                      ? 'ابدأ الجرد التصحيحي الأول'
+                      : 'لا يوجد جرد يطابق التصفية',
+                  message: counts.isEmpty
+                      ? 'أدخل الكمية الفعلية لكل منتج ثم راجع الفروقات قبل التصحيح.'
+                      : 'جرّب بحثاً آخر أو اختر عرض الكل.',
+                );
+              }
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                itemCount: filtered.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (_, index) {
+                  final c = filtered[index],
+                      draft = c.status == StockCountStatus.draft;
+                  final color = !draft && c.financialStatus == 'Pending'
+                      ? (theme.brightness == Brightness.dark
+                            ? const Color(0xFFFCD34D)
+                            : const Color(0xFF92400E))
+                      : theme.colorScheme.primary;
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    leading: Icon(
+                      c.status == StockCountStatus.cancelled
+                          ? Icons.block
+                          : draft
+                          ? Icons.edit_note
+                          : c.financialStatus == 'Pending'
+                          ? Icons.pending_actions
+                          : Icons.task_alt,
+                      color: color,
+                    ),
+                    title: Text(
+                      warehouseNames[c.warehouseId] ?? 'جرد مستودع',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      '${c.countNumber} · ${DateFormat('yyyy/MM/dd').format(c.countDate)}\n${stockCountStatusLabel(draft, c.financialStatus, cancelled: c.status == StockCountStatus.cancelled)}',
+                    ),
+                    isThreeLine: true,
+                    trailing: const Icon(Icons.chevron_left),
+                    onTap: () => Navigator.push<void>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => StockCountDetailsView(countId: c.id),
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCountCard(BuildContext context, StockCount count) {
-    final dateFormat = DateFormat('yyyy/MM/dd HH:mm');
-    final isDraft = count.status == StockCountStatus.draft;
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => StockCountDetailsView(countId: count.id),
-            ),
-          );
-        },
-        title: Text('جرد رقم: ${count.countNumber}'),
-        subtitle: Text('تاريخ الجرد: ${dateFormat.format(count.countDate)}'),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: isDraft
-                ? AppColors.warning.withOpacity(0.1)
-                : AppColors.success.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Text(
-            isDraft ? 'مسودة' : 'معتمد',
-            style: TextStyle(
-              color: isDraft ? AppColors.warning : AppColors.success,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showStockCountForm(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => const StockCountFormSheet(),
     );
   }
 }

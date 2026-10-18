@@ -4,7 +4,6 @@ import 'package:drift/native.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
-import 'package:sqlite3_flutter_libs/sqlite3_flutter_libs.dart';
 import 'package:injectable/injectable.dart';
 import 'package:uuid/uuid.dart';
 
@@ -234,29 +233,56 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.injectable() => AppDatabase();
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onUpgrade: (m, from, to) async {
-        if (from < 2) {
-          await m.createTable(archiveDocuments);
-        }
-        if (from < 3) {
-          await m.createTable(stockCounts);
-          await m.createTable(stockCountItems);
-        }
-        if (from < 4) {
-          await m.addColumn(products, products.currencyId);
-        }
-        if (from < 5) {
-          await m.addColumn(products, products.showInStore);
-        }
+        await transaction(() async {
+          if (from < 2) {
+            await m.createTable(archiveDocuments);
+          }
+          if (from < 3) {
+            await m.createTable(stockCounts);
+            await m.createTable(stockCountItems);
+          }
+          if (from < 4) {
+            await m.addColumn(products, products.currencyId);
+          }
+          if (from < 5) {
+            await m.addColumn(products, products.showInStore);
+          }
+          if (from >= 3 && from < 6) {
+            await customStatement(
+              'ALTER TABLE stock_counts ADD COLUMN financial_status TEXT NOT NULL DEFAULT "Legacy";',
+            );
+            await customStatement(
+              'ALTER TABLE stock_counts ADD COLUMN financial_journal_id TEXT NULL;',
+            );
+            await customStatement(
+              'ALTER TABLE stock_counts ADD COLUMN settlement_journal_id TEXT NULL;',
+            );
+            await customStatement(
+              'ALTER TABLE stock_counts ADD COLUMN financial_settled_at INTEGER NULL;',
+            );
+            await customStatement(
+              'ALTER TABLE stock_count_items ADD COLUMN unit_cost REAL NOT NULL DEFAULT 0;',
+            );
+          }
+          if (from < 6) {
+            await customStatement(
+              'DROP INDEX IF EXISTS uq_product_units_one_base;',
+            );
+            await customStatement(
+              'CREATE UNIQUE INDEX uq_product_units_one_base ON product_units (product_id) WHERE is_base_unit = 1;',
+            );
+          }
+        });
       },
       onCreate: (Migrator m) async {
         await m.createAll();
-        
+
         // Seed default base currency 'YER' for offline-first usage
         await into(currencies).insert(
           CurrenciesCompanion.insert(
@@ -269,7 +295,7 @@ class AppDatabase extends _$AppDatabase {
             isActive: const Value(true),
           ),
         );
-        
+
         // Seed SAR
         await into(currencies).insert(
           CurrenciesCompanion.insert(
@@ -298,12 +324,13 @@ class AppDatabase extends _$AppDatabase {
       },
       beforeOpen: (details) async {
         await customStatement('PRAGMA foreign_keys = ON;');
-        
+
         // Clean up legacy QA seeder data that incorrectly used 'YER-id' instead of 'YER'
         // This prevents UNIQUE constraint failures on currencyCode when we auto-heal.
-        await customStatement("DELETE FROM currencies WHERE currency_code = 'YER' AND id != 'YER';");
-        
-        
+        await customStatement(
+          "DELETE FROM currencies WHERE currency_code = 'YER' AND id != 'YER';",
+        );
+
         // Ensure default base currency 'YER' is ALWAYS present for offline-first usage.
         // This is necessary if the DB was created before the onCreate seeder was added.
         await into(currencies).insertOnConflictUpdate(

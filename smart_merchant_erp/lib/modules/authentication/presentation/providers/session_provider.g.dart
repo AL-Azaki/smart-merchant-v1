@@ -6,7 +6,7 @@ part of 'session_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$sessionNotifierHash() => r'394b5a0eee2672d1d173d2cead52035c774dd52c';
+String _$sessionNotifierHash() => r'25b2d1894a28d705a9fddc363b2bd5df8497b2c5';
 
 /// The Riverpod session controller.
 /// Updates the authoritative [SessionHolder] singleton so that

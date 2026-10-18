@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:drift/native.dart';
@@ -67,6 +68,164 @@ void main() {
   });
 
   group('CatalogRepository Unit Suite', () {
+    test(
+      'Catalog joins deduplicate units, isolate businesses, and react to stock and price',
+      () async {
+        await db
+            .into(db.businesses)
+            .insert(
+              BusinessesCompanion.insert(
+                id: 'biz-2',
+                accountId: 'acc-1',
+                businessName: 'Other store',
+              ),
+            );
+        await repository.insertUnit(
+          UnitsCompanion.insert(
+            id: 'piece',
+            businessId: 'biz-1',
+            unitName: 'حبة',
+            unitSymbol: 'pc',
+          ),
+        );
+        await repository.insertUnit(
+          UnitsCompanion.insert(
+            id: 'box',
+            businessId: 'biz-1',
+            unitName: 'كرتون',
+            unitSymbol: 'box',
+          ),
+        );
+        await repository.createProductWithDetails(
+          product: ProductsCompanion.insert(
+            id: 'p',
+            businessId: 'biz-1',
+            productCode: 'P',
+            productName: 'منتج',
+          ),
+          units: [
+            ProductUnitsCompanion.insert(
+              id: 'pu',
+              businessId: 'biz-1',
+              productId: 'p',
+              unitId: 'piece',
+              isBaseUnit: const drift.Value(true),
+              sellingPrice: const drift.Value(100),
+            ),
+            ProductUnitsCompanion.insert(
+              id: 'carton',
+              businessId: 'biz-1',
+              productId: 'p',
+              unitId: 'box',
+              conversionFactor: const drift.Value(12),
+            ),
+          ],
+        );
+        for (var i = 1; i <= 4; i++) {
+          await db
+              .into(db.warehouses)
+              .insert(
+                WarehousesCompanion.insert(
+                  id: 'wh-$i',
+                  businessId: 'biz-1',
+                  branchId: 'branch-1',
+                  warehouseName: 'مخزن $i',
+                  warehouseCode: 'WH$i',
+                ),
+              );
+          await db
+              .into(db.inventories)
+              .insert(
+                InventoriesCompanion.insert(
+                  id: 'stock-$i',
+                  businessId: i == 4 ? 'biz-2' : 'biz-1',
+                  warehouseId: 'wh-$i',
+                  productUnitId: 'pu',
+                  quantity: drift.Value(
+                    i == 1
+                        ? 8
+                        : i == 2
+                        ? 5
+                        : 99,
+                  ),
+                  deletedAt: drift.Value(i == 3 ? DateTime(2026) : null),
+                ),
+              );
+        }
+        final stream = StreamIterator(repository.watchProductCatalog('biz-1'));
+        addTearDown(stream.cancel);
+        Future<List<ProductCatalogEntry>> next() async {
+          expect(
+            await stream.moveNext().timeout(const Duration(seconds: 5)),
+            isTrue,
+          );
+          return stream.current;
+        }
+
+        var snapshot = await next();
+        expect(snapshot, hasLength(1));
+        expect(snapshot.single.units, hasLength(2));
+        expect(snapshot.single.units.first.id, 'pu');
+        expect(snapshot.single.quantitiesByUnit['pu'], 13);
+        await (db.update(db.inventories)..where((s) => s.id.equals('stock-1')))
+            .write(const InventoriesCompanion(quantity: drift.Value(9)));
+        snapshot = await next();
+        expect(snapshot.single.quantitiesByUnit['pu'], 14);
+        await (db.update(db.productUnits)..where((u) => u.id.equals('pu')))
+            .write(const ProductUnitsCompanion(sellingPrice: drift.Value(250)));
+        snapshot = await next();
+        expect(snapshot.single.units.first.sellingPrice, 250);
+        await (db.update(db.products)..where((p) => p.id.equals('p'))).write(
+          ProductsCompanion(deletedAt: drift.Value(DateTime(2026))),
+        );
+        expect(await next(), isEmpty);
+        await stream.cancel();
+        expect(await repository.watchProductCatalog('biz-2').first, isEmpty);
+      },
+    );
+
+    test(
+      'Repeated product entry allows multiple products without barcodes',
+      () async {
+        await repository.insertUnit(
+          UnitsCompanion.insert(
+            id: 'piece',
+            businessId: 'biz-1',
+            unitName: 'حبة',
+            unitSymbol: 'pc',
+          ),
+        );
+        for (var i = 0; i < 3; i++) {
+          await repository.createProductWithDetails(
+            product: ProductsCompanion.insert(
+              id: 'product-$i',
+              businessId: 'biz-1',
+              productCode: 'CODE-$i',
+              productName: 'منتج $i',
+            ),
+            units: [
+              ProductUnitsCompanion.insert(
+                id: 'product-unit-$i',
+                businessId: 'biz-1',
+                productId: 'product-$i',
+                unitId: 'piece',
+                barcode: const drift.Value(null),
+                isBaseUnit: const drift.Value(true),
+              ),
+            ],
+          );
+        }
+        for (var i = 0; i < 3; i++) {
+          final units = await repository.listProductUnitsByProductId(
+            'product-$i',
+            'biz-1',
+          );
+          expect(units, hasLength(1));
+          expect(units.single.barcode, isNull);
+        }
+      },
+    );
+
     test('1. Categories, Brands, Units, and Taxes Operations', () async {
       await repository.insertCategory(
         CategoriesCompanion.insert(

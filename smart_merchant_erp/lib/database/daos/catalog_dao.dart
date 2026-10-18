@@ -75,6 +75,18 @@ class EffectiveUnitPrice {
   });
 }
 
+/// A live catalogue row loaded with its units and warehouse quantities in one query.
+class ProductCatalogEntry {
+  final Product product;
+  final List<ProductUnit> units;
+  final Map<String, double> quantitiesByUnit;
+  const ProductCatalogEntry({
+    required this.product,
+    required this.units,
+    required this.quantitiesByUnit,
+  });
+}
+
 /// Module-Driven DAO for Domain: Catalog (Phase 02).
 ///
 /// Encapsulates pure local database CRUD, queries, reactive streams, pagination,
@@ -644,6 +656,65 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
   // ==========================================
   // 5. PRODUCTS (businessId Scoped, Soft Delete, Search, Pagination)
   // ==========================================
+
+  Stream<List<ProductCatalogEntry>> watchProductCatalog(String businessId) {
+    if (businessId.trim().isEmpty) {
+      throw const TenantScopingException();
+    }
+    final stock = attachedDatabase.inventories;
+    final query =
+        select(products).join([
+          leftOuterJoin(
+            productUnits,
+            productUnits.productId.equalsExp(products.id) &
+                productUnits.businessId.equals(businessId) &
+                productUnits.deletedAt.isNull(),
+          ),
+          leftOuterJoin(
+            stock,
+            stock.productUnitId.equalsExp(productUnits.id) &
+                stock.businessId.equals(businessId) &
+                stock.deletedAt.isNull(),
+          ),
+        ])..where(
+          products.businessId.equals(businessId) &
+              products.isActive.equals(true) &
+              products.deletedAt.isNull(),
+        );
+    return query.watch().map((rows) {
+      final productMap = <String, Product>{};
+      final units = <String, Map<String, ProductUnit>>{};
+      final quantities = <String, Map<String, double>>{};
+      for (final row in rows) {
+        final product = row.readTable(products);
+        productMap[product.id] = product;
+        final unit = row.readTableOrNull(productUnits);
+        if (unit == null) {
+          continue;
+        }
+        (units[product.id] ??= {})[unit.id] = unit;
+        final inventory = row.readTableOrNull(stock);
+        if (inventory != null) {
+          final stockMap = quantities[product.id] ??= {};
+          stockMap[unit.id] = (stockMap[unit.id] ?? 0) + inventory.quantity;
+        }
+      }
+      return [
+        for (final product in productMap.values)
+          ProductCatalogEntry(
+            product: product,
+            units: (units[product.id]?.values.toList() ?? [])
+              ..sort((a, b) {
+                if (a.isBaseUnit != b.isBaseUnit) {
+                  return a.isBaseUnit ? -1 : 1;
+                }
+                return a.conversionFactor.compareTo(b.conversionFactor);
+              }),
+            quantitiesByUnit: quantities[product.id] ?? const {},
+          ),
+      ];
+    });
+  }
 
   /// Retrieves a product by ID within a business.
   Future<Product?> getProductById(

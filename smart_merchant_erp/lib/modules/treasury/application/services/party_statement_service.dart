@@ -91,7 +91,19 @@ class PartyStatementService {
       ),
     );
 
-    // 3. Compile raw entries
+    // 3. Fetch Sales Returns
+    final customerInvoicesMap = {for (final inv in invoices) inv.id: inv};
+    final allSalesReturns = await _salesRepository.listReturns(
+      SalesReturnFilter(
+        businessId: businessId,
+        limit: 1000,
+      ),
+    );
+    final customerReturns = allSalesReturns
+        .where((r) => customerInvoicesMap.containsKey(r.salesInvoiceId))
+        .toList();
+
+    // 4. Compile raw entries
     final rawEntries = <_RawEntry>[];
 
     // Initial Opening balance
@@ -130,6 +142,19 @@ class PartyStatementService {
           description: p.notes ?? 'سند قبض ${p.paymentNumber}',
           debit: 0.0,
           credit: p.amount,
+        ));
+      }
+    }
+
+    for (final ret in customerReturns) {
+      if (ret.status != 'Cancelled') {
+        rawEntries.add(_RawEntry(
+          date: ret.returnDate,
+          documentType: 'Return',
+          documentNumber: ret.returnNumber,
+          description: 'مردود مبيعات ${ret.returnNumber}',
+          debit: 0.0,
+          credit: ret.totalAmount, // Return decreases customer receivable (Credit)
         ));
       }
     }
@@ -210,6 +235,18 @@ class PartyStatementService {
       ),
     );
 
+    // 3. Fetch Purchase Returns
+    final invoiceMap = {for (final inv in invoices) inv.id: inv};
+    final allReturns = await _purchasingRepository.listReturns(
+      PurchaseReturnFilter(
+        businessId: businessId,
+        limit: 1000,
+      ),
+    );
+    final supplierReturns = allReturns
+        .where((r) => invoiceMap.containsKey(r.purchaseInvoiceId))
+        .toList();
+
     final rawEntries = <_RawEntry>[];
 
     // Initial Opening Balance
@@ -247,6 +284,19 @@ class PartyStatementService {
           documentNumber: p.paymentNumber,
           description: p.notes ?? 'سند صرف ${p.paymentNumber}',
           debit: p.amount, // Payment decreases supplier credit (Debit)
+          credit: 0.0,
+        ));
+      }
+    }
+
+    for (final ret in supplierReturns) {
+      if (ret.status != 'Cancelled') {
+        rawEntries.add(_RawEntry(
+          date: ret.returnDate,
+          documentType: 'Return',
+          documentNumber: ret.returnNumber,
+          description: 'مردود مشتريات ${ret.returnNumber}',
+          debit: ret.totalAmount, // Return decreases supplier credit (Debit)
           credit: 0.0,
         ));
       }

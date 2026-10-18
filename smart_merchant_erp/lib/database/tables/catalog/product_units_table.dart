@@ -12,10 +12,8 @@ import 'package:drift/drift.dart';
 /// `uq_product_units_one_base ON product_units (product_id) WHERE is_base_unit = true`
 /// ensures at most one base unit per product.
 @DataClassName('ProductUnit')
-@TableIndex(
-  name: 'uq_product_units_one_base',
-  columns: {#productId},
-  unique: true,
+@TableIndex.sql(
+  'CREATE UNIQUE INDEX uq_product_units_one_base ON product_units (product_id) WHERE is_base_unit = 1',
 )
 class ProductUnits extends Table {
   @override

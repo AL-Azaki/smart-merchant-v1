@@ -69,6 +69,10 @@ class AppTextField extends StatelessWidget {
 
   /// قيمة افتراضية للعرض فقط (بديل لـ controller)
   final String? initialValue;
+  final FocusNode? focusNode;
+  final bool autofocus;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onFieldSubmitted;
 
   const AppTextField({
     required this.label,
@@ -90,6 +94,10 @@ class AppTextField extends StatelessWidget {
     this.enabled = true,
     this.helperText,
     this.initialValue,
+    this.focusNode,
+    this.autofocus = false,
+    this.textInputAction,
+    this.onFieldSubmitted,
   });
 
   @override
@@ -97,9 +105,15 @@ class AppTextField extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
-    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final disabledFill = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+    final textPrimary = isDark
+        ? AppColors.textPrimaryDark
+        : AppColors.textPrimaryLight;
+    final textSecondary = isDark
+        ? AppColors.textSecondaryDark
+        : AppColors.textSecondaryLight;
+    final disabledFill = isDark
+        ? const Color(0xFF1E293B)
+        : const Color(0xFFF1F5F9);
     final effectiveFocusColor = focusColor ?? AppColors.info;
 
     return Column(
@@ -119,6 +133,10 @@ class AppTextField extends StatelessWidget {
 
         // ── حقل الإدخال ───────────────────────────────────────
         TextFormField(
+          focusNode: focusNode,
+          autofocus: autofocus,
+          textInputAction: textInputAction,
+          onFieldSubmitted: onFieldSubmitted,
           controller: controller,
           initialValue: controller == null ? initialValue : null,
           keyboardType: keyboardType,
@@ -167,9 +185,7 @@ class AppTextField extends StatelessWidget {
             ),
             disabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(
-                color: borderColor.withValues(alpha: 0.5),
-              ),
+              borderSide: BorderSide(color: borderColor.withValues(alpha: 0.5)),
             ),
             errorBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(14),

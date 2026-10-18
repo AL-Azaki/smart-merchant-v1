@@ -11,8 +11,8 @@ import '../../domain/repositories/accounting_repository.dart';
 class CreateAccountCommand {
   final String accountCode;
   final String accountName;
-  final int accountTypeId;
-  final String normalBalance;
+  final int? accountTypeId;
+  final String? normalBalance;
   final String? parentAccountId;
   final String? currencyId;
   final String? description;
@@ -20,10 +20,10 @@ class CreateAccountCommand {
   final bool allowPosting;
 
   const CreateAccountCommand({
-    required this.accountCode,
+    this.accountCode = '',
     required this.accountName,
-    required this.accountTypeId,
-    required this.normalBalance,
+    this.accountTypeId,
+    this.normalBalance,
     this.parentAccountId,
     this.currencyId,
     this.description,
@@ -117,85 +117,155 @@ class AccountingApplicationService {
     try {
       final businessId = _context.currentBusinessId;
       if (businessId.isEmpty) {
-        return const Left(ValidationFailure('Business context is required.'));
-      }
-
-      final code = cmd.accountCode.trim();
-      if (code.isEmpty) {
-        return const Left(ValidationFailure('Account code is required.'));
+        return const Left(ValidationFailure('يرجى اختيار المنشأة أولاً.'));
       }
       final name = cmd.accountName.trim();
       if (name.isEmpty) {
-        return const Left(ValidationFailure('Account name is required.'));
+        return const Left(ValidationFailure('أدخل اسم الحساب.'));
       }
-
-      // 1. Check duplicate account code
-      final existing = await _accountingRepository.getChartOfAccountByCode(
-        code,
-        businessId,
-      );
-      if (existing != null) {
-        return Left(
-          DuplicateAccountCodeFailure(
-            'رقم الحساب $code موجود مسبقاً في هذه المنشأة.',
-          ),
-        );
-      }
-
-      int computedLevel = 1;
-      if (cmd.parentAccountId != null && cmd.parentAccountId!.isNotEmpty) {
-        final parent = await _accountingRepository.getChartOfAccountById(
-          cmd.parentAccountId!,
-          businessId,
-        );
-        if (parent == null) {
+      return await _accountingRepository.runInTransaction(() async {
+        final parentId = cmd.parentAccountId?.trim();
+        ChartOfAccount? parent;
+        if (parentId != null && parentId.isNotEmpty) {
+          parent = await _accountingRepository.getChartOfAccountById(
+            parentId,
+            businessId,
+          );
+          if (parent == null) {
+            return const Left(
+              ParentAccountNotFoundFailure(
+                'الحساب الأب المحدد غير موجود في هذه المنشأة.',
+              ),
+            );
+          }
+          if (!parent.isActive) {
+            return const Left(ValidationFailure('اختر حساباً أباً نشطاً.'));
+          }
+          if (parent.allowPosting &&
+              await _accountingRepository.isAccountMapped(
+                parent.id,
+                businessId,
+              )) {
+            return const Left(
+              ValidationFailure(
+                'الحساب الأب مرتبط بالعمليات الأساسية. اختر حساباً تجميعياً آخر.',
+              ),
+            );
+          }
+          if (parent.allowPosting &&
+              await _accountingRepository.hasJournalEntries(
+                parent.id,
+                businessId,
+              )) {
+            return const Left(
+              ValidationFailure(
+                'الحساب الأب لديه حركات مالية. اختر حساباً تجميعياً آخر.',
+              ),
+            );
+          }
+        }
+        final typeId = parent?.accountTypeId ?? cmd.accountTypeId;
+        final normalBalance = parent?.normalBalance ?? cmd.normalBalance;
+        if (typeId == null ||
+            typeId < 1 ||
+            typeId > 5 ||
+            !['Debit', 'Credit'].contains(normalBalance)) {
           return const Left(
-            ParentAccountNotFoundFailure('الحساب الأب المحدد غير موجود.'),
+            ValidationFailure('اختر الحساب الأب لتحديد نوع الحساب وطبيعته.'),
           );
         }
-        computedLevel = parent.accountLevel + 1;
-
-        // Invariant: Parent account must not accept direct postings
-        if (parent.allowPosting) {
+        var code = cmd.accountCode.trim();
+        if (code.isEmpty) {
+          if (parent == null) {
+            return const Left(
+              ValidationFailure('اختر الحساب الأب لإنشاء رقم الحساب تلقائياً.'),
+            );
+          }
+          final accounts = await _accountingRepository.listChartOfAccounts(
+            ChartOfAccountFilter(businessId: businessId, limit: null),
+          );
+          final usedCodes = accounts.map((a) => a.accountCode).toSet();
+          var largest = BigInt.zero;
+          var width = 2;
+          var foundSibling = false;
+          for (final account in accounts.where(
+            (a) => a.parentAccountId == parent!.id,
+          )) {
+            if (!account.accountCode.startsWith(parent.accountCode)) continue;
+            final suffix = account.accountCode.substring(
+              parent.accountCode.length,
+            );
+            final number = BigInt.tryParse(suffix);
+            if (number == null || number < BigInt.zero) continue;
+            if (!foundSibling) {
+              width = suffix.length;
+              foundSibling = true;
+            } else if (suffix.length > width) {
+              width = suffix.length;
+            }
+            if (number > largest) largest = number;
+          }
+          do {
+            largest += BigInt.one;
+            code =
+                '${parent.accountCode}${largest.toString().padLeft(width, '0')}';
+          } while (usedCodes.contains(code));
+        } else {
+          final existing = await _accountingRepository.getChartOfAccountByCode(
+            code,
+            businessId,
+          );
+          if (existing != null) {
+            return Left(
+              DuplicateAccountCodeFailure(
+                'رقم الحساب $code موجود مسبقاً في هذه المنشأة.',
+              ),
+            );
+          }
+        }
+        final accountId = _uuid.v4();
+        if (parent != null && parent.allowPosting) {
           await _accountingRepository.updateChartOfAccount(
             parent
                 .toCompanion(false)
-                .copyWith(allowPosting: const drift.Value(false)),
+                .copyWith(
+                  allowPosting: const drift.Value(false),
+                  syncStatus: const drift.Value('pending'),
+                  version: drift.Value(parent.version + 1),
+                  updatedAt: drift.Value(DateTime.now()),
+                ),
           );
         }
-      }
-
-      final accountId = _uuid.v4();
-      await _accountingRepository.insertChartOfAccount(
-        ChartOfAccountsCompanion.insert(
-          id: accountId,
-          businessId: businessId,
-          accountCode: code,
-          accountName: name,
-          accountTypeId: cmd.accountTypeId,
-          normalBalance: cmd.normalBalance,
-          parentAccountId: drift.Value(cmd.parentAccountId),
-          currencyId: drift.Value(cmd.currencyId),
-          description: drift.Value(cmd.description),
-          accountCategory: drift.Value(cmd.accountCategory),
-          accountLevel: drift.Value(computedLevel),
-          allowPosting: drift.Value(cmd.allowPosting),
-          isActive: const drift.Value(true),
-          isSystem: const drift.Value(false),
-        ),
-      );
-
-      return Right(accountId);
+        await _accountingRepository.insertChartOfAccount(
+          ChartOfAccountsCompanion.insert(
+            id: accountId,
+            businessId: businessId,
+            accountCode: code,
+            accountName: name,
+            accountTypeId: typeId,
+            normalBalance: normalBalance!,
+            parentAccountId: drift.Value(parent?.id),
+            currencyId: drift.Value(cmd.currencyId ?? parent?.currencyId),
+            description: drift.Value(cmd.description),
+            accountCategory: drift.Value(cmd.accountCategory),
+            accountLevel: drift.Value(
+              parent == null ? 1 : parent.accountLevel + 1,
+            ),
+            allowPosting: drift.Value(cmd.allowPosting),
+            isActive: const drift.Value(true),
+            isSystem: const drift.Value(false),
+          ),
+        );
+        return Right(accountId);
+      });
     } catch (e) {
       if (e is Failure) return Left(e);
-      return Left(UnexpectedFailure(e.toString()));
+      return const Left(UnexpectedFailure('تعذر حفظ الحساب. حاول مرة أخرى.'));
     }
   }
 
   /// Updates an account record safely.
-  Future<Either<Failure, Unit>> updateAccount(
-    UpdateAccountCommand cmd,
-  ) async {
+  Future<Either<Failure, Unit>> updateAccount(UpdateAccountCommand cmd) async {
     try {
       final businessId = _context.currentBusinessId;
       final existing = await _accountingRepository.getChartOfAccountById(
@@ -242,9 +312,7 @@ class AccountingApplicationService {
         );
       }
       if (cmd.isActive != null) {
-        companion = companion.copyWith(
-          isActive: drift.Value(cmd.isActive!),
-        );
+        companion = companion.copyWith(isActive: drift.Value(cmd.isActive!));
       }
 
       await _accountingRepository.updateChartOfAccount(companion);

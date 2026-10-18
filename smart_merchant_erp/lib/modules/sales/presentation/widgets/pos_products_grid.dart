@@ -129,56 +129,25 @@ class _PosProductsGridState extends ConsumerState<PosProductsGrid> {
                 ),
                 const SizedBox(width: 8),
 
-                // If DB categories exist, show them
-                if (dbCategories.isNotEmpty) ...[
-                  for (final cat in dbCategories) ...[
-                    _buildCategoryChip(
-                      label: cat.categoryName,
-                      isSelected: _selectedCategoryId == cat.id,
-                      onTap: () {
-                        setState(() {
-                          if (_selectedCategoryId == cat.id) {
-                            _selectedCategoryId = null;
-                            _selectedCategoryKeyword = null;
-                          } else {
-                            _selectedCategoryId = cat.id;
-                            _selectedCategoryKeyword = null;
-                          }
-                        });
-                      },
-                      isDark: isDark,
-                      borderColor: borderColor,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ] else ...[
-                  // Retail Quick Categories Fallback
-                  for (final item in const [
-                    ('ألبان وأجبان', 'حليب', Icons.local_drink_rounded),
-                    ('حبوب وأرز', 'أرز', Icons.grain_rounded),
-                    ('بسكويت وحلويات', 'بسكويت', Icons.cookie_rounded),
-                    ('دقيق ومخبوزات', 'دقيق', Icons.bakery_dining_rounded),
-                    ('بهارات', 'بهار', Icons.soup_kitchen_rounded),
-                  ]) ...[
-                    _buildCategoryChip(
-                      label: item.$1,
-                      icon: item.$3,
-                      isSelected: _selectedCategoryKeyword == item.$2,
-                      onTap: () {
-                        setState(() {
-                          if (_selectedCategoryKeyword == item.$2) {
-                            _selectedCategoryKeyword = null;
-                          } else {
-                            _selectedCategoryKeyword = item.$2;
-                            _selectedCategoryId = null;
-                          }
-                        });
-                      },
-                      isDark: isDark,
-                      borderColor: borderColor,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
+                // Real DB categories only
+                for (final cat in dbCategories) ...[
+                  _buildCategoryChip(
+                    label: cat.categoryName,
+                    isSelected: _selectedCategoryId == cat.id,
+                    onTap: () {
+                      setState(() {
+                        if (_selectedCategoryId == cat.id) {
+                          _selectedCategoryId = null;
+                        } else {
+                          _selectedCategoryId = cat.id;
+                        }
+                        _selectedCategoryKeyword = null;
+                      });
+                    },
+                    isDark: isDark,
+                    borderColor: borderColor,
+                  ),
+                  const SizedBox(width: 8),
                 ],
               ],
             ),

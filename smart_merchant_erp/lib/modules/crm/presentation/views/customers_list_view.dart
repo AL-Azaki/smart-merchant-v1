@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../accounting/presentation/widgets/receipt_voucher_dialog.dart';
+import '../../../treasury/application/services/party_statement_service.dart';
+import '../../../treasury/presentation/widgets/party_statement_dialog.dart';
 import '../providers/crm_provider.dart';
 import '../../../sales/presentation/providers/customer_provider.dart';
 import '../../../sales/presentation/widgets/customer_add_modal.dart';
@@ -239,7 +243,36 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                // زر كشف الحساب التفصيلي
                                 IconButton(
+                                  tooltip: 'كشف حساب العميل',
+                                  icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF3B82F6)),
+                                  onPressed: () async {
+                                    final service = getIt<PartyStatementService>();
+                                    final report = await service.getCustomerStatement(c.id);
+                                    if (context.mounted) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => PartyStatementDialog(report: report),
+                                      );
+                                    }
+                                  },
+                                ),
+                                // زر قبض دفعة
+                                IconButton(
+                                  tooltip: 'قبض دفعة من العميل',
+                                  icon: const Icon(Icons.call_received_rounded, color: Color(0xFF10B981)),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => ReceiptVoucherDialog(
+                                        initialCustomerId: c.id,
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  tooltip: 'تعديل بيانات العميل',
                                   icon: const Icon(Icons.edit_outlined),
                                   onPressed: () {
                                     showDialog(

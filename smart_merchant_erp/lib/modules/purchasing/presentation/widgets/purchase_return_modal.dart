@@ -13,8 +13,13 @@ import '../../../authentication/presentation/providers/session_provider.dart';
 
 class PurchaseReturnModal extends ConsumerStatefulWidget {
   final VoidCallback onClose;
+  final PurchaseInvoiceWithItems? initialInvoice;
 
-  const PurchaseReturnModal({super.key, required this.onClose});
+  const PurchaseReturnModal({
+    super.key,
+    required this.onClose,
+    this.initialInvoice,
+  });
 
   @override
   ConsumerState<PurchaseReturnModal> createState() =>
@@ -32,7 +37,15 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(purchaseReturnNotifierProvider.notifier).clearForm();
+      final notifier = ref.read(purchaseReturnNotifierProvider.notifier);
+      notifier.clearForm();
+      if (widget.initialInvoice != null) {
+        setState(() {
+          _selectedInvoice = widget.initialInvoice;
+          _step = 2;
+        });
+        notifier.setInvoice(widget.initialInvoice!);
+      }
     });
   }
 

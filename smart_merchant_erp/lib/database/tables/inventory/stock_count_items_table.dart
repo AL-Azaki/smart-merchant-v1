@@ -28,6 +28,8 @@ class StockCountItems extends Table {
   RealColumn get countedQuantity => real().named('counted_quantity')();
   
   RealColumn get differenceQuantity => real().named('difference_quantity')();
+  /// Frozen base-currency cost when quantities are corrected.
+  RealColumn get unitCost => real().named('unit_cost').withDefault(const Constant(0.0))();
 
   TextColumn get notes => text().nullable()();
 

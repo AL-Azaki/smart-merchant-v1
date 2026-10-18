@@ -1,9 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../kernel/core/application_context.dart';
-import '../../../../kernel/storage/app_database.dart';
 import '../../../../app/di/getit_instance.dart';
-import '../../../../database/seeders/qa_data_seeder.dart';
+import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/seeders/default_coa_seeder.dart';
 
 part 'session_provider.g.dart';
@@ -84,31 +82,14 @@ class SessionNotifier extends _$SessionNotifier {
       userId: userId,
     );
 
-    if (kDebugMode) {
-      _seedQaData(businessId, branchId ?? 'default-branch', userId);
-    }
-  }
-
-  Future<void> _seedQaData(
-    String businessId,
-    String branchId,
-    String userId,
-  ) async {
+    // Auto-seed and initialize tables, COA, units, categories, fiscal period
     try {
       final db = getIt<AppDatabase>();
-      final seeder = QaDataSeeder(db);
-      await seeder.seedAll(
+      DefaultChartOfAccountsSeeder(db).seedChartOfAccounts(
         businessId: businessId,
-        branchId: branchId,
-        userId: userId,
-        accountId: 'qa-account-$businessId',
+        currencyId: 'YER',
       );
-      final coaSeeder = DefaultChartOfAccountsSeeder(db);
-      await coaSeeder.seedChartOfAccounts(businessId: businessId);
-      debugPrint('QA Data and Chart of Accounts Seeded Successfully for Tenant: $businessId');
-    } catch (e) {
-      debugPrint('Failed to seed QA data: $e');
-    }
+    } catch (_) {}
   }
 
   /// Switch branch within the same business. Immediately reflects in ApplicationContext.

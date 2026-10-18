@@ -1,22 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../app/di/getit_providers.dart';
-import '../../../../kernel/core/application_context.dart';
 import '../../../../app/di/getit_instance.dart';
-import '../../domain/repositories/catalog_repository.dart';
 import '../../application/services/catalog_application_service.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/catalog_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 
-import 'package:drift/drift.dart';
-
-final productsNotifierProvider = AutoDisposeStreamNotifierProvider<ProductsNotifier, List<Product>>(() => ProductsNotifier());
+final productsNotifierProvider =
+    AutoDisposeStreamNotifierProvider<ProductsNotifier, List<Product>>(
+      () => ProductsNotifier(),
+    );
 
 class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
   @override
   Stream<List<Product>> build() {
     final session = ref.watch(sessionNotifierProvider);
-    if (!session.isActive) return const Stream.empty();
+    if (!session.isActive) {
+      return const Stream.empty();
+    }
 
     final repo = ref.watch(catalogRepositoryProvider);
 
@@ -28,7 +29,9 @@ class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
 
   Future<String?> saveProduct(Map<String, dynamic> data) async {
     final session = ref.read(sessionNotifierProvider);
-    if (!session.isActive) return null;
+    if (!session.isActive) {
+      return null;
+    }
 
     final service = getIt<CatalogApplicationService>();
     final id = data['id'] as String?;
@@ -41,6 +44,7 @@ class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
       categoryId: data['category_id']?.toString(),
       brandId: data['brand_id']?.toString(),
       barcode: data['barcode']?.toString(),
+      sku: data['sku']?.toString(),
       unitId: data['unit_id']?.toString(),
       purchasePrice: data['purchase_price'] != null
           ? double.tryParse(data['purchase_price'].toString())
@@ -65,20 +69,27 @@ class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
 
   Future<void> deleteProduct(String id) async {
     final session = ref.read(sessionNotifierProvider);
-    if (!session.isActive) return;
+    if (!session.isActive) {
+      return;
+    }
 
     final service = getIt<CatalogApplicationService>();
     await service.deleteProduct(id);
   }
 }
 
-final categoriesNotifierProvider = AutoDisposeStreamNotifierProvider<CategoriesNotifier, List<Category>>(() => CategoriesNotifier());
+final categoriesNotifierProvider =
+    AutoDisposeStreamNotifierProvider<CategoriesNotifier, List<Category>>(
+      () => CategoriesNotifier(),
+    );
 
 class CategoriesNotifier extends AutoDisposeStreamNotifier<List<Category>> {
   @override
   Stream<List<Category>> build() {
     final session = ref.watch(sessionNotifierProvider);
-    if (!session.isActive) return const Stream.empty();
+    if (!session.isActive) {
+      return const Stream.empty();
+    }
 
     final repo = ref.watch(catalogRepositoryProvider);
 
@@ -88,7 +99,9 @@ class CategoriesNotifier extends AutoDisposeStreamNotifier<List<Category>> {
 
   Future<String?> saveCategory(Map<String, dynamic> data) async {
     final session = ref.read(sessionNotifierProvider);
-    if (!session.isActive) return null;
+    if (!session.isActive) {
+      return null;
+    }
 
     final service = getIt<CatalogApplicationService>();
     final id = data['id'] as String?;
@@ -106,23 +119,61 @@ class CategoriesNotifier extends AutoDisposeStreamNotifier<List<Category>> {
 
   Future<void> deleteCategory(String id) async {
     final session = ref.read(sessionNotifierProvider);
-    if (!session.isActive) return;
+    if (!session.isActive) {
+      return;
+    }
 
     final service = getIt<CatalogApplicationService>();
     await service.deleteCategory(id);
   }
 }
 
-final unitsNotifierProvider = AutoDisposeStreamNotifierProvider<UnitsNotifier, List<Unit>>(() => UnitsNotifier());
+final unitsNotifierProvider =
+    AutoDisposeStreamNotifierProvider<UnitsNotifier, List<Unit>>(
+      () => UnitsNotifier(),
+    );
 
 class UnitsNotifier extends AutoDisposeStreamNotifier<List<Unit>> {
   @override
   Stream<List<Unit>> build() {
     final session = ref.watch(sessionNotifierProvider);
-    if (!session.isActive) return const Stream.empty();
+    if (!session.isActive) {
+      return const Stream.empty();
+    }
 
     final repo = ref.watch(catalogRepositoryProvider);
 
     return repo.watchUnits(session.businessId!, isActive: true);
+  }
+
+  Future<String?> saveUnit(Map<String, dynamic> data) async {
+    final session = ref.read(sessionNotifierProvider);
+    if (!session.isActive) {
+      return null;
+    }
+
+    final service = getIt<CatalogApplicationService>();
+    final id = data['id'] as String?;
+
+    final command = UnitCommand(
+      id: id,
+      name: data['unit_name']?.toString() ?? '',
+      symbol: data['unit_symbol']?.toString() ?? '',
+      description: data['unit_description']?.toString(),
+      isActive: (data['is_active'] as bool?) ?? true,
+    );
+
+    final result = await service.saveUnit(command);
+    return result.fold((l) => null, (r) => r);
+  }
+
+  Future<void> deleteUnit(String id) async {
+    final session = ref.read(sessionNotifierProvider);
+    if (!session.isActive) {
+      return;
+    }
+
+    final service = getIt<CatalogApplicationService>();
+    await service.deleteUnit(id);
   }
 }

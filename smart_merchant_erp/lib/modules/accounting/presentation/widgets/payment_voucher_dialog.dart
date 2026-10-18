@@ -11,7 +11,9 @@ import '../providers/accounting_provider.dart';
 import '../../../treasury/application/usecases/record_disbursement_usecase.dart';
 
 class PaymentVoucherDialog extends ConsumerStatefulWidget {
-  const PaymentVoucherDialog({super.key});
+  final String? initialSupplierId;
+
+  const PaymentVoucherDialog({super.key, this.initialSupplierId});
 
   @override
   ConsumerState<PaymentVoucherDialog> createState() =>
@@ -61,6 +63,9 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
           _suppliers = suppliers;
           _isLoadingData = false;
         });
+        if (widget.initialSupplierId != null) {
+          _onSupplierChanged(widget.initialSupplierId);
+        }
       }
     } catch (_) {
       if (mounted) setState(() => _isLoadingData = false);

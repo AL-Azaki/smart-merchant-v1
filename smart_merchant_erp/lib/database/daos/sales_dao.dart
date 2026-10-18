@@ -217,6 +217,11 @@ class CustomerBalanceSummary {
     final effectiveOpening = isCredit ? -openingBalance : openingBalance;
     return effectiveOpening + totalRemaining;
   }
+
+  bool get isDebit => netBalance > 0.001;
+  bool get isCredit => netBalance < -0.001;
+  bool get isSettled => netBalance.abs() <= 0.001;
+  double get currentBalance => netBalance.abs();
 }
 
 /// Module-Driven DAO for Domain: Sales & Customers (Phase 04).
