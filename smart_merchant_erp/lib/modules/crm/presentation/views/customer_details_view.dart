@@ -552,7 +552,7 @@ class _CustomerStatementViewState
                           showDialog<void>(
                             context: context,
                             builder: (_) =>
-                                PartyStatementDialog(report: _report!, partyPhone: _customer?.phone),
+                                PartyStatementDialog(report: _report!),
                           );
                         },
                   icon: const Icon(Icons.print_rounded, size: 16),
