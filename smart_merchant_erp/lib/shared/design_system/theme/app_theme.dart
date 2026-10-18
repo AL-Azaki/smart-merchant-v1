@@ -48,15 +48,44 @@ class AppTheme {
         margin: EdgeInsets.zero,
       ),
 
-      // Button Styling (Modern, rounded, vibrant)
+      // Button Styling (Modern, rounded, vibrant, centered for Arabic text)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+            vertical: 0,
+          ),
+          minimumSize: const Size(64, 44),
+          shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
+          textStyle: AppTypography.textTheme.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          elevation: 0,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: 0,
+          ),
+          minimumSize: const Size(64, 44),
+          shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
+          side: const BorderSide(color: AppColors.primary),
+          textStyle: AppTypography.textTheme.labelLarge,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 0,
           ),
           shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
           textStyle: AppTypography.textTheme.labelLarge,
@@ -135,15 +164,44 @@ class AppTheme {
         margin: EdgeInsets.zero,
       ),
 
-      // Button Styling
+      // Button Styling (Modern, rounded, vibrant, centered for Arabic text)
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
+          alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
+            vertical: 0,
+          ),
+          minimumSize: const Size(64, 44),
+          shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
+          textStyle: AppTypography.textTheme.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          elevation: 0,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: 0,
+          ),
+          minimumSize: const Size(64, 44),
+          shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
+          side: const BorderSide(color: AppColors.primary),
+          textStyle: AppTypography.textTheme.labelLarge,
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: 0,
           ),
           shape: RoundedRectangleBorder(borderRadius: AppSpacing.borderMd),
           textStyle: AppTypography.textTheme.labelLarge,
