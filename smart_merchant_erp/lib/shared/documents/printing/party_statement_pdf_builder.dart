@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
@@ -23,53 +22,40 @@ class PartyStatementPdfBuilder {
   static const PdfColor _calloutBg = PdfColor(0.878, 0.949, 0.996);
   static const PdfColor _calloutBorder = PdfColor(0.22, 0.74, 0.97);
 
-  static bool _isValidTtf(ByteData data) {
-    if (data.lengthInBytes < 4) return false;
-    final magic = data.getUint32(0);
-    return magic == 0x00010000 || magic == 0x4F54544F;
-  }
-
-  static pw.Font? _tryLoadTtf(ByteData data) {
-    try {
-      if (!_isValidTtf(data)) return null;
-      return pw.Font.ttf(data);
-    } catch (_) {
-      return null;
-    }
-  }
-
   static Future<void> _loadFonts() async {
-    try {
-      final regFile = File('assets/fonts/Cairo-Regular.ttf');
-      if (regFile.existsSync()) {
-        _cairoRegular ??= _tryLoadTtf(regFile.readAsBytesSync().buffer.asByteData());
-      }
-      final boldFile = File('assets/fonts/Cairo-Bold.ttf');
-      if (boldFile.existsSync()) {
-        _cairoBold ??= _tryLoadTtf(boldFile.readAsBytesSync().buffer.asByteData());
-      }
-      final semiBoldFile = File('assets/fonts/Cairo-SemiBold.ttf');
-      if (semiBoldFile.existsSync()) {
-        _cairoSemiBold ??= _tryLoadTtf(semiBoldFile.readAsBytesSync().buffer.asByteData());
-      }
-    } catch (_) {}
-
+    // 1. تحميل الخط أولاً من حزمة التطبيق (rootBundle) ليعمل أوفلاين في الأندرويد والآيفون
     try {
       if (_cairoRegular == null) {
         final regularData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-        _cairoRegular ??= _tryLoadTtf(regularData);
+        _cairoRegular = pw.Font.ttf(regularData);
       }
       if (_cairoBold == null) {
         final boldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
-        _cairoBold ??= _tryLoadTtf(boldData);
+        _cairoBold = pw.Font.ttf(boldData);
       }
       if (_cairoSemiBold == null) {
         final semiBoldData = await rootBundle.load('assets/fonts/Cairo-SemiBold.ttf');
-        _cairoSemiBold ??= _tryLoadTtf(semiBoldData);
+        _cairoSemiBold = pw.Font.ttf(semiBoldData);
       }
     } catch (_) {}
 
-    // Fallbacks
+    // 2. محاولة القراءة المباشرة من نظام الملفات (لويندوز والاختبارات الأوفلاين)
+    try {
+      final regFile = File('assets/fonts/Cairo-Regular.ttf');
+      if (regFile.existsSync()) {
+        _cairoRegular ??= pw.Font.ttf(regFile.readAsBytesSync().buffer.asByteData());
+      }
+      final boldFile = File('assets/fonts/Cairo-Bold.ttf');
+      if (boldFile.existsSync()) {
+        _cairoBold ??= pw.Font.ttf(boldFile.readAsBytesSync().buffer.asByteData());
+      }
+      final semiBoldFile = File('assets/fonts/Cairo-SemiBold.ttf');
+      if (semiBoldFile.existsSync()) {
+        _cairoSemiBold ??= pw.Font.ttf(semiBoldFile.readAsBytesSync().buffer.asByteData());
+      }
+    } catch (_) {}
+
+    // 3. Fallback احتياطي في حال توفر الإنترنت
     try {
       _cairoRegular ??= await PdfGoogleFonts.cairoRegular();
     } catch (_) {}
@@ -79,10 +65,6 @@ class PartyStatementPdfBuilder {
     try {
       _cairoSemiBold ??= await PdfGoogleFonts.cairoSemiBold();
     } catch (_) {}
-
-    _cairoRegular ??= pw.Font.helvetica();
-    _cairoBold ??= pw.Font.helveticaBold();
-    _cairoSemiBold ??= pw.Font.helveticaBold();
   }
 
   static String _formatNum(double val) {
@@ -331,19 +313,21 @@ class PartyStatementPdfBuilder {
 
     final rows = <pw.TableRow>[];
 
-    // رأس الجدول
+    // رأس الجدول (يبدأ من اليمين: التاريخ، نوع المستند، رقم السند، المرجع، البيان، المدين، الدائن، الرصيد)
+    // ملاحظة: pw.Table في مكتبة pdf يرتب الأعمدة من اليسار (0) إلى اليمين (7)
+    // لذلك نضع الرصيد في 0 (يسار) والتاريخ في 7 (يمين) لتبدأ قراءة الجدول من اليمين
     rows.add(
       pw.TableRow(
         decoration: const pw.BoxDecoration(color: _headerBg),
         children: [
-          _buildTh('التاريخ', flex: 11),
-          _buildTh('نوع المستند', flex: 13),
-          _buildTh('رقم السند', flex: 9),
-          _buildTh('المرجع', flex: 8),
-          _buildTh('البيان', flex: 31),
-          _buildTh('المدين\n(عليه)', flex: 10),
+          _buildTh(isCustomer ? 'الرصيد\n(عليكم/لكم)' : 'الرصيد\n(لنا/لهم)', flex: 11),
           _buildTh('الدائن\n(له)', flex: 10),
-          _buildTh('الرصيد\n(عليكم/لكم)', flex: 11),
+          _buildTh('المدين\n(عليه)', flex: 10),
+          _buildTh('البيان', flex: 31),
+          _buildTh('المرجع', flex: 8),
+          _buildTh('رقم السند', flex: 9),
+          _buildTh('نوع المستند', flex: 13),
+          _buildTh('التاريخ', flex: 11),
         ],
       ),
     );
@@ -355,14 +339,14 @@ class PartyStatementPdfBuilder {
         pw.TableRow(
           decoration: const pw.BoxDecoration(color: _openingBg),
           children: [
+            _buildBalanceTd(report.openingBalance, isCustomer: isCustomer),
+            _buildTd(!isDebit ? _formatNum(report.openingBalance.abs()) : '', align: pw.TextAlign.center, isBold: !isDebit),
+            _buildTd(isDebit ? _formatNum(report.openingBalance) : '', align: pw.TextAlign.center, isBold: isDebit),
+            _buildTd('رصيد افتتاحي مرحل سابق', align: pw.TextAlign.right, isBold: true),
+            _buildTd('-', align: pw.TextAlign.center),
             _buildTd('-', align: pw.TextAlign.center),
             _buildTd('رصيد سابق', align: pw.TextAlign.center, isBold: true),
             _buildTd('-', align: pw.TextAlign.center),
-            _buildTd('-', align: pw.TextAlign.center),
-            _buildTd('رصيد افتتاحي مرحل سابق', align: pw.TextAlign.right, isBold: true),
-            _buildTd(isDebit ? _formatNum(report.openingBalance) : '', align: pw.TextAlign.center, isBold: isDebit),
-            _buildTd(!isDebit ? _formatNum(report.openingBalance.abs()) : '', align: pw.TextAlign.center, isBold: !isDebit),
-            _buildBalanceTd(report.openingBalance, isCustomer: isCustomer),
           ],
         ),
       );
@@ -394,18 +378,18 @@ class PartyStatementPdfBuilder {
         pw.TableRow(
           decoration: pw.BoxDecoration(color: bg),
           children: [
-            _buildTd(_formatDate(line.date), align: pw.TextAlign.center),
-            _buildTd(typeLabel, align: pw.TextAlign.center, isBold: true),
-            _buildTd(line.documentNumber, align: pw.TextAlign.center),
-            _buildTd(line.documentNumber.replaceAll(RegExp(r'[^0-9]'), ''), align: pw.TextAlign.center),
+            _buildBalanceTd(line.runningBalance, isCustomer: isCustomer),
+            _buildTd(line.credit > 0 ? _formatNum(line.credit) : '', align: pw.TextAlign.center, isBold: line.credit > 0),
+            _buildTd(line.debit > 0 ? _formatNum(line.debit) : '', align: pw.TextAlign.center, isBold: line.debit > 0),
             _buildDescriptionTd(
               accountHeading: accountHeading,
               note: line.description,
               isCredit: line.credit > 0,
             ),
-            _buildTd(line.debit > 0 ? _formatNum(line.debit) : '', align: pw.TextAlign.center, isBold: line.debit > 0),
-            _buildTd(line.credit > 0 ? _formatNum(line.credit) : '', align: pw.TextAlign.center, isBold: line.credit > 0),
-            _buildBalanceTd(line.runningBalance, isCustomer: isCustomer),
+            _buildTd(line.documentNumber.replaceAll(RegExp(r'[^0-9]'), ''), align: pw.TextAlign.center),
+            _buildTd(line.documentNumber, align: pw.TextAlign.center),
+            _buildTd(typeLabel, align: pw.TextAlign.center, isBold: true),
+            _buildTd(_formatDate(line.date), align: pw.TextAlign.center),
           ],
         ),
       );
@@ -416,21 +400,21 @@ class PartyStatementPdfBuilder {
       pw.TableRow(
         decoration: const pw.BoxDecoration(color: _totalBg),
         children: [
+          _buildBalanceTd(report.closingBalance, isCustomer: isCustomer, isFinalTotal: true),
+          _buildTd(_formatNum(report.totalCredit), align: pw.TextAlign.center, isBold: true),
+          _buildTd(_formatNum(report.totalDebit), align: pw.TextAlign.center, isBold: true),
           pw.Container(
             padding: const pw.EdgeInsets.symmetric(vertical: 5, horizontal: 6),
             alignment: pw.Alignment.centerRight,
             child: pw.Text(
               'بيان الأرصدة | إجمالي الرصيد (ريال يمني)',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5),
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8.5),
             ),
           ),
-          pw.Container(), // Type
-          pw.Container(), // Doc
-          pw.Container(), // Ref
-          pw.Container(), // Note
-          _buildTd(_formatNum(report.totalDebit), align: pw.TextAlign.center, isBold: true),
-          _buildTd(_formatNum(report.totalCredit), align: pw.TextAlign.center, isBold: true),
-          _buildBalanceTd(report.closingBalance, isCustomer: isCustomer, isFinalTotal: true),
+          pw.Container(), // المرجع
+          pw.Container(), // رقم السند
+          pw.Container(), // نوع المستند
+          pw.Container(), // التاريخ
         ],
       ),
     );
@@ -438,14 +422,14 @@ class PartyStatementPdfBuilder {
     return pw.Table(
       border: border,
       columnWidths: const {
-        0: pw.FlexColumnWidth(11), // التاريخ
-        1: pw.FlexColumnWidth(13), // نوع المستند
-        2: pw.FlexColumnWidth(9),  // رقم السند
-        3: pw.FlexColumnWidth(8),  // المرجع
-        4: pw.FlexColumnWidth(31), // البيان
-        5: pw.FlexColumnWidth(10), // المدين
-        6: pw.FlexColumnWidth(10), // الدائن
-        7: pw.FlexColumnWidth(11), // الرصيد
+        0: pw.FlexColumnWidth(11), // الرصيد (اليسار)
+        1: pw.FlexColumnWidth(10), // الدائن
+        2: pw.FlexColumnWidth(10), // المدين
+        3: pw.FlexColumnWidth(31), // البيان
+        4: pw.FlexColumnWidth(8),  // المرجع
+        5: pw.FlexColumnWidth(9),  // رقم السند
+        6: pw.FlexColumnWidth(13), // نوع المستند
+        7: pw.FlexColumnWidth(11), // التاريخ (اليمين)
       },
       children: rows,
     );

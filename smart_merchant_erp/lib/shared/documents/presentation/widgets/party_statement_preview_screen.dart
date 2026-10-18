@@ -81,6 +81,7 @@ class PartyStatementPreviewScreen extends StatelessWidget {
         allowSharing: true,
         canChangeOrientation: false,
         canChangePageFormat: false,
+        canDebug: false,
         initialPageFormat: PdfPageFormat.a4,
         pdfFileName: 'كشف_حساب_${report.partyName.replaceAll(' ', '_')}.pdf',
         loadingWidget: const Center(
