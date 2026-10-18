@@ -253,7 +253,7 @@ class _CustomersListViewState extends ConsumerState<CustomersListView> {
                                     if (context.mounted) {
                                       showDialog(
                                         context: context,
-                                        builder: (_) => PartyStatementDialog(report: report),
+                                        builder: (_) => PartyStatementDialog(report: report, partyPhone: c.phone),
                                       );
                                     }
                                   },

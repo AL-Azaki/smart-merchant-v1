@@ -533,7 +533,7 @@ class _SupplierStatementViewState extends ConsumerState<_SupplierStatementView> 
                       : () {
                           showDialog(
                             context: context,
-                            builder: (_) => PartyStatementDialog(report: _report!),
+                            builder: (_) => PartyStatementDialog(report: _report!, partyPhone: _supplier?.phone),
                           );
                         },
                   icon: const Icon(Icons.print_rounded, size: 16),

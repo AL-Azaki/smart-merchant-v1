@@ -258,7 +258,7 @@ class _SuppliersListViewState extends ConsumerState<SuppliersListView> {
                                     if (context.mounted) {
                                       showDialog(
                                         context: context,
-                                        builder: (_) => PartyStatementDialog(report: report),
+                                        builder: (_) => PartyStatementDialog(report: report, partyPhone: s.phone),
                                       );
                                     }
                                   },
