@@ -41,86 +41,51 @@ class PartyStatementDialog extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. Header with Title & Action Buttons
+              // 1. Header with Title & Close Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6))
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          isCustomer ? Icons.person_rounded : Icons.business_rounded,
-                          color: isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'كشف حساب تحليلي: ${report.partyName}',
-                            style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: textPrimary),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6))
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          Text(
-                            'رقم الحساب: ${report.partyId} • العملة: ريال يمني',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
+                          child: Icon(
+                            isCustomer ? Icons.person_rounded : Icons.business_rounded,
+                            color: isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6),
+                            size: 24,
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      // زر إرسال واتساب
-                      IconButton(
-                        tooltip: 'إرسال ملخص واتساب',
-                        icon: const Icon(Icons.chat_bubble_rounded, color: Color(0xFF25D366)),
-                        onPressed: () => PartyStatementPdfBuilder.shareViaWhatsApp(
-                          report: report,
-                          phone: partyPhone,
                         ),
-                      ),
-                      // زر مشاركة ملف PDF
-                      IconButton(
-                        tooltip: 'مشاركة ملف PDF',
-                        icon: const Icon(Icons.share_rounded, color: Color(0xFF3B82F6)),
-                        onPressed: () => PartyStatementPdfBuilder.sharePdf(
-                          report: report,
-                        ),
-                      ),
-                      // زر معاينة وطباعة A4
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => PartyStatementPreviewScreen(
-                                report: report,
-                                customerPhone: partyPhone,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'كشف حساب تحليلي: ${report.partyName}',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textPrimary),
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.print_rounded, size: 16),
-                        label: const Text('معاينة وطباعة A4'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              Text(
+                                'رقم الحساب: ${report.partyId} • العملة: ريال يمني',
+                                style: TextStyle(fontSize: 12, color: textSecondary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.close_rounded),
-                      ),
-                    ],
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close_rounded),
+                    tooltip: 'إغلاق',
                   ),
                 ],
               ),
@@ -158,31 +123,39 @@ class PartyStatementDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // 3. Classic 8-Columns Table Header
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-                  border: Border.all(color: borderColor),
-                ),
-                child: const Row(
-                  children: [
-                    SizedBox(width: 80, child: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                    SizedBox(width: 90, child: Text('نوع المستند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                    SizedBox(width: 70, child: Text('رقم السند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                    SizedBox(width: 60, child: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                    Expanded(child: Text('البيان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
-                    SizedBox(width: 90, child: Text('المدين (عليه)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFEF4444)), textAlign: TextAlign.center)),
-                    SizedBox(width: 90, child: Text('الدائن (له)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF10B981)), textAlign: TextAlign.center)),
-                    SizedBox(width: 100, child: Text('الرصيد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                  ],
-                ),
-              ),
-
-              // 4. Table Body
+              // 3 & 4. Classic 8-Columns Table with Horizontal Scroll
               Expanded(
-                child: Container(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: 720,
+                    child: Column(
+                      children: [
+                        // 3. Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: const Row(
+                            children: [
+                              SizedBox(width: 80, child: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 90, child: Text('نوع المستند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 70, child: Text('رقم السند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 60, child: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              Expanded(child: Text('البيان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                              SizedBox(width: 90, child: Text('المدين (عليه)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFEF4444)), textAlign: TextAlign.center)),
+                              SizedBox(width: 90, child: Text('الدائن (له)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF10B981)), textAlign: TextAlign.center)),
+                              SizedBox(width: 100, child: Text('الرصيد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                            ],
+                          ),
+                        ),
+
+                        // 4. Table Body
+                        Expanded(
+                          child: Container(
                   decoration: BoxDecoration(
                     borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
                     border: Border(
@@ -309,6 +282,11 @@ class PartyStatementDialog extends StatelessWidget {
                         ),
                 ),
               ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 10),
 
               // 5. Callout Box with Arabic Tafqeet
@@ -350,55 +328,54 @@ class PartyStatementDialog extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // 6. Bottom Action Buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close_rounded, size: 16),
-                    label: const Text('إغلاق'),
-                  ),
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        onPressed: () => PartyStatementPdfBuilder.shareViaWhatsApp(
-                          report: report,
-                          phone: partyPhone,
-                        ),
-                        icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF25D366)),
-                        label: const Text('إرسال واتساب'),
+              // 6. Bottom Action Buttons (Scrollable on mobile)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: const Text('إغلاق'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => PartyStatementPdfBuilder.shareViaWhatsApp(
+                        report: report,
+                        phone: partyPhone,
                       ),
-                      const SizedBox(width: 8),
-                      OutlinedButton.icon(
-                        onPressed: () => PartyStatementPdfBuilder.sharePdf(
-                          report: report,
-                        ),
-                        icon: const Icon(Icons.share_rounded, size: 16),
-                        label: const Text('مشاركة ملف PDF'),
+                      icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF25D366)),
+                      label: const Text('إرسال واتساب'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => PartyStatementPdfBuilder.sharePdf(
+                        report: report,
                       ),
-                      const SizedBox(width: 8),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => PartyStatementPreviewScreen(
-                                report: report,
-                                customerPhone: partyPhone,
-                              ),
+                      icon: const Icon(Icons.share_rounded, size: 16),
+                      label: const Text('مشاركة PDF'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PartyStatementPreviewScreen(
+                              report: report,
+                              customerPhone: partyPhone,
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.print_rounded, size: 16),
-                        label: const Text('معاينة وطباعة A4'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                        ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text('معاينة وطباعة A4'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
