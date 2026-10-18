@@ -18,7 +18,7 @@ import '../../../accounting/application/services/accounting_application_service.
 import '../../../accounting/domain/repositories/accounting_repository.dart';
 import '../../../../database/daos/accounting_dao.dart';
 import '../../../inventory/domain/repositories/inventory_repository.dart';
-import '../../../core/domain/repositories/core_repository.dart';
+import '../../../../app/di/getit_instance.dart';
 import '../../domain/repositories/purchasing_repository.dart';
 
 class PurchaseItemCommand {
@@ -51,6 +51,9 @@ class RecordPurchaseCommand {
   final String? paymentMethodId;
   final String? supplierInvoiceNumber;
   final DateTime? dueDate;
+  final double? paidAmount;
+  final double? cashAmount;
+  final double? bankAmount;
 
   const RecordPurchaseCommand({
     required this.supplierId,
@@ -62,6 +65,9 @@ class RecordPurchaseCommand {
     this.paymentMethodId,
     this.supplierInvoiceNumber,
     this.dueDate,
+    this.paidAmount,
+    this.cashAmount,
+    this.bankAmount,
   });
 }
 
@@ -74,6 +80,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
   final ProductUnitResolver? _unitResolver;
+  final AppDatabase _db;
   final Uuid _uuid = const Uuid();
 
   RecordPurchaseUseCase(
@@ -86,10 +93,12 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     this._transactionRunner, {
     ProductUnitResolver? unitResolver,
     CatalogRepository? catalogRepository,
-  }) : _unitResolver = unitResolver ??
+    AppDatabase? db,
+  })  : _unitResolver = unitResolver ??
             (catalogRepository != null
                 ? ProductUnitResolver(catalogRepository)
-                : null);
+                : null),
+        _db = db ?? getIt<AppDatabase>();
 
   @override
   Future<Either<Failure, String>> call(RecordPurchaseCommand params) async {
@@ -116,35 +125,146 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       );
     }
 
-    // 1. Resolve Accounting Mappings
-    String creditAccountId;
-    String? treasuryPaymentMethodId;
-
-    if (params.isCreditPurchase) {
-      final apIdResult = await _accountingService.resolveAccountMapping(
-        'accounts_payable',
+    // 0. Pre-Condition Guards: Guarantee DB integrity for Offline-First operations
+    // Guard 1: Ensure User exists in usersTable (strictly prevents FOREIGN KEY constraint failed on created_by)
+    final userCheck = await (_db.select(_db.usersTable)..where((t) => t.id.equals(userId))).getSingleOrNull();
+    if (userCheck == null) {
+      await _db.into(_db.usersTable).insertOnConflictUpdate(
+        UsersTableCompanion.insert(
+          id: drift.Value(userId),
+          email: '$userId@smartmerchant.com',
+          passwordHash: '',
+          firstName: 'المدير',
+          lastName: 'العام',
+          isActive: const drift.Value(true),
+        ),
       );
-      if (apIdResult.isLeft()) {
-        return Left(apIdResult.fold((l) => l, (r) => throw Exception()));
-      }
-      creditAccountId = apIdResult.getOrElse(() => '');
+    }
+
+    // Guard 2: Ensure Branch exists in branches table
+    final branchCheck = await (_db.select(_db.branches)..where((t) => t.businessId.equals(businessId) & t.id.equals(branchId))).getSingleOrNull();
+    if (branchCheck == null) {
+      await _db.into(_db.branches).insertOnConflictUpdate(
+        BranchesCompanion.insert(
+          id: branchId,
+          businessId: businessId,
+          branchName: 'الفرع الرئيسي',
+          branchCode: 'MAIN',
+          isActive: const drift.Value(true),
+        ),
+      );
+    }
+
+    // Guard 3: Ensure Business exists in businesses table
+    final businessCheck = await (_db.select(_db.businesses)..where((t) => t.id.equals(businessId))).getSingleOrNull();
+    if (businessCheck == null) {
+      final dummyAccountId = 'system-account-$userId';
+      await _db.into(_db.accountsTable).insertOnConflictUpdate(
+        AccountsTableCompanion.insert(
+          id: drift.Value(dummyAccountId),
+          ownerId: userId,
+          businessName: 'المتجر الرئيسي',
+          businessType: 'Retail',
+          defaultCurrency: params.currencyId,
+        ),
+      );
+      await _db.into(_db.businesses).insertOnConflictUpdate(
+        BusinessesCompanion.insert(
+          id: businessId,
+          accountId: dummyAccountId,
+          businessName: 'المتجر الرئيسي',
+          businessType: const drift.Value('Retail'),
+          status: const drift.Value('Active'),
+        ),
+      );
+    }
+
+    // Guard 4: Validate Supplier exists in suppliers table
+    final supplierCheck = await (_db.select(_db.suppliers)..where((s) => s.businessId.equals(businessId) & s.id.equals(params.supplierId))).getSingleOrNull();
+    if (supplierCheck == null) {
+      return const Left(ValidationFailure('المورد المحدد غير مسجل في قاعدة البيانات المحلية.'));
+    }
+
+    // Guard 5: Validate Warehouse exists in warehouses table
+    final whId = params.items.first.warehouseId;
+    final warehouseCheck = await (_db.select(_db.warehouses)..where((w) => w.businessId.equals(businessId) & w.id.equals(whId))).getSingleOrNull();
+    if (warehouseCheck == null) {
+      return const Left(ValidationFailure('المخزن المحدد غير مسجل في قاعدة البيانات المحلية.'));
+    }
+
+    // 1. Resolve Accounting Mappings
+    final apIdResult = await _accountingService.resolveAccountMapping(
+      'accounts_payable',
+    );
+    if (apIdResult.isLeft()) {
+      return Left(apIdResult.fold((l) => l, (r) => throw Exception()));
+    }
+    final accountsPayableId = apIdResult.getOrElse(() => '');
+
+    // Resolve Cash Account & Payment Method
+    String resolvedCashAccountId = '';
+    PaymentMethod? resolvedCashPaymentMethod =
+        await _treasuryRepository.getPaymentMethodByCode('CASH', businessId);
+    if (resolvedCashPaymentMethod != null) {
+      resolvedCashAccountId = resolvedCashPaymentMethod.chartOfAccountId;
     } else {
-      if (params.paymentMethodId == null) {
-        return const Left(
-          ValidationFailure('Payment method is required for cash purchases.'),
-        );
+      final cashMainResult =
+          await _accountingService.resolveAccountMapping('cash_main');
+      if (cashMainResult.isRight()) {
+        resolvedCashAccountId = cashMainResult.getOrElse(() => '');
+      } else {
+        resolvedCashAccountId = accountsPayableId;
       }
-      final paymentMethod = await _treasuryRepository.getPaymentMethodById(
+    }
+
+    // Resolve Bank / Network / Wallet Account & Payment Method
+    String resolvedBankAccountId = '';
+    PaymentMethod? resolvedBankPaymentMethod =
+        await _treasuryRepository.getPaymentMethodByCode('BANK', businessId) ??
+        await _treasuryRepository.getPaymentMethodByCode('CARD', businessId);
+
+    if (resolvedBankPaymentMethod == null) {
+      final activeMethods = await _treasuryRepository.listPaymentMethods(businessId, isActive: true);
+      resolvedBankPaymentMethod = activeMethods.where((m) =>
+          m.paymentType == 'Bank' ||
+          m.paymentType == 'DigitalWallet' ||
+          m.paymentType == 'Card').firstOrNull;
+    }
+
+    if (resolvedBankPaymentMethod != null) {
+      resolvedBankAccountId = resolvedBankPaymentMethod.chartOfAccountId;
+    } else {
+      final bankMainResult =
+          await _accountingService.resolveAccountMapping('bank_main');
+      if (bankMainResult.isRight()) {
+        resolvedBankAccountId = bankMainResult.getOrElse(() => '');
+      } else {
+        resolvedBankAccountId = resolvedCashAccountId.isNotEmpty
+            ? resolvedCashAccountId
+            : accountsPayableId;
+      }
+    }
+
+    // Custom payment method passed
+    if (params.paymentMethodId != null &&
+        params.paymentMethodId != 'CASH' &&
+        params.paymentMethodId != 'BANK' &&
+        params.paymentMethodId != 'CARD' &&
+        params.paymentMethodId != 'SPLIT' &&
+        params.paymentMethodId != 'CREDIT') {
+      final customPm = await _treasuryRepository.getPaymentMethodById(
         params.paymentMethodId!,
         businessId,
       );
-      if (paymentMethod == null || !paymentMethod.isActive) {
-        return const Left(
-          ValidationFailure('Invalid or inactive payment method.'),
-        );
+      if (customPm != null) {
+        if (customPm.paymentType == 'Bank' || customPm.paymentType == 'Card') {
+          resolvedBankPaymentMethod = customPm;
+          resolvedBankAccountId = customPm.chartOfAccountId;
+        } else if (customPm.paymentType == 'Cash') {
+          resolvedCashPaymentMethod = customPm;
+          resolvedCashAccountId = customPm.chartOfAccountId;
+        }
       }
-      creditAccountId = paymentMethod.chartOfAccountId;
-      treasuryPaymentMethodId = paymentMethod.id;
     }
 
     final inventoryAssetIdResult = await _accountingService
@@ -177,7 +297,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     }
     final grandTotal = totalCost;
 
-    // 3. Prepare Purchase Entities
+    // 3. Prepare Purchase Entities & Split/Partial Payment Calculations
     final invoiceId = _uuid.v4();
     final invoiceNumber = 'PINV-${DateTime.now().millisecondsSinceEpoch}';
     final invoiceDate = DateTime.now();
@@ -187,6 +307,36 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         (params.dueDate != null && params.dueDate!.isBefore(invoiceDate))
         ? invoiceDate
         : params.dueDate;
+
+    // Calculate effective cash, bank, and remaining payables amounts
+    double effectiveCash = 0.0;
+    double effectiveBank = 0.0;
+
+    if (params.cashAmount != null || params.bankAmount != null) {
+      effectiveCash = (params.cashAmount ?? 0.0).clamp(0.0, grandTotal);
+      final maxBank = (grandTotal - effectiveCash).clamp(0.0, grandTotal);
+      effectiveBank = (params.bankAmount ?? 0.0).clamp(0.0, maxBank);
+    } else if (params.paidAmount != null) {
+      final p = params.paidAmount!.clamp(0.0, grandTotal);
+      final methodUpper = (params.paymentMethodId ?? '').toUpperCase();
+      if (methodUpper == 'BANK' || methodUpper == 'CARD' || methodUpper == 'NETWORK') {
+        effectiveBank = p;
+      } else {
+        effectiveCash = p;
+      }
+    } else {
+      if (!params.isCreditPurchase) {
+        final methodUpper = (params.paymentMethodId ?? '').toUpperCase();
+        if (methodUpper == 'BANK' || methodUpper == 'CARD' || methodUpper == 'NETWORK') {
+          effectiveBank = grandTotal;
+        } else {
+          effectiveCash = grandTotal;
+        }
+      }
+    }
+
+    final effectiveTotalPaid = PrecisionMath.roundMoney(effectiveCash + effectiveBank);
+    final remainingAmount = PrecisionMath.roundMoney(grandTotal - effectiveTotalPaid);
 
     final invoiceCompanion = PurchaseInvoicesCompanion.insert(
       id: invoiceId,
@@ -208,7 +358,11 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       baseTaxTotal: drift.Value(taxTotal * params.exchangeRate),
       baseGrandTotal: drift.Value(grandTotal * params.exchangeRate),
       status: const drift.Value('Posted'),
-      paymentStatus: drift.Value(params.isCreditPurchase ? 'Unpaid' : 'Paid'),
+      paymentStatus: drift.Value(
+        effectiveTotalPaid >= grandTotal - 0.001
+            ? 'Paid'
+            : (effectiveTotalPaid > 0.001 ? 'Partial' : 'Unpaid'),
+      ),
       createdBy: userId,
       notes: drift.Value(params.notes),
     );
@@ -233,7 +387,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     }).toList();
 
     SupplierPayablesCompanion? payableCompanion;
-    if (params.isCreditPurchase) {
+    if (remainingAmount > 0.001 || params.isCreditPurchase) {
       payableCompanion = SupplierPayablesCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
@@ -242,12 +396,16 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         purchaseInvoiceId: invoiceId,
         dueDate: drift.Value(effectiveDueDate),
         originalAmount: grandTotal,
-        paidAmount: const drift.Value(0.0),
-        remainingAmount: grandTotal,
+        paidAmount: drift.Value(effectiveTotalPaid),
+        remainingAmount: remainingAmount,
         baseOriginalAmount: grandTotal * params.exchangeRate,
-        basePaidAmount: const drift.Value(0.0),
-        baseRemainingAmount: grandTotal * params.exchangeRate,
-        status: const drift.Value('Unpaid'),
+        basePaidAmount: drift.Value(effectiveTotalPaid * params.exchangeRate),
+        baseRemainingAmount: remainingAmount * params.exchangeRate,
+        status: drift.Value(
+          effectiveTotalPaid >= grandTotal - 0.001
+              ? 'Paid'
+              : (effectiveTotalPaid > 0.001 ? 'Partial' : 'Unpaid'),
+        ),
       );
     }
 
@@ -284,40 +442,97 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       );
     }).toList();
 
-    // Treasury Payment (If Cash Purchase)
-    PaymentsCompanion? paymentCompanion;
-    if (!params.isCreditPurchase && treasuryPaymentMethodId != null) {
-      paymentCompanion = PaymentsCompanion.insert(
-        id: _uuid.v4(),
-        businessId: businessId,
-        branchId: branchId,
-        paymentNumber: 'PAY-${DateTime.now().millisecondsSinceEpoch}',
-        paymentDate: drift.Value(invoiceDate),
-        paymentMethodId: treasuryPaymentMethodId,
-        chartOfAccountId: creditAccountId,
-        currencyId: params.currencyId,
-        exchangeRate: drift.Value(params.exchangeRate),
-        amount: grandTotal,
-        baseAmount: grandTotal * params.exchangeRate,
-        paymentType: 'Payment',
-        contactType: const drift.Value('Supplier'),
-        contactId: drift.Value(params.supplierId),
-        status: const drift.Value('Posted'),
-        notes: drift.Value(params.notes ?? 'Cash Purchase: $invoiceNumber'),
-        createdBy: userId,
-        postedBy: drift.Value(userId),
-        postedAt: drift.Value(invoiceDate),
+    // Treasury Payment Vouchers
+    final List<PaymentsCompanion> paymentsToRecord = [];
+    if (effectiveCash > 0.001 && resolvedCashPaymentMethod != null) {
+      paymentsToRecord.add(
+        PaymentsCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          branchId: branchId,
+          paymentNumber: 'PAY-CASH-${DateTime.now().millisecondsSinceEpoch}',
+          paymentDate: drift.Value(invoiceDate),
+          paymentMethodId: resolvedCashPaymentMethod.id,
+          chartOfAccountId: resolvedCashAccountId,
+          currencyId: params.currencyId,
+          exchangeRate: drift.Value(params.exchangeRate),
+          amount: effectiveCash,
+          baseAmount: effectiveCash * params.exchangeRate,
+          paymentType: 'Payment',
+          contactType: const drift.Value('Supplier'),
+          contactId: drift.Value(params.supplierId),
+          status: const drift.Value('Posted'),
+          notes: drift.Value(params.notes ?? 'سداد نقدي لفاتورة مشتريات $invoiceNumber'),
+          createdBy: userId,
+          postedBy: drift.Value(userId),
+          postedAt: drift.Value(invoiceDate),
+        ),
+      );
+    }
+    if (effectiveBank > 0.001 && resolvedBankPaymentMethod != null) {
+      paymentsToRecord.add(
+        PaymentsCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          branchId: branchId,
+          paymentNumber: 'PAY-BANK-${DateTime.now().millisecondsSinceEpoch}',
+          paymentDate: drift.Value(invoiceDate),
+          paymentMethodId: resolvedBankPaymentMethod.id,
+          chartOfAccountId: resolvedBankAccountId,
+          currencyId: params.currencyId,
+          exchangeRate: drift.Value(params.exchangeRate),
+          amount: effectiveBank,
+          baseAmount: effectiveBank * params.exchangeRate,
+          paymentType: 'Payment',
+          contactType: const drift.Value('Supplier'),
+          contactId: drift.Value(params.supplierId),
+          status: const drift.Value('Posted'),
+          notes: drift.Value(params.notes ?? 'سداد شبكة / بنك لفاتورة مشتريات $invoiceNumber'),
+          createdBy: userId,
+          postedBy: drift.Value(userId),
+          postedAt: drift.Value(invoiceDate),
+        ),
       );
     }
 
     // 5. Prepare Journal Entry
-    final periods = await _accountingRepository.listFiscalPeriods(
+    var periods = await _accountingRepository.listFiscalPeriods(
       FiscalPeriodFilter(businessId: businessId, status: 'Open'),
     );
     if (periods.isEmpty) {
+      final currentYear = DateTime.now().year;
+      final fyId = _uuid.v4();
+      await _db.into(_db.fiscalYears).insertOnConflictUpdate(
+        FiscalYearsCompanion.insert(
+          id: fyId,
+          businessId: businessId,
+          fiscalYearCode: 'FY-$currentYear',
+          fiscalYearName: 'السنة المالية $currentYear',
+          startDate: DateTime(currentYear, 1, 1),
+          endDate: DateTime(currentYear, 12, 31),
+          status: const drift.Value('Open'),
+        ),
+      );
+      await _db.into(_db.fiscalPeriods).insert(
+        FiscalPeriodsCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          fiscalYearId: fyId,
+          periodNumber: 1,
+          periodName: 'الفترة المالية $currentYear',
+          startDate: DateTime(currentYear, 1, 1),
+          endDate: DateTime(currentYear, 12, 31),
+          status: const drift.Value('Open'),
+        ),
+      );
+      periods = await _accountingRepository.listFiscalPeriods(
+        FiscalPeriodFilter(businessId: businessId, status: 'Open'),
+      );
+    }
+    if (periods.isEmpty) {
       return const Left(
         BusinessValidationFailure(
-          'No active fiscal period found for accounting posting.',
+          'تعذر العثور على أو إنشاء فترة مالية نشطة لقيد المعاملة.',
         ),
       );
     }
@@ -340,7 +555,7 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       documentNumber: drift.Value(invoiceNumber),
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
-      description: drift.Value('Purchase Invoice $invoiceNumber'),
+      description: drift.Value('فاتورة مشتريات رقم $invoiceNumber'),
       status: const drift.Value('Posted'),
       createdBy: userId,
       postedBy: drift.Value(userId),
@@ -365,24 +580,63 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
         type: 'Debit',
         foreignAmount: drift.Value(grandTotal),
         baseAmount: drift.Value(baseGrandTotal),
-        description: const drift.Value('Inventory Addition'),
-      ),
-      // Credit: Accounts Payable (or Cash)
-      JournalEntryLinesCompanion.insert(
-        id: _uuid.v4(),
-        businessId: businessId,
-        journalEntryId: journalId,
-        chartOfAccountId: creditAccountId,
-        currencyId: params.currencyId,
-        lineNumber: lineSequence++,
-        type: 'Credit',
-        foreignAmount: drift.Value(grandTotal),
-        baseAmount: drift.Value(baseGrandTotal),
-        description: drift.Value(
-          params.isCreditPurchase ? 'Purchase Liability' : 'Cash Payment',
-        ),
+        description: const drift.Value('توريد مخزون مشتريات'),
       ),
     ];
+
+    // Credit 1: Cash Payment (if effectiveCash > 0)
+    if (effectiveCash > 0.001) {
+      journalLines.add(
+        JournalEntryLinesCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          journalEntryId: journalId,
+          chartOfAccountId: resolvedCashAccountId,
+          currencyId: params.currencyId,
+          lineNumber: lineSequence++,
+          type: 'Credit',
+          foreignAmount: drift.Value(effectiveCash),
+          baseAmount: drift.Value(effectiveCash * params.exchangeRate),
+          description: const drift.Value('مدفوعات مشتريات نقدية'),
+        ),
+      );
+    }
+
+    // Credit 2: Bank / Card Payment (if effectiveBank > 0)
+    if (effectiveBank > 0.001) {
+      journalLines.add(
+        JournalEntryLinesCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          journalEntryId: journalId,
+          chartOfAccountId: resolvedBankAccountId,
+          currencyId: params.currencyId,
+          lineNumber: lineSequence++,
+          type: 'Credit',
+          foreignAmount: drift.Value(effectiveBank),
+          baseAmount: drift.Value(effectiveBank * params.exchangeRate),
+          description: const drift.Value('مدفوعات مشتريات شبكة وبنك'),
+        ),
+      );
+    }
+
+    // Credit 3: Accounts Payable (if remainingAmount > 0)
+    if (remainingAmount > 0.001) {
+      journalLines.add(
+        JournalEntryLinesCompanion.insert(
+          id: _uuid.v4(),
+          businessId: businessId,
+          journalEntryId: journalId,
+          chartOfAccountId: accountsPayableId,
+          currencyId: params.currencyId,
+          lineNumber: lineSequence++,
+          type: 'Credit',
+          foreignAmount: drift.Value(remainingAmount),
+          baseAmount: drift.Value(remainingAmount * params.exchangeRate),
+          description: const drift.Value('ذمم موردين مشتريات آجلة'),
+        ),
+      );
+    }
 
     // 6. Execute Transaction
     try {
@@ -467,9 +721,9 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
           }
         }
 
-        // Record Treasury Payment if applicable
-        if (paymentCompanion != null) {
-          await _treasuryRepository.insertPayment(paymentCompanion);
+        // Record Treasury Payments if applicable
+        for (final payment in paymentsToRecord) {
+          await _treasuryRepository.insertPayment(payment);
         }
 
         // Post Accounting Journal

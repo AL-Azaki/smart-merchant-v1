@@ -23,7 +23,7 @@ class ChartOfAccountsNotifier extends _$ChartOfAccountsNotifier {
     final repo = ref.watch(accountingRepositoryProvider);
 
     return repo.watchChartOfAccounts(
-      ChartOfAccountFilter(businessId: session.businessId!),
+      ChartOfAccountFilter(businessId: session.businessId!, limit: null),
     );
   }
 }

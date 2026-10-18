@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../../kernel/storage/app_database.dart';
+import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../purchasing/presentation/providers/purchasing_provider.dart';

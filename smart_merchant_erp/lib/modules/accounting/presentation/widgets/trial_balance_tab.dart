@@ -55,7 +55,7 @@ class _TrialBalanceTabState extends ConsumerState<TrialBalanceTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'ميزان المراجعة (Trial Balance)',
+                          'ميزان المراجعة',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
                         ),
                         Text(

@@ -71,8 +71,16 @@ class UnitCommand {
   final String? id;
   final String name;
   final String symbol;
+  final String? description;
+  final bool isActive;
 
-  const UnitCommand({this.id, required this.name, required this.symbol});
+  const UnitCommand({
+    this.id,
+    required this.name,
+    required this.symbol,
+    this.description,
+    this.isActive = true,
+  });
 }
 
 class CatalogApplicationService {
@@ -315,6 +323,8 @@ class CatalogApplicationService {
         businessId: drift.Value(businessId),
         unitName: drift.Value(command.name),
         unitSymbol: drift.Value(command.symbol),
+        unitDescription: drift.Value(command.description),
+        isActive: drift.Value(command.isActive),
         syncStatus: const drift.Value('pending'),
       );
 

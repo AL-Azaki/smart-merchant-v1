@@ -18,6 +18,7 @@ class AppColors {
 
   static const Color backgroundDark = Color(0xFF111827);
   static const Color surfaceDark = Color(0xFF1F2937);
+  static const Color surfaceVariantDark = Color(0xFF374151);
 
   // Typography Colors (Grays)
   static const Color textPrimaryLight = Color(0xFF111827); // Gray 900

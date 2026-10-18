@@ -20,7 +20,7 @@ alwaysApply: false
 const flutterBestPractices = [
     "Adapt to existing project architecture while maintaining clean code principles",
     "Use Flutter 3.x features and Material 3 design",
-    "Implement clean architecture with BLoC pattern",
+    "Follow the existing modular architecture with Riverpod state management",
     "Follow proper state management principles",
     "Use proper dependency injection",
     "Implement proper error handling",
@@ -34,25 +34,32 @@ const flutterBestPractices = [
 
 const projectStructure = `
 lib/
-  core/
-    constants/
-    theme/
-    utils/
-    widgets/
-  features/
-    feature_name/
-      data/
-        datasources/
-        models/
-        repositories/
-      domain/
-        entities/
-        repositories/
+  app/
+    config/
+    di/
+  kernel/
+    storage/
+    sync/
+  database/
+    tables/
+    converters/
+    daos/
+  modules/
+    module_name/
+      application/
+        services/
         usecases/
+      domain/
+        repositories/
+      infrastructure/
+        repositories/
       presentation/
-        bloc/
+        providers/
         pages/
         widgets/
+  shared/
+    design_system/
+    documents/
   l10n/
   main.dart
 test/
@@ -60,6 +67,9 @@ test/
   widget/
   integration/
 `;
+
+// Read README.md at the repository root for the current documentation index.
+// Schema definitions in Dart and Laravel migrations override old design assumptions.
 
 // Coding Guidelines
 
@@ -70,7 +80,7 @@ const codingGuidelines = `
 4. Use proper widget composition
 5. Implement proper routing using GoRouter
 6. Use proper form validation
-7. Follow proper state management with BLoC
+7. Follow existing Riverpod state management; do not introduce BLoC
 8. Implement proper dependency injection using GetIt
 9. Use proper asset management
 10. Follow proper testing practices

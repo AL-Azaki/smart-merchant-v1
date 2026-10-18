@@ -8,6 +8,10 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   CatalogRepositoryImpl(this._dao);
 
+  @override
+  Stream<List<ProductCatalogEntry>> watchProductCatalog(String businessId) =>
+      RepositoryErrorGuard.guardStream(_dao.watchProductCatalog(businessId));
+
   // Categories
   @override
   Future<Category?> getCategoryById(

@@ -604,7 +604,7 @@ class _AccountStatementReportProviderElement
 }
 
 String _$chartOfAccountsNotifierHash() =>
-    r'6111f57eff797fb4544ed261f901a6051e044e5f';
+    r'396f5c69cdcae2401df5e5aca278db071d7c33f7';
 
 /// See also [ChartOfAccountsNotifier].
 @ProviderFor(ChartOfAccountsNotifier)

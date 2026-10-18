@@ -11,6 +11,8 @@ import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/usecases/process_sales_return_usecase.dart';
 import '../providers/sales_provider.dart';
+import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
+import '../mappers/sales_invoice_document_mapper.dart';
 
 class ReturnsModal extends ConsumerStatefulWidget {
   final SalesInvoiceWithItems? initialInvoice;
@@ -252,11 +254,17 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
         },
         (returnId) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
+            SnackBar(
+              content: const Text(
                 'تم تسجيل مرتجع المبيعات وتحديث المخزون والقيود المحاسبية بنجاح',
               ),
-              backgroundColor: Color(0xFF10B981),
+              backgroundColor: const Color(0xFF10B981),
+              action: SnackBarAction(
+                label: 'طباعة الفاتورة',
+                textColor: Colors.white,
+                onPressed: () => _printReturnInvoice(returnId),
+              ),
+              duration: const Duration(seconds: 6),
             ),
           );
 
@@ -282,6 +290,35 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
           ),
         );
       }
+    }
+  }
+
+  Future<void> _printReturnInvoice(String returnId) async {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final mapper = getIt<SalesInvoiceDocumentMapper>();
+      final docData = await mapper.mapReturnToDocumentData(returnId);
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      Navigator.push<void>(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => CommercialDocumentPreviewScreen(document: docData),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context, rootNavigator: true).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('خطأ في استخراج فاتورة المرتجع: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
 
@@ -589,6 +626,7 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
                               ),
                             ),
                           ),
+                          const SizedBox(width: 44),
                         ],
                       ),
                     ),
@@ -707,6 +745,15 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
                                       fontFamily: 'monospace',
                                     ),
                                   ),
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.print_rounded, size: 18),
+                                  tooltip: 'طباعة فاتورة المرتجع',
+                                  visualDensity: VisualDensity.compact,
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                  onPressed: () => _printReturnInvoice(ret.id),
                                 ),
                               ],
                             ),

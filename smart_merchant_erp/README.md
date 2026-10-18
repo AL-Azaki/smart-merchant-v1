@@ -1,16 +1,39 @@
-# smart_merchant_erp
+# تطبيق التاجر الذكي
 
-A new Flutter project.
+تطبيق Flutter يستخدم Riverpod وGetIt وGoRouter وDrift/SQLite. راجع [فهرس المشروع](../README.md) قبل التعديل. متطلبات Dart والاعتماديات المعتمدة في [pubspec.yaml](pubspec.yaml) ونسخها المثبتة في [pubspec.lock](pubspec.lock).
 
-## Getting Started
+## التشغيل
 
-This project is a starting point for a Flutter application.
+من هذا المجلد، بعد تجهيز Flutter وأدوات المنصة:
 
-A few resources to get you started if this is your first Flutter project:
+```sh
+flutter pub get
+flutter run --dart-define=APP_ENV=development
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+البيئة الافتراضية عند عدم تحديدها هي `production`. عناوين الخادم معرفة في [AppEnvironment](lib/app/config/app_environment.dart): التطوير يستخدم `http://10.0.2.2:8000/api` لمحاكي أندرويد. الجهاز الفعلي يحتاج عنواناً يمكنه الوصول إليه وتكوين الاتصال المناسب في هذا الملف؛ لا يوجد حالياً متغير `API_BASE_URL` موصول بهذا الإعداد. عنوان الإنتاج الموجود في المصدر إعداد للتطبيق، وليس دليلاً على توفر خدمة منشورة.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+تسجيل الدخول الحقيقي يمر عبر Laravel وتهيئة الجلسة وتسجيل الجهاز. لا تفترض أن أول تسجيل دخول يعمل دون اتصال.
+
+## توليد الملفات والتحقق
+
+```sh
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze
+flutter test
+flutter build apk --debug --target-platform android-arm64
+```
+
+حدد معمارية الجهاز المطلوبة عند البناء. لا تعدل ملفات `.g.dart` يدوياً. تفاصيل الاختبارات ونتائج آخر نطاق تم التحقق منه في [مرجع التحقق](../docs/TESTING.md).
+
+## وضع الاختبار والدخول التجريبي
+
+يمكن تفعيل تجاوز المصادقة تلقائياً في بيئة تطوير أو اختبار فقط:
+
+```sh
+flutter run --dart-define=APP_ENV=qa --dart-define=ENABLE_QA_AUTH_BYPASS=true
+```
+
+الكود الحالي يفعّل جلسة بمعرّفات اختبار ثابتة؛ لا ينشئ بيانات مترابطة تلقائياً عند تفعيل الجلسة. `QaDataSeeder` موجود لاستخدام الاختبارات الصريح، ولم يعد يستدعى من `SessionNotifier`.
+
+يوجد أيضاً مسار `loginAsDemo` من الواجهة يستدعي الجلسة التجريبية مباشرة. لذلك تعطيل علم التجاوز وحده لا يثبت إغلاق جميع مسارات الدخول التجريبي؛ راجع [متطلبات الإطلاق](../docs/STATUS.md). استخدم بيانات اختبار منفصلة؛ بيانات الاختبار السابقة لا تُحذف تلقائياً بمجرد تغيير البيئة.

@@ -2,7 +2,6 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/error/failures.dart';
-import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/sales_dao.dart';
 import '../../application/sales_calculator.dart';
 import '../../application/usecases/complete_sale_usecase.dart';
@@ -329,6 +328,7 @@ class PosNotifier extends _$PosNotifier {
   /// Executes the actual sale using the Application Layer UseCase.
   Future<void> submitSale({
     required double cashReceived,
+    double bankReceived = 0.0,
     required String paymentMethodId,
   }) async {
     if (state.isSubmitting) return;
@@ -381,16 +381,37 @@ class PosNotifier extends _$PosNotifier {
       );
     }).toList();
 
-    final isCredit = paymentMethodId == 'CREDIT' ||
-        (paymentMethodId != 'CASH' &&
-            paymentMethodId != 'CARD' &&
-            cashReceived < (state.totals.grandTotal - 0.01));
+    final total = state.totals.grandTotal;
+    double resolvedCash = cashReceived;
+    double resolvedBank = bankReceived;
+
+    if (state.customerId == null) {
+      // Walk-in customer: cannot leave remaining unpaid credit
+      final methodUpper = paymentMethodId.toUpperCase();
+      if (methodUpper == 'SPLIT') {
+        // Multi-payment (Cash + Bank): preserve the split amounts entered
+        resolvedCash = cashReceived;
+        resolvedBank = bankReceived;
+      } else if (methodUpper == 'BANK' || methodUpper == 'CARD' || methodUpper == 'NETWORK') {
+        resolvedBank = total;
+        resolvedCash = 0.0;
+      } else {
+        resolvedCash = total;
+        resolvedBank = 0.0;
+      }
+    }
+
+    final totalPaid = resolvedCash + resolvedBank;
+    final isCredit = totalPaid < (total - 0.001);
 
     final command = CompleteSaleCommand(
       customerId: state.customerId,
       currencyId: state.currencyId,
       isCreditSale: isCredit,
       paymentMethodId: paymentMethodId,
+      paidAmount: totalPaid,
+      cashAmount: resolvedCash,
+      bankAmount: resolvedBank,
       items: items,
     );
 

@@ -1,3 +1,4 @@
+import '../../modules/inventory/application/services/stock_count_workflow.dart';
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
@@ -171,9 +172,10 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => GetStockCountsUseCase(getIt(), getIt()));
   getIt.registerLazySingleton(() => GetStockCountDetailsUseCase(getIt(), getIt()));
   getIt.registerLazySingleton(() => ProcessStockAdjustmentUseCase(getIt(), getIt(), getIt()));
-  getIt.registerLazySingleton(() => ProcessWarehouseTransferUseCase(getIt(), getIt(), getIt()));
-  getIt.registerLazySingleton(() => SaveStockCountUseCase(getIt(), getIt()));
-  getIt.registerLazySingleton(() => PostStockCountUseCase(getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => ProcessWarehouseTransferUseCase(getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => StockCountWorkflow(getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => SaveStockCountUseCase(getIt()));
+  getIt.registerLazySingleton(() => PostStockCountUseCase(getIt()));
 
   // Sales
   getIt.registerLazySingleton(() => CustomerApplicationService(getIt(), getIt()));

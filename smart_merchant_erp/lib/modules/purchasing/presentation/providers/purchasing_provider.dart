@@ -281,28 +281,59 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
           .toList();
 
       // check payment
-      double totalPaid = 0;
-      String? activePaymentMethodId;
-      state.paymentAmounts.forEach((key, value) {
-        if (key != 'Other') {
-          totalPaid += double.tryParse(value) ?? 0;
-          activePaymentMethodId = key;
-        }
-      });
-
       double grandTotal = 0;
       for (final item in validItems) {
         grandTotal += item.quantity * item.purchasePrice;
       }
 
-      if (totalPaid > 0 && totalPaid < grandTotal) {
-        state = state.copyWith(
-          isSubmitting: false,
-          error: const ValidationFailure(
-            'CAPABILITY GAP: الدفع الجزئي غير مدعوم حالياً',
-          ),
-        );
-        return false;
+      final session = ref.read(sessionNotifierProvider);
+      final businessId = session.businessId ?? '';
+      final treasuryRepo = ref.read(treasuryRepositoryProvider);
+      final paymentMethods = await treasuryRepo.listPaymentMethods(businessId, isActive: true);
+
+      double totalPaid = 0;
+      double cashPaid = 0;
+      double bankPaid = 0;
+      String? activePaymentMethodId;
+
+      state.paymentAmounts.forEach((key, value) {
+        if (key != 'Other') {
+          final amt = double.tryParse(value) ?? 0;
+          if (amt > 0) {
+            totalPaid += amt;
+            activePaymentMethodId = key;
+            final matchedPm = paymentMethods
+                .where((m) => m.id == key || m.methodCode == key)
+                .firstOrNull;
+            if (matchedPm != null &&
+                (matchedPm.paymentType == 'Bank' ||
+                    matchedPm.paymentType == 'Card')) {
+              bankPaid += amt;
+            } else {
+              cashPaid += amt;
+            }
+          }
+        }
+      });
+
+      // If user selected a payment method but left amount blank (implying full payment)
+      if (totalPaid == 0 && state.paymentAmounts.isNotEmpty) {
+        final nonOther = state.paymentAmounts.keys.where((k) => k != 'Other').toList();
+        if (nonOther.isNotEmpty) {
+          final firstKey = nonOther.first;
+          final matchedPm = paymentMethods
+              .where((m) => m.id == firstKey || m.methodCode == firstKey)
+              .firstOrNull;
+          if (matchedPm != null &&
+              (matchedPm.paymentType == 'Bank' ||
+                  matchedPm.paymentType == 'Card')) {
+            bankPaid = grandTotal;
+          } else {
+            cashPaid = grandTotal;
+          }
+          totalPaid = grandTotal;
+          activePaymentMethodId = firstKey;
+        }
       }
 
       bool isCredit = totalPaid < grandTotal;
@@ -317,7 +348,10 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
             : state.invoiceRef,
         dueDate: DateTime.now(),
         isCreditPurchase: isCredit,
-        paymentMethodId: isCredit ? null : activePaymentMethodId,
+        paymentMethodId: activePaymentMethodId,
+        paidAmount: totalPaid,
+        cashAmount: cashPaid,
+        bankAmount: bankPaid,
       );
 
       final result = await useCase(command);
@@ -390,7 +424,6 @@ Stream<List<Warehouse>> _activeWarehousesStream(Ref ref)  {
   return repo.watchWarehouses(
     WarehouseFilter(
       businessId: session.businessId!,
-      branchId: session.branchId,
     ),
   );
 }

@@ -63,53 +63,248 @@ void main() {
     );
 
     // Seed master Business & Branch & User
-    await db.into(db.businesses).insert(
-      BusinessesCompanion.insert(
-        id: businessId,
-        accountId: 'acc-phase2-test',
-        businessName: 'Phase 2 Test Enterprise',
-        status: const drift.Value('Active'),
-      ),
-    );
-    await db.into(db.branches).insert(
-      BranchesCompanion.insert(
-        id: branchId,
-        businessId: businessId,
-        branchCode: 'MAIN',
-        branchName: 'Main Branch',
-        isActive: const drift.Value(true),
-      ),
-    );
-    await db.into(db.usersTable).insert(
-      UsersTableCompanion.insert(
-        id: drift.Value(userId),
-        email: 'accountant@smartmerchant.com',
-        passwordHash: 'dummy',
-        firstName: 'Chief',
-        lastName: 'Accountant',
-        isActive: const drift.Value(true),
-      ),
-    );
+    await db
+        .into(db.businesses)
+        .insert(
+          BusinessesCompanion.insert(
+            id: businessId,
+            accountId: 'acc-phase2-test',
+            businessName: 'Phase 2 Test Enterprise',
+            status: const drift.Value('Active'),
+          ),
+        );
+    await db
+        .into(db.branches)
+        .insert(
+          BranchesCompanion.insert(
+            id: branchId,
+            businessId: businessId,
+            branchCode: 'MAIN',
+            branchName: 'Main Branch',
+            isActive: const drift.Value(true),
+          ),
+        );
+    await db
+        .into(db.usersTable)
+        .insert(
+          UsersTableCompanion.insert(
+            id: drift.Value(userId),
+            email: 'accountant@smartmerchant.com',
+            passwordHash: 'dummy',
+            firstName: 'Chief',
+            lastName: 'Accountant',
+            isActive: const drift.Value(true),
+          ),
+        );
 
     // Seed Open Fiscal Period
     final fiscalYearId = uuid.v4();
-    await db.into(db.fiscalPeriods).insert(
-      FiscalPeriodsCompanion.insert(
-        id: uuid.v4(),
-        businessId: businessId,
-        fiscalYearId: fiscalYearId,
-        periodNumber: 1,
-        periodName: '2026-01',
-        startDate: DateTime(2026, 1, 1),
-        endDate: DateTime(2026, 12, 31),
-        status: const drift.Value('Open'),
-      ),
-    );
+    await db
+        .into(db.fiscalPeriods)
+        .insert(
+          FiscalPeriodsCompanion.insert(
+            id: uuid.v4(),
+            businessId: businessId,
+            fiscalYearId: fiscalYearId,
+            periodNumber: 1,
+            periodName: '2026-01',
+            startDate: DateTime(2026, 1, 1),
+            endDate: DateTime(2026, 12, 31),
+            status: const drift.Value('Open'),
+          ),
+        );
   });
 
   tearDown(() async {
     await db.close();
   });
+
+
+  test('A child inherits the parent actual contra-account balance', () async {
+    await coaSeeder.seedChartOfAccounts(businessId: businessId);
+    final parentResult = await accountingService.createAccount(const CreateAccountCommand(
+      accountCode: '129', accountName: 'مجمع الاستهلاك', accountTypeId: 1,
+      normalBalance: 'Credit', allowPosting: false));
+    final parentId = parentResult.getOrElse(() => '');
+    final result = await accountingService.createAccount(CreateAccountCommand(
+      accountName: 'مجمع استهلاك المعدات', parentAccountId: parentId,
+      accountTypeId: 5, normalBalance: 'Debit'));
+    expect(result.isRight(), isTrue);
+    final created = await accountingRepository.getChartOfAccountById(result.getOrElse(() => ''), businessId);
+    expect(created!.accountTypeId, 1);
+    expect(created.normalBalance, 'Credit');
+  });
+
+  test('Mapped posting accounts cannot be converted to grouping parents', () async {
+    await coaSeeder.seedChartOfAccounts(businessId: businessId);
+    final cash = (await accountingRepository.getChartOfAccountByCode('11101', businessId))!;
+    final result = await accountingService.createAccount(CreateAccountCommand(
+      accountName: 'فرع الصندوق', parentAccountId: cash.id));
+    expect(result.isLeft(), isTrue);
+    expect((await accountingRepository.getChartOfAccountById(cash.id, businessId))!.allowPosting, isTrue);
+  });
+
+  test(
+    'Automatic numbering is unique during concurrent saves and inherits the actual parent',
+    () async {
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      final parent = (await accountingRepository.getChartOfAccountByCode(
+        '52',
+        businessId,
+      ))!;
+      final results = await Future.wait(
+        List.generate(
+          6,
+          (i) => accountingService.createAccount(
+            CreateAccountCommand(
+              accountName: 'مصروف $i',
+              parentAccountId: parent.id,
+              accountTypeId: 1,
+              normalBalance: 'Credit',
+            ),
+          ),
+        ),
+      );
+      expect(results.every((r) => r.isRight()), isTrue);
+      final accounts = await accountingRepository.listChartOfAccounts(
+        ChartOfAccountFilter(
+          businessId: businessId,
+          parentAccountId: parent.id,
+          limit: null,
+        ),
+      );
+      final created = accounts.where((a) => !a.isSystem).toList();
+      expect(created, hasLength(6));
+      expect(created.map((a) => a.accountCode).toSet(), hasLength(6));
+      for (final account in created) {
+        expect(account.accountCode, startsWith('52'));
+        expect(account.accountTypeId, parent.accountTypeId);
+        expect(account.normalBalance, parent.normalBalance);
+        expect(account.currencyId, parent.currencyId);
+        expect(account.accountLevel, parent.accountLevel + 1);
+      }
+    },
+  );
+
+  test('A failed child insert rolls back the parent posting flag', () async {
+    await coaSeeder.seedChartOfAccounts(businessId: businessId);
+    final parentResult = await accountingService.createAccount(
+      const CreateAccountCommand(
+        accountCode: '599',
+        accountName: 'حساب مستقل',
+        accountTypeId: 5,
+        normalBalance: 'Debit',
+      ),
+    );
+    final parentId = parentResult.getOrElse(() => '');
+    // Enforce constraints so an invalid child currency causes an insert failure.
+    await db.customStatement('PRAGMA foreign_keys = ON;');
+    final result = await accountingService.createAccount(
+      CreateAccountCommand(
+        accountName: 'فرع غير صالح',
+        parentAccountId: parentId,
+        currencyId: 'missing-currency',
+      ),
+    );
+    expect(result.isLeft(), isTrue);
+    final parent = await accountingRepository.getChartOfAccountById(
+      parentId,
+      businessId,
+    );
+    expect(parent!.allowPosting, isTrue);
+    final children = await accountingRepository.listChartOfAccounts(
+      ChartOfAccountFilter(businessId: businessId, parentAccountId: parentId),
+    );
+    expect(children, isEmpty);
+  });
+
+  test(
+    'Inactive and foreign parents cannot be used for account creation',
+    () async {
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      final parent = (await accountingRepository.getChartOfAccountByCode(
+        '52',
+        businessId,
+      ))!;
+      await accountingRepository.toggleAccountActiveStatus(
+        parent.id,
+        businessId,
+        isActive: false,
+      );
+      final inactive = await accountingService.createAccount(
+        CreateAccountCommand(accountName: 'مصروف', parentAccountId: parent.id),
+      );
+      expect(inactive.isLeft(), isTrue);
+      final missing = await accountingService.createAccount(
+        const CreateAccountCommand(
+          accountName: 'مصروف',
+          parentAccountId: 'foreign-parent',
+        ),
+      );
+      expect(missing.isLeft(), isTrue);
+    },
+  );
+
+  test(
+    'Standard initialization has Arabic names and creates no financial activity',
+    () async {
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      final accounts = await accountingRepository.listChartOfAccounts(
+        ChartOfAccountFilter(businessId: businessId, limit: null),
+      );
+      expect(
+        accounts.every((a) => !RegExp('[A-Za-z]').hasMatch(a.accountName)),
+        isTrue,
+      );
+      expect(
+        accounts.map((a) => a.accountCode).toSet().length,
+        accounts.length,
+      );
+      expect(accounts.every((a) => !a.id.startsWith('coa-')), isTrue);
+      expect(await db.select(db.journalEntries).get(), isEmpty);
+      expect(await db.select(db.openingBalances).get(), isEmpty);
+      expect(await db.select(db.products).get(), isEmpty);
+    },
+  );
+
+  test(
+    'Automatic numbering includes accounts beyond the first 500 rows',
+    () async {
+      await coaSeeder.seedChartOfAccounts(businessId: businessId);
+      final parent = (await accountingRepository.getChartOfAccountByCode(
+        '52',
+        businessId,
+      ))!;
+      await db.batch((batch) {
+        batch.insertAll(db.chartOfAccounts, [
+          for (var i = 6; i <= 510; i++)
+            ChartOfAccountsCompanion.insert(
+              id: 'large-tree-$i',
+              businessId: businessId,
+              accountCode: '52${i.toString().padLeft(3, '0')}',
+              accountName: 'حساب $i',
+              accountTypeId: 5,
+              normalBalance: 'Debit',
+              parentAccountId: drift.Value(parent.id),
+              accountLevel: drift.Value(parent.accountLevel + 1),
+            ),
+        ]);
+      });
+      final result = await accountingService.createAccount(
+        CreateAccountCommand(
+          accountName: 'مصروف جديد',
+          parentAccountId: parent.id,
+        ),
+      );
+      expect(result.isRight(), isTrue);
+      final created = await accountingRepository.getChartOfAccountById(
+        result.getOrElse(() => ''),
+        businessId,
+      );
+      expect(created!.accountCode, '52511');
+    },
+  );
 
   test(
     'AC-2.1: DefaultChartOfAccountsSeeder seeds standard retail tree with at least 15 accounts across all 5 classes and creates mandatory mappings',
@@ -138,7 +333,11 @@ void main() {
         'cost_of_goods_sold',
       ]) {
         final mappingRes = await accountingService.resolveAccountMapping(key);
-        expect(mappingRes.isRight(), isTrue, reason: 'Mapping for $key must resolve.');
+        expect(
+          mappingRes.isRight(),
+          isTrue,
+          reason: 'Mapping for $key must resolve.',
+        );
       }
     },
   );
@@ -149,7 +348,10 @@ void main() {
       await coaSeeder.seedChartOfAccounts(businessId: businessId);
 
       // Fetch parent account (e.g. 52 - Operating Expenses)
-      final parent = await accountingRepository.getChartOfAccountByCode('52', businessId);
+      final parent = await accountingRepository.getChartOfAccountByCode(
+        '52',
+        businessId,
+      );
       expect(parent, isNotNull);
 
       final createCmd = CreateAccountCommand(
@@ -165,7 +367,10 @@ void main() {
       expect(result.isRight(), isTrue);
       final newAccId = result.getOrElse(() => '');
 
-      final created = await accountingRepository.getChartOfAccountById(newAccId, businessId);
+      final created = await accountingRepository.getChartOfAccountById(
+        newAccId,
+        businessId,
+      );
       expect(created, isNotNull);
       expect(created!.accountCode, '52099');
       expect(created.accountLevel, parent.accountLevel + 1);
@@ -174,7 +379,10 @@ void main() {
       // Verify duplicate account code is rejected
       final dupResult = await accountingService.createAccount(createCmd);
       expect(dupResult.isLeft(), isTrue);
-      expect(dupResult.fold((l) => l, (r) => null), isA<DuplicateAccountCodeFailure>());
+      expect(
+        dupResult.fold((l) => l, (r) => null),
+        isA<DuplicateAccountCodeFailure>(),
+      );
     },
   );
 
@@ -184,20 +392,36 @@ void main() {
       await coaSeeder.seedChartOfAccounts(businessId: businessId);
 
       // 1. Try to delete mapped account (e.g. 11101 - Main Cashbox) -> must fail with AccountIsMappedFailure
-      final cashAcc = await accountingRepository.getChartOfAccountByCode('11101', businessId);
+      final cashAcc = await accountingRepository.getChartOfAccountByCode(
+        '11101',
+        businessId,
+      );
       expect(cashAcc, isNotNull);
 
-      final delMappedRes = await accountingService.safeDeleteAccount(cashAcc!.id);
+      final delMappedRes = await accountingService.safeDeleteAccount(
+        cashAcc!.id,
+      );
       expect(delMappedRes.isLeft(), isTrue);
-      expect(delMappedRes.fold((l) => l, (r) => throw Exception()), isA<AccountIsMappedFailure>());
+      expect(
+        delMappedRes.fold((l) => l, (r) => throw Exception()),
+        isA<AccountIsMappedFailure>(),
+      );
 
       // 2. Try to delete parent account with children (e.g. 1 - Assets) -> must fail with AccountHasChildrenFailure
-      final assetsAcc = await accountingRepository.getChartOfAccountByCode('1', businessId);
+      final assetsAcc = await accountingRepository.getChartOfAccountByCode(
+        '1',
+        businessId,
+      );
       expect(assetsAcc, isNotNull);
 
-      final delParentRes = await accountingService.safeDeleteAccount(assetsAcc!.id);
+      final delParentRes = await accountingService.safeDeleteAccount(
+        assetsAcc!.id,
+      );
       expect(delParentRes.isLeft(), isTrue);
-      expect(delParentRes.fold((l) => l, (r) => throw Exception()), isA<AccountHasChildrenFailure>());
+      expect(
+        delParentRes.fold((l) => l, (r) => throw Exception()),
+        isA<AccountHasChildrenFailure>(),
+      );
 
       // 3. Create unmapped custom leaf account
       final createRes = await accountingService.createAccount(
@@ -215,7 +439,10 @@ void main() {
       final delCleanRes = await accountingService.safeDeleteAccount(customId);
       expect(delCleanRes.isRight(), isTrue);
 
-      final deleted = await accountingRepository.getChartOfAccountById(customId, businessId);
+      final deleted = await accountingRepository.getChartOfAccountById(
+        customId,
+        businessId,
+      );
       expect(deleted, isNull);
     },
   );
@@ -225,9 +452,16 @@ void main() {
     () async {
       await coaSeeder.seedChartOfAccounts(businessId: businessId);
 
-      final cashAcc = await accountingRepository.getChartOfAccountByCode('11101', businessId);
-      final salesAcc = await accountingRepository.getChartOfAccountByCode('41', businessId);
-      final parentAssetsAcc = await accountingRepository.getChartOfAccountByCode('1', businessId);
+      final cashAcc = await accountingRepository.getChartOfAccountByCode(
+        '11101',
+        businessId,
+      );
+      final salesAcc = await accountingRepository.getChartOfAccountByCode(
+        '41',
+        businessId,
+      );
+      final parentAssetsAcc = await accountingRepository
+          .getChartOfAccountByCode('1', businessId);
 
       expect(cashAcc, isNotNull);
       expect(salesAcc, isNotNull);
@@ -239,8 +473,16 @@ void main() {
         currencyId: 'YER',
         description: 'قيد غير متوازن تجريبي',
         lines: [
-          JournalEntryLineCommand(accountId: cashAcc!.id, debit: 1000.0, credit: 0.0),
-          JournalEntryLineCommand(accountId: salesAcc!.id, debit: 0.0, credit: 950.0),
+          JournalEntryLineCommand(
+            accountId: cashAcc!.id,
+            debit: 1000.0,
+            credit: 0.0,
+          ),
+          JournalEntryLineCommand(
+            accountId: salesAcc!.id,
+            debit: 0.0,
+            credit: 950.0,
+          ),
         ],
       );
 
@@ -253,8 +495,16 @@ void main() {
         currencyId: 'YER',
         description: 'محاولة ترحيل لحساب رئيسي',
         lines: [
-          JournalEntryLineCommand(accountId: parentAssetsAcc!.id, debit: 1000.0, credit: 0.0),
-          JournalEntryLineCommand(accountId: salesAcc.id, debit: 0.0, credit: 1000.0),
+          JournalEntryLineCommand(
+            accountId: parentAssetsAcc!.id,
+            debit: 1000.0,
+            credit: 0.0,
+          ),
+          JournalEntryLineCommand(
+            accountId: salesAcc.id,
+            debit: 0.0,
+            credit: 1000.0,
+          ),
         ],
       );
 
@@ -267,8 +517,16 @@ void main() {
         currencyId: 'YER',
         description: 'إثبات مبيعات نقدية يدوية',
         lines: [
-          JournalEntryLineCommand(accountId: cashAcc.id, debit: 1000.0, credit: 0.0),
-          JournalEntryLineCommand(accountId: salesAcc.id, debit: 0.0, credit: 1000.0),
+          JournalEntryLineCommand(
+            accountId: cashAcc.id,
+            debit: 1000.0,
+            credit: 0.0,
+          ),
+          JournalEntryLineCommand(
+            accountId: salesAcc.id,
+            debit: 0.0,
+            credit: 1000.0,
+          ),
         ],
       );
 
@@ -279,10 +537,8 @@ void main() {
       expect(validRes.isRight(), isTrue);
 
       final journalId = validRes.getOrElse(() => '');
-      final entryWithLines = await accountingRepository.getJournalEntryWithLinesById(
-        journalId,
-        businessId,
-      );
+      final entryWithLines = await accountingRepository
+          .getJournalEntryWithLinesById(journalId, businessId);
       expect(entryWithLines, isNotNull);
       expect(entryWithLines!.lines.length, 2);
       expect(entryWithLines.entry.status, 'Posted');

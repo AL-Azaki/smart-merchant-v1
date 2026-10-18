@@ -58,11 +58,11 @@ void main() {
     await db.close();
     
     // Write Report
-    final reportDir = Directory('docs/sales');
+    final reportDir = Directory('build/test-reports');
     if (!reportDir.existsSync()) {
       reportDir.createSync(recursive: true);
     }
-    final reportFile = File('docs/sales/Sales_POS_QA_Accounting_Closure.md');
+    final reportFile = File('build/test-reports/sales-pos-qa-accounting.md');
     await reportFile.writeAsString(reportBuffer.toString());
   });
 

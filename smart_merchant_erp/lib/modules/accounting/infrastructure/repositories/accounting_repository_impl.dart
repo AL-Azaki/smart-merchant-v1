@@ -8,6 +8,10 @@ class AccountingRepositoryImpl implements AccountingRepository {
 
   AccountingRepositoryImpl(this._dao);
 
+  @override
+  Future<T> runInTransaction<T>(Future<T> Function() action) =>
+      _dao.attachedDatabase.transaction(action);
+
   // Chart of Accounts
   @override
   Future<ChartOfAccount?> getChartOfAccountById(String id, String businessId) {

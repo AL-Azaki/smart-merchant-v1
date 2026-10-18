@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 import '../../converters/stock_count_status_converter.dart';
-import '../../enums/stock_count_status.dart';
 
 @DataClassName('StockCount')
 class StockCounts extends Table {
@@ -30,6 +29,12 @@ class StockCounts extends Table {
       .withDefault(const Constant('Draft'))();
 
   TextColumn get notes => text().nullable()();
+
+  // Legacy records are deliberately not assumed to have financial coverage.
+  TextColumn get financialStatus => text().named('financial_status').withDefault(const Constant('Legacy'))();
+  TextColumn get financialJournalId => text().named('financial_journal_id').nullable()();
+  TextColumn get settlementJournalId => text().named('settlement_journal_id').nullable()();
+  DateTimeColumn get financialSettledAt => dateTime().named('financial_settled_at').nullable()();
 
   TextColumn get createdBy => text()
       .named('created_by')

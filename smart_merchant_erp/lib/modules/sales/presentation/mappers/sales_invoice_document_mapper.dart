@@ -1,12 +1,9 @@
-import '../../../../../app/di/getit_providers.dart';
-import '../../../../../database/daos/core_dao.dart';
-import '../../../../../database/daos/sales_dao.dart';
-import '../../../../../kernel/core/application_context.dart';
+import '../../../../database/daos/core_dao.dart';
+import '../../../../database/daos/sales_dao.dart';
+import '../../../../kernel/core/application_context.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_line.dart';
-import '../../../../../database/daos/catalog_dao.dart';
-import '../../../../../app/di/getit_instance.dart';
-import 'package:intl/intl.dart';
+import '../../../../database/daos/catalog_dao.dart';
 
 class SalesInvoiceDocumentMapper {
   final SalesDao _salesDao;
@@ -21,6 +18,7 @@ class SalesInvoiceDocumentMapper {
     this._context,
   );
 
+  /// تحويل فاتورة مبيعات إلى نموذج المستند التجاري الموحد للطباعة والمشاركة
   Future<CommercialDocumentData> mapToDocumentData(String invoiceId) async {
     final businessId = _context.currentBusinessId;
 
@@ -39,8 +37,7 @@ class SalesInvoiceDocumentMapper {
     final business = await _coreDao.getBusinessById(invoice.businessId);
     String businessName = business?.businessName ?? 'اسم المنشأة غير متوفر';
     String? businessPhone = business?.primaryPhone;
-    String? businessAddress = null; // Can be retrieved from settings if needed
-    String? taxNumber = null;
+    String? businessAddress;
 
     String? branchName;
     if (invoice.branchId.isNotEmpty) {
@@ -68,7 +65,6 @@ class SalesInvoiceDocumentMapper {
     // 4. Map items
     final documentLines = <CommercialDocumentLine>[];
     for (final item in items) {
-      // Need product details (name, etc.)
       final productUnit = await _catalogDao.getProductUnitById(
         item.productUnitId,
         businessId,
@@ -89,11 +85,11 @@ class SalesInvoiceDocumentMapper {
           description: description,
           sku: productUnit?.sku,
           barcode: barcode,
-          unitName: null, // Optional: look up from units table
+          unitName: null,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           discount: item.discount,
-          tax: item.tax,
+          tax: 0.0, // إلغاء الضريبة بالكامل
           lineTotal: item.lineTotal,
         ),
       );
@@ -101,16 +97,15 @@ class SalesInvoiceDocumentMapper {
 
     // 5. Payment details mapping
     String paymentMethod = 'نقداً';
-    if (invoice.paymentStatus == 'Unpaid') {
+    if (invoice.paymentStatus == 'Unpaid' || invoice.paymentStatus == 'آجلة') {
       paymentMethod = 'آجل';
-    } else if (invoice.paymentStatus == 'Partial') {
+    } else if (invoice.paymentStatus == 'Partial' || invoice.paymentStatus == 'مدفوعة جزئياً') {
       paymentMethod = 'نقداً / آجل';
     }
 
     double paidAmount = 0.0;
     double remainingAmount = 0.0;
 
-    // We should lookup customer receivables to get real paid/remaining amounts
     if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
       final receivablesList = await _salesDao.listReceivables(
         CustomerReceivableFilter(
@@ -123,12 +118,10 @@ class SalesInvoiceDocumentMapper {
         paidAmount = receivable.paidAmount;
         remainingAmount = receivable.remainingAmount;
       } else {
-        // If no receivable, it implies fully paid cash sale
         paidAmount = invoice.grandTotal;
         remainingAmount = 0.0;
       }
     } else {
-      // Walk-in customer is always full cash
       paidAmount = invoice.grandTotal;
       remainingAmount = 0.0;
     }
@@ -141,7 +134,7 @@ class SalesInvoiceDocumentMapper {
       businessName: businessName,
       businessPhone: businessPhone,
       businessAddress: businessAddress,
-      taxNumber: taxNumber,
+      taxNumber: null, // حذف الرقم الضريبي
 
       branchName: branchName,
 
@@ -150,7 +143,7 @@ class SalesInvoiceDocumentMapper {
       customerOrSupplierAddress: customerAddress,
 
       currencyCode: invoice.currencyId,
-      currencySymbol: 'YER', // Optional: could lookup from Currencies table
+      currencySymbol: 'ريال يمني',
 
       paymentMethod: paymentMethod,
       paymentStatus: invoice.paymentStatus,
@@ -159,14 +152,146 @@ class SalesInvoiceDocumentMapper {
 
       subtotal: invoice.subTotal,
       discount: invoice.discountTotal,
-      tax: invoice.taxTotal,
+      tax: 0.0, // إلغاء الضريبة بالكامل
       grandTotal: invoice.grandTotal,
 
       paidAmount: paidAmount,
       remainingAmount: remainingAmount,
 
       notes: invoice.notes,
-      terms: 'البضاعة المباعة لا ترد ولا تستبدل بعد 3 أيام',
+      terms: 'البضاعة المباعة لا تُرد ولا تُستبدل إلا بموجب أصل الفاتورة',
+    );
+  }
+
+  /// تحويل فاتورة مرتجع مبيعات إلى نموذج المستند التجاري الموحد للطباعة والمعاينة
+  Future<CommercialDocumentData> mapReturnToDocumentData(String returnId) async {
+    final businessId = _context.currentBusinessId;
+
+    // 1. Fetch SalesReturn with Items
+    final returnWithItems = await _salesDao.getReturnWithItemsById(
+      returnId,
+      businessId,
+    );
+    if (returnWithItems == null) {
+      throw Exception('Sales Return not found for mapping.');
+    }
+    final salesReturn = returnWithItems.salesReturn;
+    final items = returnWithItems.items;
+
+    // 2. Fetch original invoice to get customer & items details
+    final originalInvoiceWithItems = await _salesDao.getInvoiceWithItemsById(
+      salesReturn.salesInvoiceId,
+      businessId,
+    );
+    final originalInvoice = originalInvoiceWithItems?.invoice;
+    final originalItems = originalInvoiceWithItems?.items ?? [];
+    final originalItemMap = {for (var item in originalItems) item.id: item};
+
+    // 3. Fetch Business & Branch info
+    final business = await _coreDao.getBusinessById(salesReturn.businessId);
+    String businessName = business?.businessName ?? 'اسم المنشأة غير متوفر';
+    String? businessPhone = business?.primaryPhone;
+    String? businessAddress;
+
+    String? branchName;
+    if (salesReturn.branchId.isNotEmpty) {
+      final branch = await _coreDao.getBranchById(salesReturn.branchId, businessId);
+      branchName = branch?.branchName;
+    }
+
+    // 4. Customer info
+    String customerName = 'عميل نقدي';
+    String? customerPhone;
+    String? customerAddress;
+
+    if (originalInvoice?.customerId != null && originalInvoice!.customerId!.isNotEmpty) {
+      final customer = await _salesDao.getCustomerById(
+        originalInvoice.customerId!,
+        businessId,
+      );
+      if (customer != null) {
+        customerName = customer.customerName;
+        customerPhone = customer.phone;
+        customerAddress = customer.address;
+      }
+    }
+
+    // 5. Map return items
+    final documentLines = <CommercialDocumentLine>[];
+    for (final item in items) {
+      final origItem = originalItemMap[item.salesInvoiceItemId];
+      String description = 'صنف مرتجع';
+
+      if (origItem != null) {
+        final productUnit = await _catalogDao.getProductUnitById(
+          origItem.productUnitId,
+          businessId,
+        );
+        if (productUnit != null) {
+          final product = await _catalogDao.getProductById(
+            productUnit.productId,
+            businessId,
+          );
+          description = product?.productName ?? description;
+        }
+      }
+
+      documentLines.add(
+        CommercialDocumentLine(
+          description: description,
+          unitName: null,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          discount: 0.0,
+          tax: 0.0,
+          lineTotal: item.totalPrice,
+        ),
+      );
+    }
+
+    final originalInvoiceNum = originalInvoice?.invoiceNumber ?? '';
+    final noteParts = <String>[];
+    if (originalInvoiceNum.isNotEmpty) {
+      noteParts.add('مرتجع من فاتورة رقم: $originalInvoiceNum');
+    }
+    if (salesReturn.notes != null && salesReturn.notes!.trim().isNotEmpty) {
+      noteParts.add(salesReturn.notes!.trim());
+    }
+
+    return CommercialDocumentData(
+      documentType: 'فاتورة مرتجع مبيعات',
+      documentNumber: salesReturn.returnNumber,
+      issueDate: salesReturn.returnDate,
+
+      businessName: businessName,
+      businessPhone: businessPhone,
+      businessAddress: businessAddress,
+      taxNumber: null,
+
+      branchName: branchName,
+
+      customerOrSupplierName: customerName,
+      customerOrSupplierPhone: customerPhone,
+      customerOrSupplierAddress: customerAddress,
+
+      currencyCode: salesReturn.currencyId,
+      currencySymbol: 'ريال يمني',
+
+      paymentMethod: 'استرداد نقدي / آجل',
+      paymentStatus: salesReturn.status,
+
+      items: documentLines,
+
+      subtotal: salesReturn.totalAmount,
+      discount: 0.0,
+      tax: 0.0,
+      grandTotal: salesReturn.totalAmount,
+
+      paidAmount: salesReturn.totalAmount,
+      remainingAmount: 0.0,
+
+      notes: noteParts.isNotEmpty ? noteParts.join(' - ') : null,
+      terms: 'سند إرجاع بضاعة معتمد - تم استلام البضاعة وتحديث الحساب المالي',
     );
   }
 }

@@ -56,11 +56,11 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'قائمة الدخل - الأرباح والخسائر (Income Statement / P&L)',
+                          'قائمة الدخل - الأرباح والخسائر',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
                         ),
                         Text(
-                          'صافي ومجمل الأرباح، الإيرادات، تكلفة البضاعة المباعة (COGS) والمصروفات التشغيلية',
+                          'صافي ومجمل الأرباح، الإيرادات، تكلفة البضاعة المباعة والمصروفات التشغيلية',
                           style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                       ],
@@ -130,7 +130,7 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                         children: [
                           _buildKpiCard('إجمالي المبيعات', report.totalRevenue, const Color(0xFF3B82F6), surface, borderColor, textPrimary),
                           const SizedBox(width: 12),
-                          _buildKpiCard('تكلفة المبيعات (COGS)', report.totalCogs, const Color(0xFFF59E0B), surface, borderColor, textPrimary),
+                          _buildKpiCard('تكلفة البضاعة المباعة', report.totalCogs, const Color(0xFFF59E0B), surface, borderColor, textPrimary),
                           const SizedBox(width: 12),
                           _buildKpiCard('مجمل الربح', report.grossProfit, const Color(0xFF8B5CF6), surface, borderColor, textPrimary),
                           const SizedBox(width: 12),
@@ -150,11 +150,11 @@ class _ProfitLossTabState extends ConsumerState<ProfitLossTab> {
                       const SizedBox(height: 24),
 
                       // Breakdown Cards
-                      _buildSection('1. الإيرادات والمبيعات (Revenues)', report.revenueItems, report.totalRevenue, surface, borderColor, textPrimary, textSecondary, const Color(0xFF3B82F6)),
+                      _buildSection('1. الإيرادات والمبيعات', report.revenueItems, report.totalRevenue, surface, borderColor, textPrimary, textSecondary, const Color(0xFF3B82F6)),
                       const SizedBox(height: 16),
-                      _buildSection('2. تكلفة البضاعة المباعة (COGS)', report.cogsItems, report.totalCogs, surface, borderColor, textPrimary, textSecondary, const Color(0xFFF59E0B)),
+                      _buildSection('2. تكلفة البضاعة المباعة', report.cogsItems, report.totalCogs, surface, borderColor, textPrimary, textSecondary, const Color(0xFFF59E0B)),
                       const SizedBox(height: 16),
-                      _buildSection('3. المصروفات التشغيلية (Operating Expenses)', report.expenseItems, report.totalExpenses, surface, borderColor, textPrimary, textSecondary, const Color(0xFFEF4444)),
+                      _buildSection('3. المصروفات التشغيلية', report.expenseItems, report.totalExpenses, surface, borderColor, textPrimary, textSecondary, const Color(0xFFEF4444)),
                     ],
                   );
                 },

@@ -27,28 +27,35 @@ class CommercialDocumentPreviewScreen extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.print_rounded),
-            tooltip: 'طباعة',
+            tooltip: 'طباعة الفاتورة',
             onPressed: () => DocumentPrinter.printDocument(document),
           ),
           IconButton(
             icon: const Icon(Icons.share_rounded),
-            tooltip: 'مشاركة',
+            tooltip: 'مشاركة الفاتورة',
             onPressed: () => DocumentShare.shareDocument(document),
           ),
         ],
       ),
       body: PdfPreview(
         build: (format) async {
-          final doc = await OfficialCommercialDocumentPdfBuilder.build(document);
+          final doc = await OfficialCommercialDocumentPdfBuilder.build(
+            document,
+            pageFormat: format,
+          );
           return doc.save();
         },
         allowPrinting: true,
         allowSharing: true,
         canChangeOrientation: false,
-        canChangePageFormat: false,
+        canChangePageFormat: true,
         canDebug: false,
-        initialPageFormat: PdfPageFormat.a4,
-        pdfFileName: 'document_${document.documentNumber}.pdf',
+        initialPageFormat: PdfPageFormat.roll80,
+        pageFormats: const {
+          'إيصال حراري (80mm)': PdfPageFormat.roll80,
+          'ورق قياسي (A4)': PdfPageFormat.a4,
+        },
+        pdfFileName: '${document.documentType}_${document.documentNumber}.pdf',
         loadingWidget: const Center(child: CircularProgressIndicator()),
       ),
     );

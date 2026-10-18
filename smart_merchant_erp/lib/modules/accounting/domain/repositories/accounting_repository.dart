@@ -3,6 +3,8 @@ import '../../../../database/daos/accounting_dao.dart';
 
 /// Contract for Accounting & General Ledger domain data operations.
 abstract class AccountingRepository {
+  Future<T> runInTransaction<T>(Future<T> Function() action);
+
   // Chart of Accounts
   Future<ChartOfAccount?> getChartOfAccountById(String id, String businessId);
   Future<ChartOfAccount?> getChartOfAccountByCode(

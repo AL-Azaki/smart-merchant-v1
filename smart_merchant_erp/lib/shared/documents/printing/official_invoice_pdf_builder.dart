@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:pdf/pdf.dart';
@@ -5,7 +6,10 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 import '../presentation/models/commercial_document_data.dart';
+import '../../utils/arabic_tafqeet.dart';
 
+/// منشئ مستندات الفواتير الرسمية والحرارية (طابعات 80mm وورق A4)
+/// بتصميم كلاسيكي احترافي عالي الوضوح مخصص للتجار، بدون ضرائب وبدون باركود
 class OfficialCommercialDocumentPdfBuilder {
   static pw.Font? _cairoRegular;
   static pw.Font? _cairoBold;
@@ -17,40 +21,84 @@ class OfficialCommercialDocumentPdfBuilder {
     return magic == 0x00010000 || magic == 0x4F54544F;
   }
 
+  static pw.Font? _tryLoadTtf(ByteData data) {
+    try {
+      if (!_isValidTtf(data)) return null;
+      return pw.Font.ttf(data);
+    } catch (_) {
+      return null;
+    }
+  }
+
   static Future<void> _loadFonts() async {
+    // 1. محاولة القراءة المباشرة من نظام الملفات (لويندوز والاختبارات الأوفلاين)
+    try {
+      final regFile = File('assets/fonts/Cairo-Regular.ttf');
+      if (regFile.existsSync()) {
+        _cairoRegular ??= _tryLoadTtf(regFile.readAsBytesSync().buffer.asByteData());
+      }
+      final boldFile = File('assets/fonts/Cairo-Bold.ttf');
+      if (boldFile.existsSync()) {
+        _cairoBold ??= _tryLoadTtf(boldFile.readAsBytesSync().buffer.asByteData());
+      }
+      final semiBoldFile = File('assets/fonts/Cairo-SemiBold.ttf');
+      if (semiBoldFile.existsSync()) {
+        _cairoSemiBold ??= _tryLoadTtf(semiBoldFile.readAsBytesSync().buffer.asByteData());
+      }
+    } catch (_) {}
+
+    // 2. محاولة القراءة من rootBundle (لتطبيقات الموبايل المجمعة)
     try {
       if (_cairoRegular == null) {
         final regularData = await rootBundle.load('assets/fonts/Cairo-Regular.ttf');
-        if (!_isValidTtf(regularData)) throw Exception('Invalid TTF format');
-        _cairoRegular = pw.Font.ttf(regularData);
+        _cairoRegular ??= _tryLoadTtf(regularData);
       }
-    } catch (e) {
-      _cairoRegular ??= await PdfGoogleFonts.cairoRegular();
-    }
+    } catch (_) {}
 
     try {
       if (_cairoBold == null) {
         final boldData = await rootBundle.load('assets/fonts/Cairo-Bold.ttf');
-        if (!_isValidTtf(boldData)) throw Exception('Invalid TTF format');
-        _cairoBold = pw.Font.ttf(boldData);
+        _cairoBold ??= _tryLoadTtf(boldData);
       }
-    } catch (e) {
-      _cairoBold ??= await PdfGoogleFonts.cairoBold();
-    }
+    } catch (_) {}
 
     try {
       if (_cairoSemiBold == null) {
         final semiBoldData = await rootBundle.load('assets/fonts/Cairo-SemiBold.ttf');
-        if (!_isValidTtf(semiBoldData)) throw Exception('Invalid TTF format');
-        _cairoSemiBold = pw.Font.ttf(semiBoldData);
+        _cairoSemiBold ??= _tryLoadTtf(semiBoldData);
       }
-    } catch (e) {
+    } catch (_) {}
+
+    // 3. Fallback احتياطي في حال عدم العثور على الخط محلياً
+    try {
+      _cairoRegular ??= await PdfGoogleFonts.cairoRegular();
+    } catch (_) {}
+    try {
+      _cairoBold ??= await PdfGoogleFonts.cairoBold();
+    } catch (_) {}
+    try {
       _cairoSemiBold ??= await PdfGoogleFonts.cairoSemiBold();
-    }
+    } catch (_) {}
+
+    // 4. أقصى درجات الأمان في الاختبارات الأوفلاين
+    _cairoRegular ??= pw.Font.helvetica();
+    _cairoBold ??= pw.Font.helveticaBold();
+    _cairoSemiBold ??= pw.Font.helveticaBold();
   }
 
-  static Future<pw.Document> build(CommercialDocumentData docData) async {
+  /// بناء مستند PDF للفاتورة (افتراضياً بمقاس الرول الحراري 80mm أو A4 حسب الاختيار)
+  static Future<pw.Document> build(
+    CommercialDocumentData docData, {
+    PdfPageFormat? pageFormat,
+  }) async {
     await _loadFonts();
+
+    final isA4 = pageFormat != null && pageFormat.width > 300;
+    final targetFormat = isA4 ? PdfPageFormat.a4 : PdfPageFormat.roll80;
+
+    final margin = isA4
+        ? const pw.EdgeInsets.symmetric(horizontal: 28, vertical: 24)
+        : const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 8);
 
     final pdf = pw.Document(
       theme: pw.ThemeData.withFont(
@@ -59,332 +107,578 @@ class OfficialCommercialDocumentPdfBuilder {
       ),
     );
 
-    pdf.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.only(top: 57, bottom: 43, left: 43, right: 43),
-        textDirection: pw.TextDirection.rtl,
-        build: (pw.Context context) {
-          return [
-            _buildHeader(docData),
-            pw.SizedBox(height: 16),
-            _buildCustomerInfo(docData),
-            pw.SizedBox(height: 16),
-            _buildItemsTable(docData),
-            pw.SizedBox(height: 16),
-            _buildTotalsAndTerms(docData),
-            pw.SizedBox(height: 24),
-            _buildSignatures(),
-          ];
-        },
-      ),
-    );
-
-    return pdf;
-  }
-
-  static pw.Widget _buildHeader(CommercialDocumentData docData) {
-    return pw.Column(
-      children: [
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-          children: [
-            // Right (Business Info)
-            pw.Expanded(
-              flex: 32,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Text(
-                    docData.businessName,
-                    style: pw.TextStyle(
-                      color: const PdfColor.fromInt(0xFF1C3A82),
-                      fontSize: 18,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    maxLines: 2,
-                  ),
-                  pw.SizedBox(height: 4),
-                  if (docData.businessPhone != null && docData.businessPhone!.isNotEmpty) _buildMetaRow('هاتف:', docData.businessPhone!),
-                  if (docData.businessAddress != null && docData.businessAddress!.isNotEmpty) _buildMetaRow('العنوان:', docData.businessAddress!),
-                  if (docData.taxNumber != null && docData.taxNumber!.isNotEmpty) _buildMetaRow('الرقم الضريبي:', docData.taxNumber!),
-                ],
-              ),
-            ),
-
-            // Center (Title & Status)
-            pw.Expanded(
-              flex: 28,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.center,
-                children: [
-                  pw.Text(
-                    docData.documentType,
-                    style: pw.TextStyle(
-                      color: const PdfColor.fromInt(0xFF1C3A82),
-                      fontSize: 22,
-                      fontWeight: pw.FontWeight.bold,
-                    ),
-                    textAlign: pw.TextAlign.center,
-                  ),
-                  pw.SizedBox(height: 8),
-                  pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                    decoration: pw.BoxDecoration(
-                      color: _getStatusBgColor(docData.paymentStatus),
-                      borderRadius: pw.BorderRadius.circular(16),
-                    ),
-                    child: pw.Text(
-                      docData.paymentStatus,
-                      style: pw.TextStyle(
-                        color: _getStatusTextColor(docData.paymentStatus),
-                        fontSize: 13,
-                        fontWeight: pw.FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Left (Metadata)
-            pw.Expanded(
-              flex: 40,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.end,
-                children: [
-                  pw.Row(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Expanded(
-                        child: pw.Text(
-                          docData.documentNumber, 
-                          style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF0F172A)), 
-                          textDirection: pw.TextDirection.ltr,
-                          textAlign: pw.TextAlign.right,
-                        ),
-                      ),
-                      pw.SizedBox(width: 8),
-                      pw.SizedBox(
-                        width: 75,
-                        child: pw.Text(
-                          'رقم الفاتورة:', 
-                          style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold, color: const PdfColor.fromInt(0xFF475569)),
-                          textAlign: pw.TextAlign.left,
-                        ),
-                      ),
-                    ],
-                  ),
-                  pw.SizedBox(height: 6),
-                  _buildMetaRowReverse('تاريخ الإصدار:', docData.issueDate.toIso8601String().split('T')[0]),
-                  _buildMetaRowReverse('وقت الإصدار:', docData.issueDate.toIso8601String().split('T')[1].substring(0, 5)),
-                  if (docData.branchName != null) _buildMetaRowReverse('الفرع:', docData.branchName!),
-                ],
-              ),
-            ),
-          ],
+    if (isA4) {
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: targetFormat,
+          margin: margin,
+          textDirection: pw.TextDirection.rtl,
+          maxPages: 100,
+          build: (pw.Context context) {
+            return [
+              _buildHeader(docData, isA4: true),
+              pw.SizedBox(height: 10),
+              _buildMetadataBox(docData, isA4: true),
+              pw.SizedBox(height: 10),
+              _buildItemsTable(docData, isA4: true),
+              pw.SizedBox(height: 10),
+              _buildTotalsSection(docData, isA4: true),
+              pw.SizedBox(height: 10),
+              _buildFooter(docData, isA4: true),
+              pw.SizedBox(height: 20),
+              _buildA4Signatures(),
+            ];
+          },
         ),
-        pw.SizedBox(height: 16),
-        pw.Divider(color: const PdfColor.fromInt(0xFFCBD5E1), thickness: 1),
-      ],
-    );
-  }
-
-  static pw.Widget _buildCustomerInfo(CommercialDocumentData docData) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Text(
-          'معلومات الفاتورة والعميل',
-          style: pw.TextStyle(
-            color: const PdfColor.fromInt(0xFF1C3A82),
-            fontSize: 14,
-            fontWeight: pw.FontWeight.bold,
-          ),
-        ),
-        pw.SizedBox(height: 8),
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            // Right Box: Customer
-            pw.Expanded(
-              flex: 1,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  _buildMetaRowBox('اسم العميل:', (docData.customerOrSupplierName.isNotEmpty) ? docData.customerOrSupplierName : 'عميل نقدي'),
-                  if (docData.customerOrSupplierPhone != null && docData.customerOrSupplierPhone!.isNotEmpty)
-                    _buildMetaRowBox('الهاتف:', docData.customerOrSupplierPhone!),
-                ],
-              ),
-            ),
-            pw.SizedBox(width: 16),
-            // Left Box: Payment & Cashier
-            pw.Expanded(
-              flex: 1,
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  _buildMetaRowBox('طريقة الدفع:', docData.paymentMethod ?? 'نقداً'),
-                  pw.SizedBox(height: 4),
-                  _buildMetaRowBox('البائع/المندوب:', docData.createdBy ?? 'مستخدم النظام'),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  static pw.Widget _buildItemsTable(CommercialDocumentData docData) {
-    final formatCurrency = NumberFormat.currency(symbol: '', decimalDigits: 2);
-    final formatQty = NumberFormat.decimalPattern();
-
-    // Enforce strict LTR on the table and explicitly map columns right-to-left
-    // 0: Net, 1: Tax, 2: Discount, 3: Price, 4: Qty, 5: Unit, 6: SKU, 7: Desc, 8: #
-    
-    pw.Widget cell(String text, {pw.Alignment alignment = pw.Alignment.center, bool isHeader = false, bool isRtl = true, double hPad = 4}) {
-      return pw.Container(
-        alignment: alignment,
-        padding: pw.EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
-        child: pw.Directionality(
-          textDirection: isRtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
-          child: pw.Text(
-            text,
-            textAlign: alignment == pw.Alignment.centerRight 
-                ? pw.TextAlign.right 
-                : alignment == pw.Alignment.centerLeft 
-                    ? pw.TextAlign.left 
-                    : pw.TextAlign.center,
-            style: pw.TextStyle(
-              color: isHeader ? PdfColors.white : const PdfColor.fromInt(0xFF1E293B),
-              fontSize: isHeader ? 11 : 10.5,
-              fontWeight: isHeader ? pw.FontWeight.bold : pw.FontWeight.normal,
-            ),
-          ),
+      );
+    } else {
+      pdf.addPage(
+        pw.Page(
+          pageFormat: targetFormat,
+          margin: margin,
+          textDirection: pw.TextDirection.rtl,
+          build: (pw.Context context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
+              children: [
+                _buildHeader(docData, isA4: false),
+                pw.SizedBox(height: 6),
+                _buildMetadataBox(docData, isA4: false),
+                pw.SizedBox(height: 6),
+                _buildItemsTable(docData, isA4: false),
+                pw.SizedBox(height: 6),
+                _buildTotalsSection(docData, isA4: false),
+                pw.SizedBox(height: 6),
+                _buildFooter(docData, isA4: false),
+              ],
+            );
+          },
         ),
       );
     }
 
-    return pw.Directionality(
-      textDirection: pw.TextDirection.ltr,
-      child: pw.Table(
-        border: pw.TableBorder.all(color: const PdfColor.fromInt(0xFFE2E8F0), width: 0.5),
-        columnWidths: {
-          0: const pw.FlexColumnWidth(12),
-          1: const pw.FlexColumnWidth(9),
-          2: const pw.FlexColumnWidth(9),
-          3: const pw.FlexColumnWidth(12),
-          4: const pw.FlexColumnWidth(7),
-          5: const pw.FlexColumnWidth(7),
-          6: const pw.FlexColumnWidth(17),
-          7: const pw.FlexColumnWidth(22),
-          8: const pw.FlexColumnWidth(5),
-        },
-        children: [
-          pw.TableRow(
-            repeat: true, // Crucial for multi-page invoices
-            decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF1C3A82)),
-            children: [
-              cell('الإجمالي', isHeader: true, hPad: 4),
-              cell('الضريبة', isHeader: true, hPad: 4),
-              cell('الخصم', isHeader: true, hPad: 4),
-              cell('سعر الوحدة', isHeader: true, hPad: 4),
-              cell('الكمية', isHeader: true, hPad: 2),
-              cell('الوحدة', isHeader: true, hPad: 2),
-              cell('الباركود / SKU', isHeader: true, hPad: 6),
-              cell('وصف المنتج', alignment: pw.Alignment.centerRight, isHeader: true, hPad: 6),
-              cell('#', isHeader: true, hPad: 2),
-            ],
-          ),
-          ...List<pw.TableRow>.generate(docData.items.length, (index) {
-            final item = docData.items[index];
-            return pw.TableRow(
-              decoration: const pw.BoxDecoration(
-                border: pw.Border(
-                  bottom: pw.BorderSide(color: PdfColor.fromInt(0xFFF1F5F9), width: 0.5),
-                ),
-              ),
-              children: [
-                cell(formatCurrency.format(item.lineTotal), isRtl: false, hPad: 4),
-                cell(formatCurrency.format(item.tax), isRtl: false, hPad: 4),
-                cell(formatCurrency.format(item.discount), isRtl: false, hPad: 4),
-                cell(formatCurrency.format(item.unitPrice), isRtl: false, hPad: 4),
-                cell(formatQty.format(item.quantity), isRtl: false, hPad: 2),
-                cell(item.unitName ?? '—', hPad: 2),
-                cell(item.sku ?? item.barcode ?? '—', isRtl: false, hPad: 6),
-                cell(item.description, alignment: pw.Alignment.centerRight, hPad: 6),
-                cell('${index + 1}', isRtl: false, hPad: 2),
-              ],
-            );
-          }),
-        ],
-      ),
-    );
+    return pdf;
   }
 
-  static pw.Widget _buildTotalsAndTerms(CommercialDocumentData docData) {
-    final currency = docData.currencySymbol ?? docData.currencyCode;
-    final formatCurrency = NumberFormat.currency(symbol: '', decimalDigits: 2);
+  // --- 1. ترويسة الفاتورة (مريحة وفسيحة وكلاسيكية) ---
+  static pw.Widget _buildHeader(CommercialDocumentData docData, {required bool isA4}) {
+    final titleSize = isA4 ? 18.0 : 14.5;
+    final subSize = isA4 ? 10.5 : 9.0;
+    final badgeSize = isA4 ? 11.0 : 9.5;
 
-    return pw.Row(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
+    final isReturn = docData.documentType.contains('مرتجع');
+    final docTitle = isReturn ? 'مرتجع مبيعات' : 'مبيعات';
+    final paymentTitle = docData.paymentMethod ?? (isReturn ? 'استرداد نقدي' : 'نقداً');
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
-        // Terms
-        pw.Expanded(
-          flex: 5,
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
+        // اسم المنشأة / المحل
+        pw.Text(
+          docData.businessName,
+          textAlign: pw.TextAlign.center,
+          style: pw.TextStyle(
+            fontSize: titleSize,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+        ),
+        pw.SizedBox(height: 2),
+
+        // بيانات الفرع والعنوان والهاتف
+        if (docData.branchName != null && docData.branchName!.isNotEmpty) ...[
+          pw.Text(
+            docData.branchName!,
+            style: pw.TextStyle(fontSize: subSize, color: PdfColors.black),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 1),
+        ],
+
+        if (docData.businessAddress != null && docData.businessAddress!.isNotEmpty) ...[
+          pw.Text(
+            docData.businessAddress!,
+            style: pw.TextStyle(fontSize: subSize, color: PdfColors.black),
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 1),
+        ],
+
+        if (docData.businessPhone != null && docData.businessPhone!.isNotEmpty) ...[
+          pw.Text(
+            'هاتف: ${docData.businessPhone!}',
+            style: pw.TextStyle(
+              fontSize: subSize,
+              fontWeight: pw.FontWeight.bold,
+              color: PdfColors.black,
+            ),
+            textDirection: pw.TextDirection.rtl,
+            textAlign: pw.TextAlign.center,
+          ),
+          pw.SizedBox(height: 3),
+        ],
+
+        // شريط نوع الفاتورة وطريقة الدفع الكلاسيكي المحدد ببرواز أسود
+        pw.Container(
+          margin: const pw.EdgeInsets.only(top: 3, bottom: 2),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.center,
             children: [
-              if (docData.notes != null && docData.notes!.isNotEmpty) ...[
-                pw.Text('ملاحظات الفاتورة والشروط:', style: pw.TextStyle(color: const PdfColor.fromInt(0xFF1C3A82), fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                pw.SizedBox(height: 4),
-                pw.Text(docData.notes!, style: const pw.TextStyle(color: PdfColor.fromInt(0xFF475569), fontSize: 10)),
-                pw.SizedBox(height: 10),
-              ],
-              if (docData.terms != null && docData.terms!.isNotEmpty) ...[
-                pw.Text('سياسة الاسترجاع والاستبدال:', style: pw.TextStyle(color: const PdfColor.fromInt(0xFF1C3A82), fontWeight: pw.FontWeight.bold, fontSize: 11)),
-                pw.SizedBox(height: 4),
-                pw.Text(docData.terms!, style: const pw.TextStyle(color: PdfColor.fromInt(0xFF475569), fontSize: 10)),
-              ]
+              pw.Container(
+                padding: pw.EdgeInsets.symmetric(
+                  horizontal: isA4 ? 12 : 8,
+                  vertical: isA4 ? 3 : 2,
+                ),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black, width: 1),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+                  color: PdfColors.white,
+                ),
+                child: pw.Text(
+                  'فاتورة: $docTitle',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: badgeSize,
+                    color: PdfColors.black,
+                  ),
+                ),
+              ),
+              pw.SizedBox(width: 4),
+              pw.Container(
+                padding: pw.EdgeInsets.symmetric(
+                  horizontal: isA4 ? 12 : 8,
+                  vertical: isA4 ? 3 : 2,
+                ),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black, width: 1),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(3)),
+                  color: PdfColors.white,
+                ),
+                child: pw.Text(
+                  '($paymentTitle)',
+                  style: pw.TextStyle(
+                    fontWeight: pw.FontWeight.bold,
+                    fontSize: badgeSize,
+                    color: PdfColors.black,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        pw.SizedBox(width: 20),
-        // Totals
-        pw.Expanded(
-          flex: 4,
-          child: pw.Column(
+      ],
+    );
+  }
+
+  // --- 2. تفاصيل الفاتورة والعميل والتواريخ (محاطة بحدود متقطعة) ---
+  static pw.Widget _buildMetadataBox(CommercialDocumentData docData, {required bool isA4}) {
+    final metaSize = isA4 ? 10.0 : 8.8;
+    final currency = _resolveCurrency(docData);
+    final isReturn = docData.documentType.contains('مرتجع');
+
+    final dateStr = _formatDate(docData.issueDate);
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          top: pw.BorderSide(color: PdfColors.black, width: 0.8, style: pw.BorderStyle.dashed),
+          bottom: pw.BorderSide(color: PdfColors.black, width: 0.8, style: pw.BorderStyle.dashed),
+        ),
+      ),
+      child: pw.Column(
+        children: [
+          // سطر 1: العميل | رقم الفاتورة
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
-              _buildTotalRow('إجمالي المنتجات:', '${docData.items.length}', isBold: true),
-              pw.Divider(color: const PdfColor.fromInt(0xFFE2E8F0), thickness: 0.5),
-              _buildTotalRow('المجموع الفرعي:', '${formatCurrency.format(docData.subtotal)} $currency'),
-              if (docData.discount > 0)
-                _buildTotalRow('الخصم:', '${formatCurrency.format(docData.discount)} $currency'),
-              if (docData.tax > 0)
-                _buildTotalRow('الضريبة:', '${formatCurrency.format(docData.tax)} $currency'),
-              pw.SizedBox(height: 8),
-              pw.Container(
-                padding: const pw.EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                decoration: pw.BoxDecoration(
-                  color: const PdfColor.fromInt(0xFF1C3A82),
-                  borderRadius: pw.BorderRadius.circular(6)
-                ),
-                child: pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  pw.Text('العميل: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                  pw.Text(
+                    docData.customerOrSupplierName.isNotEmpty
+                        ? docData.customerOrSupplierName
+                        : 'عميل نقدي',
+                    style: pw.TextStyle(
+                      fontSize: metaSize,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                ],
+              ),
+              pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  pw.Text(
+                    isReturn ? 'رقم المرتجع: ' : 'رقم الفاتورة: ',
+                    style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black),
+                  ),
+                  pw.Text(
+                    docData.documentNumber,
+                    style: pw.TextStyle(
+                      fontSize: metaSize,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 3),
+
+          // سطر 2: التاريخ | العملة
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  pw.Text('التاريخ: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                  pw.Text(
+                    dateStr,
+                    style: pw.TextStyle(
+                      fontSize: metaSize,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                ],
+              ),
+              pw.Row(
+                mainAxisSize: pw.MainAxisSize.min,
+                children: [
+                  pw.Text('العملة: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                  pw.Text(
+                    currency,
+                    style: pw.TextStyle(
+                      fontSize: metaSize,
+                      fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+
+          // سطر اختياري: هاتف العميل إن وجد
+          if (docData.customerOrSupplierPhone != null && docData.customerOrSupplierPhone!.isNotEmpty) ...[
+            pw.SizedBox(height: 3),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
                   children: [
-                    pw.Text('الإجمالي النهائي:', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 15)),
-                    pw.Text('${formatCurrency.format(docData.grandTotal)} $currency', style: pw.TextStyle(color: PdfColors.white, fontWeight: pw.FontWeight.bold, fontSize: 15), textDirection: pw.TextDirection.ltr),
+                    pw.Text('هاتف العميل: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                    pw.Text(
+                      docData.customerOrSupplierPhone!,
+                      style: pw.TextStyle(
+                        fontSize: metaSize,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.black,
+                      ),
+                      textDirection: pw.TextDirection.ltr,
+                    ),
                   ],
                 ),
+                if (docData.createdBy != null && docData.createdBy!.isNotEmpty)
+                  pw.Text(
+                    'الكاشير: ${docData.createdBy}',
+                    style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- 3. جدول الأصناف (حدود سوداء واضحة جداً، بدون ضريبة وبدون باركود) ---
+  static pw.Widget _buildItemsTable(CommercialDocumentData docData, {required bool isA4}) {
+    final fontSize = isA4 ? 10.0 : 8.8;
+
+    return pw.Table(
+      border: pw.TableBorder.all(
+        color: PdfColors.black,
+        width: 0.8,
+      ),
+      columnWidths: const {
+        0: pw.FlexColumnWidth(44), // الصنف
+        1: pw.FlexColumnWidth(16), // الكمية
+        2: pw.FlexColumnWidth(20), // السعر
+        3: pw.FlexColumnWidth(20), // الإجمالي
+      },
+      children: [
+        // ترويسة الجدول
+        pw.TableRow(
+          decoration: const pw.BoxDecoration(color: PdfColors.white),
+          children: [
+            _buildCell('الصنف', isHeader: true, align: pw.TextAlign.right, fontSize: fontSize),
+            _buildCell('الكمية', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
+            _buildCell('السعر', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
+            _buildCell('الإجمالي', isHeader: true, align: pw.TextAlign.left, fontSize: fontSize),
+          ],
+        ),
+
+        // صفوف الأصناف
+        ...docData.items.map((item) {
+          final unitSuffix = (item.unitName != null && item.unitName!.isNotEmpty)
+              ? ' (${item.unitName})'
+              : '';
+
+          return pw.TableRow(
+            children: [
+              _buildCell(
+                '${item.description}$unitSuffix',
+                align: pw.TextAlign.right,
+                fontSize: fontSize,
+                isBold: true,
               ),
-              pw.SizedBox(height: 8),
-              if (docData.paidAmount > 0 || docData.paymentStatus == 'Paid' || docData.paymentStatus == 'مدفوعة')
-                _buildTotalRow('المبلغ المدفوع:', '${formatCurrency.format(docData.paidAmount)} $currency', valueColor: const PdfColor.fromInt(0xFF16A34A), isBold: true),
-              if (docData.remainingAmount > 0)
-                _buildTotalRow('المبلغ المتبقي:', '${formatCurrency.format(docData.remainingAmount)} $currency', valueColor: const PdfColor.fromInt(0xFFDC2626), isBold: true),
+              _buildCell(
+                _formatQty(item.quantity),
+                align: pw.TextAlign.center,
+                fontSize: fontSize,
+                isBold: true,
+              ),
+              _buildCell(
+                _formatMoney(item.unitPrice),
+                align: pw.TextAlign.center,
+                fontSize: fontSize,
+              ),
+              _buildCell(
+                _formatMoney(item.lineTotal),
+                align: pw.TextAlign.left,
+                fontSize: fontSize,
+                isBold: true,
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+
+  // --- 4. قسم الإجمالي والمجاميع (ببرواز أسود صريح وتفقيط عربي) ---
+  static pw.Widget _buildTotalsSection(CommercialDocumentData docData, {required bool isA4}) {
+    final currency = _resolveCurrency(docData);
+    final rowSize = isA4 ? 10.5 : 9.0;
+    final totalSize = isA4 ? 13.0 : 11.5;
+    final isReturn = docData.documentType.contains('مرتجع');
+
+    final totalWord = ArabicTafqeet.convert(docData.grandTotal, currencyName: currency);
+
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          top: pw.BorderSide(color: PdfColors.black, width: 0.8, style: pw.BorderStyle.dashed),
+          bottom: pw.BorderSide(color: PdfColors.black, width: 0.8, style: pw.BorderStyle.dashed),
+        ),
+      ),
+      child: pw.Column(
+        children: [
+          // إجمالي الأصناف والخصم إن وجد خصم
+          if (docData.discount > 0) ...[
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('إجمالي الأصناف:', style: pw.TextStyle(fontSize: rowSize, color: PdfColors.black)),
+                pw.Text(
+                  '${_formatMoney(docData.subtotal)} $currency',
+                  style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 2),
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('الخصم:', style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+                pw.Text(
+                  '( ${_formatMoney(docData.discount)} - ) $currency',
+                  style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                ),
+              ],
+            ),
+            pw.SizedBox(height: 3),
+          ],
+
+          // الإجمالي الصافي المميز والمحاط ببرواز واضح وجريء
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.black, width: 1.5),
+              color: PdfColors.white,
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text(
+                  isReturn ? 'المبلغ المسترد:' : 'المبلغ المستحق:',
+                  style: pw.TextStyle(
+                    fontSize: totalSize,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.black,
+                  ),
+                ),
+                pw.Row(
+                  mainAxisSize: pw.MainAxisSize.min,
+                  children: [
+                    pw.Text(
+                      _formatMoney(docData.grandTotal),
+                      style: pw.TextStyle(
+                        fontSize: totalSize + 1,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.black,
+                      ),
+                    ),
+                    pw.SizedBox(width: 4),
+                    pw.Text(
+                      currency,
+                      style: pw.TextStyle(
+                        fontSize: rowSize,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // المدفوع والمتبقي إذا كان هناك مبلغ متبقي أو آجل
+          if (docData.remainingAmount > 0) ...[
+            pw.SizedBox(height: 3),
+            if (docData.paidAmount > 0) ...[
+              pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text('المبلغ المدفوع:', style: pw.TextStyle(fontSize: rowSize, color: PdfColors.black)),
+                  pw.Text(
+                    '${_formatMoney(docData.paidAmount)} $currency',
+                    style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                  ),
+                ],
+              ),
+              pw.SizedBox(height: 2),
+            ],
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                pw.Text('المبلغ المتبقي (آجل):', style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black)),
+                pw.Text(
+                  '${_formatMoney(docData.remainingAmount)} $currency',
+                  style: pw.TextStyle(fontSize: rowSize, fontWeight: pw.FontWeight.bold, color: PdfColors.black),
+                ),
+              ],
+            ),
+          ],
+
+          // التفقيط باللغة العربية
+          pw.SizedBox(height: 4),
+          pw.Container(
+            alignment: pw.Alignment.center,
+            child: pw.Text(
+              '($totalWord)',
+              textAlign: pw.TextAlign.center,
+              style: pw.TextStyle(
+                fontSize: isA4 ? 9.5 : 8.2,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.black,
+              ),
+            ),
+          ),
+
+          // ملاحظات الفاتورة إن وجدت
+          if (docData.notes != null && docData.notes!.trim().isNotEmpty) ...[
+            pw.SizedBox(height: 4),
+            pw.Container(
+              alignment: pw.Alignment.centerRight,
+              padding: const pw.EdgeInsets.only(top: 3),
+              decoration: const pw.BoxDecoration(
+                border: pw.Border(
+                  top: pw.BorderSide(color: PdfColors.black, width: 0.5, style: pw.BorderStyle.dashed),
+                ),
+              ),
+              child: pw.Text(
+                'ملاحظات: ${docData.notes!.trim()}',
+                style: pw.TextStyle(fontSize: rowSize - 0.5, color: PdfColors.black),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // --- 5. تذييل الفاتورة الرسمي الكلاسيكي ---
+  static pw.Widget _buildFooter(CommercialDocumentData docData, {required bool isA4}) {
+    final isReturn = docData.documentType.contains('مرتجع');
+    final footerTitle = isReturn
+        ? 'سند إرجاع بضاعة رسمي ومقيد بالحساب'
+        : 'شكراً لتعاملكم معنا';
+    final policyText = docData.terms ??
+        (isReturn
+            ? 'تم استلام البضاعة وإعادتها للمخزن وتحديث الحساب المالي'
+            : 'البضاعة المباعة لا تُرد ولا تُستبدل إلا بموجب أصل الفاتورة');
+
+    final cashierName = docData.createdBy ?? 'مستخدم النظام';
+    final printTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.center,
+      children: [
+        pw.Text(
+          footerTitle,
+          style: pw.TextStyle(
+            fontSize: isA4 ? 11.0 : 9.5,
+            fontWeight: pw.FontWeight.bold,
+            color: PdfColors.black,
+          ),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          policyText,
+          style: pw.TextStyle(
+            fontSize: isA4 ? 9.5 : 8.0,
+            color: PdfColors.black,
+          ),
+          textAlign: pw.TextAlign.center,
+        ),
+        pw.SizedBox(height: 4),
+        pw.Container(
+          padding: const pw.EdgeInsets.only(top: 3),
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              top: pw.BorderSide(color: PdfColors.black, width: 0.6, style: pw.BorderStyle.dashed),
+            ),
+          ),
+          child: pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                'المحاسب: $cashierName',
+                style: pw.TextStyle(
+                  fontSize: isA4 ? 9.5 : 8.0,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.black,
+                ),
+              ),
+              pw.Text(
+                printTime,
+                style: pw.TextStyle(
+                  fontSize: isA4 ? 9.5 : 8.0,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.black,
+                ),
+              ),
             ],
           ),
         ),
@@ -392,165 +686,94 @@ class OfficialCommercialDocumentPdfBuilder {
     );
   }
 
-  static pw.Widget _buildSignatures() {
+  // --- تذييل التوقيعات لأوراق A4 فقط ---
+  static pw.Widget _buildA4Signatures() {
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        _buildSignatureBox('ختم الشركة'),
-        _buildSignatureBox('اعتماد الإدارة'),
-        _buildSignatureBox('توقيع المستلم/العميل'),
-        _buildSignatureBox('توقيع البائع/المندوب'),
+        _buildSignatureLine('ختم المؤسسة / المحل'),
+        _buildSignatureLine('توقيع المستلم / العميل'),
+        _buildSignatureLine('توقيع البائع / المحاسب'),
       ],
     );
   }
 
-  static pw.Widget _buildSignatureBox(String title) {
-    return pw.Expanded(
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.center,
-        children: [
-          pw.Text(title, style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: const PdfColor.fromInt(0xFF475569))),
-          pw.SizedBox(height: 40),
-          pw.Container(
-            width: 80,
-            decoration: const pw.BoxDecoration(
-              border: pw.Border(bottom: pw.BorderSide(color: PdfColor.fromInt(0xFF94A3B8), width: 1)),
-            ),
+  static pw.Widget _buildSignatureLine(String label) {
+    return pw.Column(
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+        pw.SizedBox(height: 30),
+        pw.Container(
+          width: 120,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(bottom: pw.BorderSide(color: PdfColors.black, width: 0.8)),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  // --- أدوات مساعدة ---
+  static pw.Widget _buildCell(
+    String text, {
+    bool isHeader = false,
+    bool isBold = false,
+    pw.TextAlign align = pw.TextAlign.right,
+    double fontSize = 8.8,
+  }) {
+    return pw.Container(
+      padding: const pw.EdgeInsets.symmetric(horizontal: 3, vertical: 3.5),
+      alignment: align == pw.TextAlign.right
+          ? pw.Alignment.centerRight
+          : align == pw.TextAlign.left
+              ? pw.Alignment.centerLeft
+              : pw.Alignment.center,
+      child: pw.Text(
+        text,
+        textAlign: align,
+        style: pw.TextStyle(
+          fontSize: fontSize,
+          fontWeight: (isHeader || isBold) ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: PdfColors.black,
+        ),
       ),
     );
   }
 
-  // --- Helpers ---
-
-  static pw.Widget _buildMetaRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(width: 75, child: pw.Text(label, style: const pw.TextStyle(color: PdfColor.fromInt(0xFF64748B), fontSize: 11))),
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: const PdfColor.fromInt(0xFF334155)),
-              textDirection: _isMostlyEnglish(value) ? pw.TextDirection.ltr : pw.TextDirection.rtl,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildMetaRowReverse(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 4),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: const PdfColor.fromInt(0xFF334155)),
-              textAlign: pw.TextAlign.right,
-              textDirection: _isMostlyEnglish(value) ? pw.TextDirection.ltr : pw.TextDirection.rtl,
-            ),
-          ),
-          pw.SizedBox(width: 8),
-          pw.SizedBox(width: 75, child: pw.Text(label, style: const pw.TextStyle(color: PdfColor.fromInt(0xFF64748B), fontSize: 11), textAlign: pw.TextAlign.left)),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildMetaRowBox(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.start,
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(width: 75, child: pw.Text(label, style: const pw.TextStyle(color: PdfColor.fromInt(0xFF64748B), fontSize: 11))),
-          pw.Expanded(
-            child: pw.Text(
-              value,
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11, color: const PdfColor.fromInt(0xFF0F172A)),
-              textDirection: _isMostlyEnglish(value) ? pw.TextDirection.ltr : pw.TextDirection.rtl,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static pw.Widget _buildTotalRow(String label, String value, {bool isBold = false, PdfColor? valueColor}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: pw.TextStyle(color: const PdfColor.fromInt(0xFF475569), fontSize: 11, fontWeight: isBold ? pw.FontWeight.bold : pw.FontWeight.normal)),
-          pw.Text(
-            value,
-            style: pw.TextStyle(color: valueColor ?? const PdfColor.fromInt(0xFF0F172A), fontSize: 11, fontWeight: pw.FontWeight.bold),
-            textDirection: pw.TextDirection.ltr,
-          ),
-        ],
-      ),
-    );
-  }
-
-  static bool _isMostlyEnglish(String text) {
-    if (text.isEmpty) return false;
-    final englishChars = RegExp(r'[a-zA-Z0-9-]').allMatches(text).length;
-    return (englishChars / text.length) > 0.5;
-  }
-
-  static PdfColor _getStatusBgColor(String status) {
-    switch (status) {
-      case 'Paid':
-      case 'مدفوعة':
-        return const PdfColor.fromInt(0xFFDCFCE7);
-      case 'Partial':
-      case 'مدفوعة جزئياً':
-        return const PdfColor.fromInt(0xFFFEF9C3);
-      case 'Unpaid':
-      case 'غير مدفوعة':
-      case 'آجلة':
-        return const PdfColor.fromInt(0xFFFEE2E2);
-      case 'Draft':
-      case 'مسودة':
-        return const PdfColor.fromInt(0xFFF1F5F9);
-      case 'Reversed':
-      case 'ملغاة':
-        return const PdfColor.fromInt(0xFFE2E8F0);
-      default:
-        return const PdfColor.fromInt(0xFFDBEAFE);
+  static String _formatMoney(double val) {
+    if (val == val.roundToDouble()) {
+      return NumberFormat('#,##0', 'en_US').format(val);
     }
+    return NumberFormat('#,##0.00', 'en_US').format(val);
   }
 
-  static PdfColor _getStatusTextColor(String status) {
-    switch (status) {
-      case 'Paid':
-      case 'مدفوعة':
-        return const PdfColor.fromInt(0xFF166534);
-      case 'Partial':
-      case 'مدفوعة جزئياً':
-        return const PdfColor.fromInt(0xFF854D0E);
-      case 'Unpaid':
-      case 'غير مدفوعة':
-      case 'آجلة':
-        return const PdfColor.fromInt(0xFF991B1B);
-      case 'Draft':
-      case 'مسودة':
-        return const PdfColor.fromInt(0xFF1E293B);
-      case 'Reversed':
-      case 'ملغاة':
-        return const PdfColor.fromInt(0xFF334155);
-      default:
-        return const PdfColor.fromInt(0xFF1E40AF);
+  static String _formatQty(double qty) {
+    if (qty == qty.roundToDouble()) {
+      return qty.toInt().toString();
     }
+    return qty.toStringAsFixed(2);
+  }
+
+  static String _formatDate(DateTime date) {
+    final ymd = DateFormat('yyyy-MM-dd').format(date);
+    final time = DateFormat('hh:mm a').format(date)
+        .replaceAll('AM', 'ص')
+        .replaceAll('PM', 'م');
+    return '$ymd ($time)';
+  }
+
+  static String _resolveCurrency(CommercialDocumentData docData) {
+    if (docData.currencySymbol != null &&
+        docData.currencySymbol!.isNotEmpty &&
+        docData.currencySymbol != 'YER') {
+      return docData.currencySymbol!;
+    }
+    if (docData.currencyCode == 'SAR' || docData.currencySymbol == 'SAR') {
+      return 'ريال سعودي';
+    }
+    if (docData.currencyCode == 'USD' || docData.currencySymbol == '\$') {
+      return 'دولار';
+    }
+    return 'ريال يمني';
   }
 }

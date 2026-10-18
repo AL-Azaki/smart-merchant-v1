@@ -10,6 +10,7 @@ import '../../infrastructure/api/auth_remote_api_client.dart';
 import '../../infrastructure/dto/auth_dtos.dart';
 import 'session_provider.dart';
 import '../../../../kernel/storage/app_database.dart';
+import '../../../../database/seeders/default_coa_seeder.dart';
 import 'package:drift/drift.dart' as drift;
 
 part 'auth_provider.g.dart';
@@ -52,7 +53,7 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
-  void _bootstrapQaSession() {
+  Future<void> _bootstrapQaSession() async {
     debugPrint('QA ACCESS MODE: BYPASSING AUTHENTICATION');
     final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
     sessionNotifier.setSession(
@@ -60,12 +61,53 @@ class AuthNotifier extends _$AuthNotifier {
       branchId: 'qa-branch-id',
       userId: 'qa-user-id',
     );
+    try {
+      final db = getIt<AppDatabase>();
+      // 0. Ensure user exists safely without UNIQUE constraint collision on email
+      final existingQaUser = await (db.select(db.usersTable)
+            ..where((u) => u.id.equals('qa-user-id')))
+          .getSingleOrNull();
+
+      if (existingQaUser == null) {
+        final emailConflicts = await (db.select(db.usersTable)
+              ..where((u) => u.email.equals('admin@smartmerchant.com')))
+            .get();
+        for (final conflict in emailConflicts) {
+          if (conflict.id != 'qa-user-id') {
+            await (db.update(db.usersTable)..where((u) => u.id.equals(conflict.id))).write(
+              UsersTableCompanion(
+                email: drift.Value('old_${conflict.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')}@smartmerchant.com'),
+              ),
+            );
+          }
+        }
+
+        await db.into(db.usersTable).insert(
+          UsersTableCompanion.insert(
+            id: const drift.Value('qa-user-id'),
+            email: 'admin@smartmerchant.com',
+            passwordHash: '',
+            firstName: 'المدير',
+            lastName: 'العام',
+            isActive: const drift.Value(true),
+          ),
+        );
+      }
+
+      // 1. Seed complete business, branch, accounts, mappings and warehouses
+      await DefaultChartOfAccountsSeeder(db).seedChartOfAccounts(
+        businessId: 'qa-business-id',
+        currencyId: 'YER',
+      );
+    } catch (e, st) {
+      debugPrint('Bootstrap QA session notice: $e\n$st');
+    }
     state = AuthStatus.authenticated;
   }
 
   /// Direct demo / offline bypass mode for instant trial without credentials.
-  void loginAsDemo() {
-    _bootstrapQaSession();
+  Future<void> loginAsDemo() async {
+    await _bootstrapQaSession();
   }
 
   /// Full login flow: authenticate → store token → bootstrap → register device.
@@ -477,6 +519,12 @@ class AuthNotifier extends _$AuthNotifier {
                 ),
               );
         }
+
+        // Auto-seed default 100% Arabic Chart of Accounts, Open Fiscal Year & Period, Cash Registers, Warehouses
+        await DefaultChartOfAccountsSeeder(db).seedChartOfAccounts(
+          businessId: bootstrap.activeBusiness.id,
+          currencyId: 'YER',
+        );
       });
     } catch (e) {
       debugPrint('HYDRATION ERROR: $e');

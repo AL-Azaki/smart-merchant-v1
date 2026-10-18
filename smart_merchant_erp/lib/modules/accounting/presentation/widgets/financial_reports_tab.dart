@@ -74,7 +74,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                           children: [
                             Icon(Icons.account_balance_wallet_rounded, size: 16),
                             SizedBox(width: 8),
-                            Text('ميزان المراجعة (Trial Balance)', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('ميزان المراجعة', style: TextStyle(fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -86,7 +86,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                           children: [
                             Icon(Icons.trending_up_rounded, size: 16),
                             SizedBox(width: 8),
-                            Text('قائمة الدخل والأرباح (P&L)', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('قائمة الدخل والأرباح', style: TextStyle(fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
@@ -98,7 +98,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                           children: [
                             Icon(Icons.auto_stories_rounded, size: 16),
                             SizedBox(width: 8),
-                            Text('دفتر الأستاذ العام (General Ledger)', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('دفتر الأستاذ العام', style: TextStyle(fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),

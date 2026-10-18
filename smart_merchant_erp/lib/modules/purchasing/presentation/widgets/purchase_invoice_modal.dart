@@ -742,8 +742,10 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                                       .notifier,
                                                 )
                                                 .saveProduct(data);
-                                            if (successId != null &&
-                                                formCtx.mounted) {
+                                            if (successId == null) {
+                                              throw StateError('Product save failed');
+                                            }
+                                            if (formCtx.mounted) {
                                               Navigator.pop(formCtx);
                                               notifier.updateRow(
                                                 row.id,
@@ -1040,7 +1042,10 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                   final successId = await ref
                                       .read(productsNotifierProvider.notifier)
                                       .saveProduct(data);
-                                  if (successId != null && formCtx.mounted) {
+                                  if (successId == null) {
+                                    throw StateError('Product save failed');
+                                  }
+                                  if (formCtx.mounted) {
                                     Navigator.pop(formCtx);
                                     notifier.updateRow(
                                       row.id,

@@ -1,3 +1,4 @@
+import '../../../../core/utils/precision_math.dart';
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:uuid/uuid.dart';
@@ -42,171 +43,224 @@ class ProcessWarehouseTransferUseCase
   final InventoryRepository _inventoryRepository;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
+  final AppDatabase _db;
   final Uuid _uuid = const Uuid();
-
   ProcessWarehouseTransferUseCase(
     this._inventoryRepository,
     this._context,
     this._transactionRunner,
+    this._db,
   );
-
   @override
   Future<Either<Failure, String>> call(
     ProcessWarehouseTransferCommand params,
   ) async {
-    final businessId = _context.currentBusinessId;
-    final branchId = _context.currentBranchId;
-    final userId = _context.currentUserId;
-
-    if (branchId == null) {
+    final businessId = _context.currentBusinessId,
+        branchId = _context.currentBranchId;
+    if (branchId == null ||
+        params.items.isEmpty ||
+        params.sourceWarehouseId == params.destinationWarehouseId) {
       return const Left(
-        ValidationFailure('Branch ID is required for warehouse transfer.'),
+        ValidationFailure('اختر مستودعين مختلفين ومنتجاً واحداً على الأقل.'),
       );
     }
-
-    if (params.sourceWarehouseId == params.destinationWarehouseId) {
-      return const Left(
-        ValidationFailure(
-          'Source and destination warehouses cannot be the same.',
-        ),
-      );
-    }
-
-    if (params.items.isEmpty) {
-      return const Left(
-        ValidationFailure('Transfer must have at least one item.'),
-      );
-    }
-
-    // 1. Validate Stock Availability
-    for (final item in params.items) {
-      if (item.quantity <= 0) {
-        return const Left(
-          ValidationFailure('Transfer quantity must be greater than 0.'),
-        );
-      }
-      final inventory = await _inventoryRepository
-          .getInventoryByUnitAndWarehouse(
-            businessId,
-            params.sourceWarehouseId,
-            item.productUnitId,
-          );
-      if (inventory == null || inventory.quantity < item.quantity) {
-        return const Left(
-          ValidationFailure('Insufficient stock in source warehouse.'),
-        );
-      }
-    }
-
-    // 2. Prepare Transfer Entities
-    final transferId = _uuid.v4();
-    final transferNumber = 'TR-${DateTime.now().millisecondsSinceEpoch}';
-    final transferDate = DateTime.now();
-
-    final transferCompanion = InventoryTransfersCompanion.insert(
-      id: transferId,
-      businessId: businessId,
-      transferNumber: transferNumber,
-      transferDate: drift.Value(transferDate),
-      fromWarehouseId: params.sourceWarehouseId,
-      toWarehouseId: params.destinationWarehouseId,
-      status: const drift.Value(InventoryTransferStatus.completed),
-      notes: drift.Value(params.notes),
-      createdBy: userId,
-    );
-
-    final transferItemsCompanions = params.items
-        .map<InventoryTransferItemsCompanion>((item) {
-          return InventoryTransferItemsCompanion.insert(
-            id: _uuid.v4(),
-            businessId: businessId,
-            transferId: transferId,
-            productUnitId: item.productUnitId,
-            quantity: item.quantity,
-          );
-        })
-        .toList();
-
-    // 3. Prepare Inventory Transactions (Outbound & Inbound)
-    final txOutId = _uuid.v4();
-    final txOutCompanion = InventoryTransactionsCompanion.insert(
-      id: txOutId,
-      businessId: businessId,
-      branchId: branchId,
-      warehouseId: params.sourceWarehouseId,
-      transactionDate: drift.Value(transferDate),
-      transactionType: InventoryTransactionType.dispatch,
-      movementDirection: InventoryMovementDirection.outbound,
-      referenceType: const drift.Value(InventoryReferenceType.transfer),
-      referenceId: drift.Value(transferId),
-      status: const drift.Value(InventoryTransactionStatus.posted),
-      createdBy: userId,
-    );
-
-    final txInId = _uuid.v4();
-    final txInCompanion = InventoryTransactionsCompanion.insert(
-      id: txInId,
-      businessId: businessId,
-      branchId: branchId,
-      warehouseId: params.destinationWarehouseId,
-      transactionDate: drift.Value(transferDate),
-      transactionType: InventoryTransactionType.receipt,
-      movementDirection: InventoryMovementDirection.inbound,
-      referenceType: const drift.Value(InventoryReferenceType.transfer),
-      referenceId: drift.Value(transferId),
-      status: const drift.Value(InventoryTransactionStatus.posted),
-      createdBy: userId,
-    );
-
-    final txOutLines = params.items.map<InventoryTransactionLinesCompanion>((
-      item,
-    ) {
-      return InventoryTransactionLinesCompanion.insert(
-        id: _uuid.v4(),
-        businessId: businessId,
-        inventoryTransactionId: txOutId,
-        productUnitId: item.productUnitId,
-        quantity: item.quantity,
-      );
-    }).toList();
-
-    final txInLines = params.items.map<InventoryTransactionLinesCompanion>((
-      item,
-    ) {
-      return InventoryTransactionLinesCompanion.insert(
-        id: _uuid.v4(),
-        businessId: businessId,
-        inventoryTransactionId: txInId,
-        productUnitId: item.productUnitId,
-        quantity: item.quantity,
-      );
-    }).toList();
-
-    // 4. Run Transaction
+    final transferId = _uuid.v4(), now = DateTime.now();
     try {
       await _transactionRunner.runInTransaction(() async {
-        // Record Transfer
+        final source = await _inventoryRepository.getWarehouseById(
+          params.sourceWarehouseId,
+          businessId,
+        );
+        final destination = await _inventoryRepository.getWarehouseById(
+          params.destinationWarehouseId,
+          businessId,
+        );
+        if (source == null ||
+            destination == null ||
+            !source.isActive ||
+            !destination.isActive ||
+            source.branchId != branchId) {
+          throw const ValidationFailure(
+            'اختر مستودعين نشطين، والمصدر من الفرع الحالي.',
+          );
+        }
+        final sources = <String, Inventory>{},
+            targets = <String, Inventory?>{},
+            quantities = <String, double>{};
+        for (final item in params.items) {
+          if (!item.quantity.isFinite ||
+              item.quantity <= 0 ||
+              quantities.containsKey(item.productUnitId)) {
+            throw const ValidationFailure(
+              'راجع الكميات؛ لا يقبل التحويل كمية غير صالحة أو منتجاً مكرراً.',
+            );
+          }
+          final quantity = PrecisionMath.roundQty(item.quantity);
+          if (quantity <= 0) {
+            throw const ValidationFailure(
+              'الكمية المحوّلة أقل من دقة المخزون المتاحة.',
+            );
+          }
+          final unit =
+              await (_db.select(_db.productUnits)..where(
+                    (u) =>
+                        u.id.equals(item.productUnitId) &
+                        u.businessId.equals(businessId) &
+                        u.isActive.equals(true) &
+                        u.isBaseUnit.equals(true) &
+                        u.deletedAt.isNull(),
+                  ))
+                  .getSingleOrNull();
+          if (unit == null) {
+            throw const ValidationFailure(
+              'اختر وحدة المخزون الأساسية لمنتج نشط من هذه المنشأة.',
+            );
+          }
+          final product =
+              await (_db.select(_db.products)..where(
+                    (p) =>
+                        p.id.equals(unit.productId) &
+                        p.businessId.equals(businessId) &
+                        p.isActive.equals(true) &
+                        p.deletedAt.isNull(),
+                  ))
+                  .getSingleOrNull();
+          if (product == null) {
+            throw const ValidationFailure('أحد المنتجات غير متاح للتحويل.');
+          }
+          final stock = await _inventoryRepository
+              .getInventoryByUnitAndWarehouse(businessId, source.id, unit.id);
+          if (stock == null || stock.quantity + .000001 < quantity) {
+            throw ValidationFailure(
+              'الرصيد الحالي للمنتج «${product.productName}» لا يكفي للتحويل. حدّث القائمة وراجع الكمية.',
+            );
+          }
+          sources[unit.id] = stock;
+          targets[unit.id] = await _inventoryRepository
+              .getInventoryByUnitAndWarehouse(
+                businessId,
+                destination.id,
+                unit.id,
+                includeDeleted: true,
+              );
+          quantities[unit.id] = quantity;
+        }
         await _inventoryRepository.recordTransferWithItems(
-          transfer: transferCompanion,
-          items: transferItemsCompanions,
+          transfer: InventoryTransfersCompanion.insert(
+            id: transferId,
+            businessId: businessId,
+            transferNumber: 'TR-${now.microsecondsSinceEpoch}',
+            transferDate: drift.Value(now),
+            fromWarehouseId: source.id,
+            toWarehouseId: destination.id,
+            status: const drift.Value(InventoryTransferStatus.completed),
+            notes: drift.Value(params.notes),
+            createdBy: _context.currentUserId,
+          ),
+          items: [
+            for (final e in quantities.entries)
+              InventoryTransferItemsCompanion.insert(
+                id: _uuid.v4(),
+                businessId: businessId,
+                transferId: transferId,
+                productUnitId: e.key,
+                quantity: e.value,
+              ),
+          ],
         );
-
-        // Record Transfer Out
-        await _inventoryRepository.recordTransactionWithLines(
-          transaction: txOutCompanion,
-          lines: txOutLines,
-        );
-
-        // Record Transfer In
-        await _inventoryRepository.recordTransactionWithLines(
-          transaction: txInCompanion,
-          lines: txInLines,
-        );
+        for (final inbound in [false, true]) {
+          final txId = _uuid.v4();
+          await _inventoryRepository.recordTransactionWithLines(
+            transaction: InventoryTransactionsCompanion.insert(
+              id: txId,
+              businessId: businessId,
+              branchId: inbound ? destination.branchId : source.branchId,
+              warehouseId: inbound ? destination.id : source.id,
+              transactionDate: drift.Value(now),
+              transactionType: inbound
+                  ? InventoryTransactionType.receipt
+                  : InventoryTransactionType.dispatch,
+              movementDirection: inbound
+                  ? InventoryMovementDirection.inbound
+                  : InventoryMovementDirection.outbound,
+              referenceType: const drift.Value(InventoryReferenceType.transfer),
+              referenceId: drift.Value(transferId),
+              status: const drift.Value(InventoryTransactionStatus.posted),
+              createdBy: _context.currentUserId,
+              postedBy: drift.Value(_context.currentUserId),
+              postedAt: drift.Value(now),
+            ),
+            lines: [
+              for (final e in quantities.entries)
+                InventoryTransactionLinesCompanion.insert(
+                  id: _uuid.v4(),
+                  businessId: businessId,
+                  inventoryTransactionId: txId,
+                  productUnitId: e.key,
+                  quantity: e.value,
+                  unitCost: drift.Value(sources[e.key]!.averageCost),
+                ),
+            ],
+          );
+        }
+        for (final e in quantities.entries) {
+          final from = sources[e.key]!, to = targets[e.key];
+          await _inventoryRepository.updateInventory(
+            from
+                .toCompanion(false)
+                .copyWith(
+                  quantity: drift.Value(
+                    PrecisionMath.roundQty(from.quantity - e.value),
+                  ),
+                  updatedAt: drift.Value(now),
+                  version: drift.Value(from.version + 1),
+                  syncStatus: const drift.Value('pending'),
+                ),
+          );
+          final oldQty = to == null || to.deletedAt != null ? 0.0 : to.quantity;
+          final oldCost = to == null || to.deletedAt != null
+              ? 0.0
+              : to.averageCost;
+          final total = PrecisionMath.roundQty(oldQty + e.value);
+          final average =
+              (oldQty * oldCost + e.value * from.averageCost) / total;
+          if (to == null) {
+            await _inventoryRepository.insertInventory(
+              InventoriesCompanion.insert(
+                id: _uuid.v4(),
+                businessId: businessId,
+                warehouseId: destination.id,
+                productUnitId: e.key,
+                quantity: drift.Value(total),
+                averageCost: drift.Value(average),
+                createdAt: drift.Value(now),
+              ),
+            );
+          } else {
+            await _inventoryRepository.updateInventory(
+              to
+                  .toCompanion(false)
+                  .copyWith(
+                    quantity: drift.Value(total),
+                    averageCost: drift.Value(average),
+                    deletedAt: const drift.Value(null),
+                    updatedAt: drift.Value(now),
+                    version: drift.Value(to.version + 1),
+                    syncStatus: const drift.Value('pending'),
+                  ),
+            );
+          }
+        }
       });
       return Right(transferId);
     } catch (e) {
-      if (e is Failure) return Left(e);
-      return Left(UnexpectedFailure(e.toString()));
+      return Left(
+        e is Failure
+            ? e
+            : const UnexpectedFailure(
+                'تعذر إتمام التحويل. لم تتغير الأرصدة، أعد المحاولة.',
+              ),
+      );
     }
   }
 }

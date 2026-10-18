@@ -25,6 +25,16 @@ class QaDataSeeder {
       // 1. Foundation & Auth
       final userCount = await (_db.select(_db.usersTable)..where((t) => t.id.equals(userId))).get();
       if (userCount.isEmpty) {
+        final emailConflicts = await (_db.select(_db.usersTable)..where((u) => u.email.equals('admin@smartmerchant.com'))).get();
+        for (final conflict in emailConflicts) {
+          if (conflict.id != userId) {
+            await (_db.update(_db.usersTable)..where((u) => u.id.equals(conflict.id))).write(
+              UsersTableCompanion(
+                email: Value('old_${conflict.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')}@smartmerchant.com'),
+              ),
+            );
+          }
+        }
         await _db.into(_db.usersTable).insert(UsersTableCompanion.insert(
           id: Value(userId),
           email: 'admin@smartmerchant.com',

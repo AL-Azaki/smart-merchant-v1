@@ -5,6 +5,8 @@ import '../../../../database/daos/catalog_dao.dart';
 /// Isolates application use cases from Drift ORM and SQLite specifics while
 /// preserving multi-tenant (`businessId`), branch override (`branchId`), offline-sync, and reactive stream semantics.
 abstract class CatalogRepository {
+  Stream<List<ProductCatalogEntry>> watchProductCatalog(String businessId);
+
   // Categories
   Future<Category?> getCategoryById(
     String id,

@@ -19,7 +19,7 @@ import 'package:smart_merchant_erp/database/converters/inventory_transfer_status
 /// Verifies alignment between:
 /// 1. Dart Enums & Drift TypeConverters (`lib/database/enums/`, `lib/database/converters/`)
 /// 2. SQLite CHECK Constraints (`inventory_transactions_table.dart`, `inventory_transfers_table.dart`)
-/// 3. Authoritative SQLite Enums Specification (`docs/sqlite_schema/SQLite_Enums_Specification.md`)
+/// 3. Current storage reference (`../docs/DATABASE.md`) and database converters.
 void main() {
   late AppDatabase database;
 

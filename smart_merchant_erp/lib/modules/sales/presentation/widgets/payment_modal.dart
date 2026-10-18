@@ -13,6 +13,8 @@ import '../../../../shared/documents/presentation/widgets/commercial_document_pr
 import '../../../../shared/documents/printing/document_printer.dart';
 import '../../../../shared/documents/sharing/document_share.dart';
 
+enum PosPaymentMode { cash, bank, split }
+
 class PaymentModal extends ConsumerStatefulWidget {
   const PaymentModal({super.key});
 
@@ -21,8 +23,11 @@ class PaymentModal extends ConsumerStatefulWidget {
 }
 
 class _PaymentModalState extends ConsumerState<PaymentModal> {
-  double cashAmount = 0;
+  PosPaymentMode _mode = PosPaymentMode.cash;
+  double _cashAmount = 0;
+  double _bankAmount = 0;
   final TextEditingController _cashController = TextEditingController();
+  final TextEditingController _bankController = TextEditingController();
 
   @override
   void initState() {
@@ -30,8 +35,10 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final total = ref.read(posNotifierProvider).totals.grandTotal;
       setState(() {
-        cashAmount = total;
+        _cashAmount = total;
+        _bankAmount = 0.0;
         _cashController.text = total.toStringAsFixed(2);
+        _bankController.text = '0.00';
       });
     });
   }
@@ -39,7 +46,32 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
   @override
   void dispose() {
     _cashController.dispose();
+    _bankController.dispose();
     super.dispose();
+  }
+
+  void _switchMode(PosPaymentMode newMode, double total) {
+    setState(() {
+      _mode = newMode;
+      if (newMode == PosPaymentMode.cash) {
+        _cashAmount = total;
+        _bankAmount = 0.0;
+        _cashController.text = total.toStringAsFixed(2);
+        _bankController.text = '0.00';
+      } else if (newMode == PosPaymentMode.bank) {
+        _cashAmount = 0.0;
+        _bankAmount = total;
+        _cashController.text = '0.00';
+        _bankController.text = total.toStringAsFixed(2);
+      } else {
+        // Split mode: split 50/50 by default
+        final half = (total / 2.0);
+        _cashAmount = half;
+        _bankAmount = total - half;
+        _cashController.text = _cashAmount.toStringAsFixed(2);
+        _bankController.text = _bankAmount.toStringAsFixed(2);
+      }
+    });
   }
 
   void _handlePrint(CommercialDocumentData doc) {
@@ -190,12 +222,19 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final total = posState.totals.grandTotal;
 
-    final remaining = (total - cashAmount).clamp(0.0, double.infinity);
-    final isOverpaid = cashAmount > total;
-    final changeAmount = isOverpaid ? (cashAmount - total) : 0.0;
+    final double totalPaid = _mode == PosPaymentMode.cash
+        ? _cashAmount
+        : (_mode == PosPaymentMode.bank
+            ? _bankAmount
+            : (_cashAmount + _bankAmount));
 
-    final bool hasCredit = remaining > 0;
-    final bool isValidToPay = !hasCredit || (hasCredit && posState.customerName != null);
+    final remaining = (total - totalPaid).clamp(0.0, double.infinity);
+    final isOverpaid = totalPaid > total;
+    final changeAmount = isOverpaid ? (totalPaid - total) : 0.0;
+
+    final bool hasCredit = remaining > 0.001;
+    final bool isValidToPay = (!hasCredit || (hasCredit && posState.customerName != null)) &&
+        (totalPaid > 0.001 || posState.customerName != null);
 
     final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
@@ -203,26 +242,36 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
 
     return AppModalSheet(
       title: 'الدفع والإصدار',
-      icon: Icons.credit_card_outlined,
+      icon: Icons.payments_outlined,
       iconColor: AppColors.primary,
       onClose: () => Navigator.pop(context),
       primaryLabel: 'تأكيد وإصدار الفاتورة',
       onPrimary: (!isValidToPay || posState.isSubmitting)
           ? null
           : () {
+              final String methodId = _mode == PosPaymentMode.cash
+                  ? 'CASH'
+                  : (_mode == PosPaymentMode.bank ? 'BANK' : 'SPLIT');
+
+              final double finalCash =
+                  _mode == PosPaymentMode.bank ? 0.0 : _cashAmount;
+              final double finalBank =
+                  _mode == PosPaymentMode.cash ? 0.0 : _bankAmount;
+
               ref.read(posNotifierProvider.notifier).submitSale(
-                    cashReceived: cashAmount,
-                    paymentMethodId: 'CASH',
+                    cashReceived: finalCash,
+                    bankReceived: finalBank,
+                    paymentMethodId: methodId,
                   );
             },
       isLoading: posState.isSubmitting,
-      maxHeightFactor: 0.92,
+      maxHeightFactor: 0.94,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Customer Card
+          // 1. Customer Card
           AppCard(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             backgroundColor: posState.customerName == null && hasCredit
                 ? AppColors.error.withValues(alpha: 0.08)
                 : null,
@@ -232,8 +281,9 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
             child: Row(
               children: [
                 Icon(
-                  Icons.person_outline,
+                  Icons.person_outline_rounded,
                   color: posState.customerName != null ? AppColors.success : textSecondary,
+                  size: 22,
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -246,39 +296,149 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                       ),
                       if (posState.customerName == null && hasCredit)
                         const Text(
-                          'يجب اختيار عميل للبيع الآجل',
+                          'يجب اختيار عميل مسجل لتسجيل المتبقي كآجل',
                           style: TextStyle(color: AppColors.error, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                     ],
                   ),
                 ),
-                if (posState.customerName == null)
-                  TextButton.icon(
-                    onPressed: () => CustomerAddModal.show(context),
-                    icon: const Icon(Icons.person_add_outlined, size: 18),
-                    label: const Text('إضافة عميل', style: TextStyle(fontSize: 12)),
+                TextButton.icon(
+                  onPressed: () => CustomerAddModal.show(context),
+                  icon: Icon(
+                    posState.customerName == null ? Icons.person_add_outlined : Icons.swap_horiz_rounded,
+                    size: 16,
                   ),
+                  label: Text(
+                    posState.customerName == null ? 'إضافة عميل' : 'تغيير',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Cash Input
-          AppNumberField(
-            label: 'المبلغ المدفوع (نقداً)',
-            hint: total.toStringAsFixed(2),
-            controller: _cashController,
-            suffixIcon: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
-              child: Text('YER', style: TextStyle(fontWeight: FontWeight.bold)),
+          // 2. Compact Payment Mode Selector
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.surfaceDark : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor),
             ),
-            onChanged: (val) {
-              setState(() => cashAmount = double.tryParse(val) ?? 0);
-            },
+            child: Row(
+              children: [
+                _buildModeButton(
+                  title: 'نقداً',
+                  icon: Icons.money_rounded,
+                  mode: PosPaymentMode.cash,
+                  total: total,
+                ),
+                _buildModeButton(
+                  title: 'شبكة / بنك',
+                  icon: Icons.credit_card_rounded,
+                  mode: PosPaymentMode.bank,
+                  total: total,
+                ),
+                _buildModeButton(
+                  title: 'دفع متعدد',
+                  icon: Icons.call_split_rounded,
+                  mode: PosPaymentMode.split,
+                  total: total,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Calculation Card
+          // 3. Amount Inputs based on Mode
+          if (_mode == PosPaymentMode.cash) ...[
+            AppNumberField(
+              label: 'المبلغ المدفوع نقداً',
+              hint: total.toStringAsFixed(2),
+              controller: _cashController,
+              suffixIcon: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    posState.currencyId,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() => _cashAmount = double.tryParse(val) ?? 0);
+              },
+            ),
+          ] else if (_mode == PosPaymentMode.bank) ...[
+            AppNumberField(
+              label: 'المبلغ المدفوع شبكة / بطاقة',
+              hint: total.toStringAsFixed(2),
+              controller: _bankController,
+              suffixIcon: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Center(
+                  widthFactor: 1,
+                  child: Text(
+                    posState.currencyId,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() => _bankAmount = double.tryParse(val) ?? 0);
+              },
+            ),
+          ] else ...[
+            // Split mode: Two clean, side-by-side or stacked fields
+            Row(
+              children: [
+                Expanded(
+                  child: AppNumberField(
+                    label: 'المدفوع نقداً',
+                    hint: '0.00',
+                    controller: _cashController,
+                    onChanged: (val) {
+                      setState(() => _cashAmount = double.tryParse(val) ?? 0);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: AppNumberField(
+                    label: 'المدفوع شبكة',
+                    hint: '0.00',
+                    controller: _bankController,
+                    onChanged: (val) {
+                      setState(() => _bankAmount = double.tryParse(val) ?? 0);
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ActionChip(
+                  label: const Text('مناصفة 50/50', style: TextStyle(fontSize: 11)),
+                  onPressed: () {
+                    final half = total / 2;
+                    setState(() {
+                      _cashAmount = half;
+                      _bankAmount = total - half;
+                      _cashController.text = _cashAmount.toStringAsFixed(2);
+                      _bankController.text = _bankAmount.toStringAsFixed(2);
+                    });
+                  },
+                ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 14),
+
+          // 4. Financial Calculation Card (Live Balance)
           AppCard(
             padding: const EdgeInsets.all(14),
             backgroundColor: remaining > 0
@@ -292,60 +452,101 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('المتبقي (آجل):', style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.bold)),
                     Text(
-                      '${remaining.toStringAsFixed(2)} YER',
-                      style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
+                      'إجمالي المدفوع:',
+                      style: TextStyle(color: textSecondary, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${totalPaid.toStringAsFixed(2)} ${posState.currencyId}',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor),
                     ),
                   ],
                 ),
-                const Divider(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('الباقي للعميل (صرف):', style: TextStyle(color: AppColors.success, fontSize: 13, fontWeight: FontWeight.bold)),
-                    Text(
-                      '${changeAmount.toStringAsFixed(2)} YER',
-                      style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ],
-                ),
+                const Divider(height: 14),
+                if (remaining > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'المتبقي (آجل على العميل):',
+                        style: TextStyle(color: AppColors.error, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${remaining.toStringAsFixed(2)} ${posState.currencyId}',
+                        style: const TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                if (changeAmount > 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'الباقي للعميل (صرف نقدي):',
+                        style: TextStyle(color: AppColors.success, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      Text(
+                        '${changeAmount.toStringAsFixed(2)} ${posState.currencyId}',
+                        style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                if (remaining <= 0 && changeAmount <= 0)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'حالة الفاتورة:',
+                        style: TextStyle(color: AppColors.success, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const Text(
+                        'مدفوعة بالكامل',
+                        style: TextStyle(color: AppColors.success, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // Summary Card
+          // 5. Clean Invoice Summary (No Tax!)
           AppCard(
             padding: const EdgeInsets.all(14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('ملخص الفاتورة', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const SizedBox(height: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('المجموع الفرعي', style: TextStyle(color: textSecondary, fontSize: 12)),
-                    Text('${posState.totals.rawSubtotal.toStringAsFixed(2)} YER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
+                    Text('المجموع الفرعي', style: TextStyle(color: textSecondary, fontSize: 13)),
+                    Text(
+                      '${posState.totals.rawSubtotal.toStringAsFixed(2)} ${posState.currencyId}',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('الضريبة (15%)', style: TextStyle(color: textSecondary, fontSize: 12)),
-                    Text('${posState.totals.taxTotal.toStringAsFixed(2)} YER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)),
-                  ],
-                ),
+                if (posState.totals.totalDiscount > 0) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('إجمالي الخصم', style: TextStyle(color: textSecondary, fontSize: 13)),
+                      Text(
+                        '-${posState.totals.totalDiscount.toStringAsFixed(2)} ${posState.currencyId}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.error),
+                      ),
+                    ],
+                  ),
+                ],
                 const Divider(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('الإجمالي المطلوب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textColor)),
+                    Text('الإجمالي المطلوب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: textColor)),
                     Text(
-                      '${total.toStringAsFixed(2)} YER',
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 18),
+                      '${total.toStringAsFixed(2)} ${posState.currencyId}',
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 19),
                     ),
                   ],
                 ),
@@ -353,6 +554,56 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeButton({
+    required String title,
+    required IconData icon,
+    required PosPaymentMode mode,
+    required double total,
+  }) {
+    final isSelected = _mode == mode;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => _switchMode(mode, total),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.25),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: isSelected ? Colors.white : Colors.grey,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : Colors.grey.shade700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart' show DateFormat;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../app/di/getit_instance.dart';
@@ -638,11 +639,11 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                         ),
                       ),
                       title: Text(
-                        isReceipt ? 'سند قبض #${item.id.substring(0, 8)}' : 'سند صرف #${item.id.substring(0, 8)}',
+                        '${isReceipt ? 'سند قبض' : 'سند صرف'} #${item.id.length > 8 ? item.id.substring(0, 8) : item.id}',
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textPrimary),
                       ),
                       subtitle: Text(
-                        '${item.paymentMethodId} • ${item.notes ?? 'بدون ملاحظات'} • ${item.createdAt.toString().substring(0, 16)}',
+                        '${item.paymentMethodId} • ${item.notes ?? 'بدون ملاحظات'} • ${item.createdAt == null ? 'بدون تاريخ' : DateFormat('yyyy/MM/dd HH:mm', 'ar').format(item.createdAt!)}',
                         style: TextStyle(fontSize: 12, color: textSecondary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

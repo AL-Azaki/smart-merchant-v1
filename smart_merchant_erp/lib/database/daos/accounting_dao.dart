@@ -25,7 +25,7 @@ class ChartOfAccountFilter {
   final bool? isActive;
   final bool? isSystem;
   final String? searchQuery;
-  final int limit;
+  final int? limit;
   final int offset;
 
   const ChartOfAccountFilter({
@@ -141,10 +141,7 @@ class JournalLineWithEntry {
   final JournalEntryLine line;
   final JournalEntry entry;
 
-  const JournalLineWithEntry({
-    required this.line,
-    required this.entry,
-  });
+  const JournalLineWithEntry({required this.line, required this.entry});
 }
 
 /// Filter DTO for [OpeningBalances] queries.
@@ -297,7 +294,9 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
     }
 
     query.orderBy([(a) => OrderingTerm(expression: a.accountCode)]);
-    query.limit(filter.limit, offset: filter.offset);
+    if (filter.limit != null) {
+      query.limit(filter.limit!, offset: filter.offset);
+    }
     return query.get();
   }
 
@@ -323,7 +322,9 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
       query.where((a) => a.isActive.equals(filter.isActive!));
     }
     query.orderBy([(a) => OrderingTerm(expression: a.accountCode)]);
-    query.limit(filter.limit, offset: filter.offset);
+    if (filter.limit != null) {
+      query.limit(filter.limit!, offset: filter.offset);
+    }
     return query.watch();
   }
 
@@ -426,44 +427,53 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
         'deleteChartOfAccount requires businessId.',
       );
     }
-    return (delete(chartOfAccounts)
-          ..where((a) => a.id.equals(id) & a.businessId.equals(businessId)))
-        .go();
+    return (delete(
+      chartOfAccounts,
+    )..where((a) => a.id.equals(id) & a.businessId.equals(businessId))).go();
   }
 
   /// Checks if an account is referenced in any journal entry lines.
   Future<bool> hasJournalEntries(String accountId, String businessId) async {
     if (businessId.trim().isEmpty) return false;
-    final res = await (select(journalEntryLines)
-          ..where((l) =>
-              l.chartOfAccountId.equals(accountId) &
-              l.businessId.equals(businessId))
-          ..limit(1))
-        .get();
+    final res =
+        await (select(journalEntryLines)
+              ..where(
+                (l) =>
+                    l.chartOfAccountId.equals(accountId) &
+                    l.businessId.equals(businessId),
+              )
+              ..limit(1))
+            .get();
     return res.isNotEmpty;
   }
 
   /// Checks if an account is mapped in system account mappings.
   Future<bool> isAccountMapped(String accountId, String businessId) async {
     if (businessId.trim().isEmpty) return false;
-    final res = await (select(accountMappings)
-          ..where((m) =>
-              m.chartOfAccountId.equals(accountId) &
-              m.businessId.equals(businessId))
-          ..limit(1))
-        .get();
+    final res =
+        await (select(accountMappings)
+              ..where(
+                (m) =>
+                    m.chartOfAccountId.equals(accountId) &
+                    m.businessId.equals(businessId),
+              )
+              ..limit(1))
+            .get();
     return res.isNotEmpty;
   }
 
   /// Checks if an account has any child accounts.
   Future<bool> hasChildAccounts(String accountId, String businessId) async {
     if (businessId.trim().isEmpty) return false;
-    final res = await (select(chartOfAccounts)
-          ..where((a) =>
-              a.parentAccountId.equals(accountId) &
-              a.businessId.equals(businessId))
-          ..limit(1))
-        .get();
+    final res =
+        await (select(chartOfAccounts)
+              ..where(
+                (a) =>
+                    a.parentAccountId.equals(accountId) &
+                    a.businessId.equals(businessId),
+              )
+              ..limit(1))
+            .get();
     return res.isNotEmpty;
   }
 
@@ -861,8 +871,14 @@ class AccountingDao extends DatabaseAccessor<AppDatabase>
     }
 
     query.orderBy([
-      OrderingTerm(expression: journalEntries.documentDate, mode: OrderingMode.asc),
-      OrderingTerm(expression: journalEntryLines.lineNumber, mode: OrderingMode.asc),
+      OrderingTerm(
+        expression: journalEntries.documentDate,
+        mode: OrderingMode.asc,
+      ),
+      OrderingTerm(
+        expression: journalEntryLines.lineNumber,
+        mode: OrderingMode.asc,
+      ),
     ]);
 
     final rows = await query.get();
