@@ -70,6 +70,8 @@ import '../../modules/accounting/application/usecases/post_journal_entry_usecase
 import '../../modules/accounting/application/services/trial_balance_service.dart';
 import '../../modules/accounting/application/services/profit_loss_service.dart';
 import '../../modules/accounting/application/services/account_statement_service.dart';
+import '../../modules/accounting/application/services/balance_sheet_service.dart';
+import '../../modules/accounting/application/services/cash_flow_service.dart';
 import '../../modules/accounting/application/usecases/year_end_closing_usecase.dart';
 
 import '../../modules/treasury/domain/repositories/treasury_repository.dart';
@@ -160,6 +162,8 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => PostJournalEntryUseCase(getIt(), getIt(), getIt(), getIt()));
   getIt.registerLazySingleton(() => TrialBalanceService(getIt(), getIt()));
   getIt.registerLazySingleton(() => ProfitLossService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => BalanceSheetService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => CashFlowService(getIt(), getIt()));
   getIt.registerLazySingleton(() => AccountStatementService(getIt(), getIt()));
   getIt.registerLazySingleton(() => YearEndClosingUseCase(getIt(), getIt(), getIt(), getIt()));
 

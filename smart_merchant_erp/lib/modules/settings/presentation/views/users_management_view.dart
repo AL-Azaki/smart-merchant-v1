@@ -26,39 +26,12 @@ class _UsersManagementViewState extends State<UsersManagementView> {
     _allUsers = const [
       UserCardModel(
         id: '1',
-        name: 'أحمد محمد العمري',
+        name: 'مدير النظام',
         role: 'مدير النظام (Admin)',
         branch: 'الفرع الرئيسي',
-        initialLetter: 'أ',
-        isActive: true,
-        avatarColor: Color(0xFF6366F1),
-      ),
-      UserCardModel(
-        id: '2',
-        name: 'كاشير الصباح',
-        role: 'كاشير مبيعات (Cashier)',
-        branch: 'فرع المعلا',
-        initialLetter: 'ك',
-        isActive: true,
-        avatarColor: Color(0xFF3B82F6),
-      ),
-      UserCardModel(
-        id: '3',
-        name: 'سارة علي',
-        role: 'محاسب (Accountant)',
-        branch: 'فرع المعلا',
-        initialLetter: 'س',
-        isActive: false,
-        avatarColor: Color(0xFFEC4899),
-      ),
-      UserCardModel(
-        id: '4',
-        name: 'محمد خالد',
-        role: 'مدير مخزون (Inventory Manager)',
-        branch: 'المستودع الرئيسي',
         initialLetter: 'م',
         isActive: true,
-        avatarColor: Color(0xFF10B981),
+        avatarColor: Color(0xFF6366F1),
       ),
     ];
 

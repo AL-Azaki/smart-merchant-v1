@@ -17,6 +17,7 @@ class QaDataSeeder {
     String businessId = 'qa-business-id',
     String branchId = 'qa-branch-id',
     String userId = 'qa-user-id',
+    bool includeDemoProductsAndContacts = false,
   }) async {
     await _db.transaction(() async {
       final now = DateTime.now();
@@ -285,93 +286,95 @@ class QaDataSeeder {
         }
       }
 
-      final qaProducts = [
-        {'id': 'prod-qa-01', 'name': 'مياه معدنية 500 مل', 'unit': 'unit-pcs', 'price': 150.0, 'stock': 100.0, 'code': 'QA-WATER'},
-        {'id': 'prod-qa-02', 'name': 'حليب كامل الدسم', 'unit': 'unit-pcs', 'price': 550.0, 'stock': 50.0, 'code': 'QA-MILK'},
-        {'id': 'prod-qa-03', 'name': 'عصير برتقال', 'unit': 'unit-pcs', 'price': 400.0, 'stock': 40.0, 'code': 'QA-JUICE'},
-        {'id': 'prod-qa-04', 'name': 'أرز 5 كجم', 'unit': 'unit-pcs', 'price': 3500.0, 'stock': 30.0, 'code': 'QA-RICE'},
-        {'id': 'prod-qa-05', 'name': 'سكر 1 كجم', 'unit': 'unit-kg', 'price': 800.0, 'stock': 60.0, 'code': 'QA-SUGAR'},
-        {'id': 'prod-qa-06', 'name': 'زيت طبخ 1 لتر', 'unit': 'unit-ltr', 'price': 1200.0, 'stock': 35.0, 'code': 'QA-OIL'},
-        {'id': 'prod-qa-07', 'name': 'دقيق 1 كجم', 'unit': 'unit-kg', 'price': 750.0, 'stock': 45.0, 'code': 'QA-FLOUR'},
-        {'id': 'prod-qa-08', 'name': 'شاي', 'unit': 'unit-pcs', 'price': 500.0, 'stock': 25.0, 'code': 'QA-TEA'},
-        {'id': 'prod-qa-09', 'name': 'قهوة', 'unit': 'unit-pcs', 'price': 1500.0, 'stock': 20.0, 'code': 'QA-COFFEE'},
-        {'id': 'prod-qa-10', 'name': 'بسكويت', 'unit': 'unit-pcs', 'price': 200.0, 'stock': 80.0, 'code': 'QA-BISCUIT'},
-        {'id': 'prod-qa-11', 'name': 'صابون', 'unit': 'unit-pcs', 'price': 300.0, 'stock': 100.0, 'code': 'QA-SOAP'},
-        {'id': 'prod-qa-12', 'name': 'مناديل ورقية', 'unit': 'unit-pcs', 'price': 150.0, 'stock': 100.0, 'code': 'QA-TISSUE'},
-      ];
+      if (includeDemoProductsAndContacts) {
+        final qaProducts = [
+          {'id': 'prod-qa-01', 'name': 'مياه معدنية 500 مل', 'unit': 'unit-pcs', 'price': 150.0, 'stock': 100.0, 'code': 'QA-WATER'},
+          {'id': 'prod-qa-02', 'name': 'حليب كامل الدسم', 'unit': 'unit-pcs', 'price': 550.0, 'stock': 50.0, 'code': 'QA-MILK'},
+          {'id': 'prod-qa-03', 'name': 'عصير برتقال', 'unit': 'unit-pcs', 'price': 400.0, 'stock': 40.0, 'code': 'QA-JUICE'},
+          {'id': 'prod-qa-04', 'name': 'أرز 5 كجم', 'unit': 'unit-pcs', 'price': 3500.0, 'stock': 30.0, 'code': 'QA-RICE'},
+          {'id': 'prod-qa-05', 'name': 'سكر 1 كجم', 'unit': 'unit-kg', 'price': 800.0, 'stock': 60.0, 'code': 'QA-SUGAR'},
+          {'id': 'prod-qa-06', 'name': 'زيت طبخ 1 لتر', 'unit': 'unit-ltr', 'price': 1200.0, 'stock': 35.0, 'code': 'QA-OIL'},
+          {'id': 'prod-qa-07', 'name': 'دقيق 1 كجم', 'unit': 'unit-kg', 'price': 750.0, 'stock': 45.0, 'code': 'QA-FLOUR'},
+          {'id': 'prod-qa-08', 'name': 'شاي', 'unit': 'unit-pcs', 'price': 500.0, 'stock': 25.0, 'code': 'QA-TEA'},
+          {'id': 'prod-qa-09', 'name': 'قهوة', 'unit': 'unit-pcs', 'price': 1500.0, 'stock': 20.0, 'code': 'QA-COFFEE'},
+          {'id': 'prod-qa-10', 'name': 'بسكويت', 'unit': 'unit-pcs', 'price': 200.0, 'stock': 80.0, 'code': 'QA-BISCUIT'},
+          {'id': 'prod-qa-11', 'name': 'صابون', 'unit': 'unit-pcs', 'price': 300.0, 'stock': 100.0, 'code': 'QA-SOAP'},
+          {'id': 'prod-qa-12', 'name': 'مناديل ورقية', 'unit': 'unit-pcs', 'price': 150.0, 'stock': 100.0, 'code': 'QA-TISSUE'},
+        ];
 
-      for (var p in qaProducts) {
-        final pId = p['id'] as String;
-        final pName = p['name'] as String;
-        final pCode = p['code'] as String;
-        final pUnit = p['unit'] as String;
-        final pPrice = p['price'] as double;
-        final pStock = p['stock'] as double;
+        for (var p in qaProducts) {
+          final pId = p['id'] as String;
+          final pName = p['name'] as String;
+          final pCode = p['code'] as String;
+          final pUnit = p['unit'] as String;
+          final pPrice = p['price'] as double;
+          final pStock = p['stock'] as double;
 
-        final prodExists = await (_db.select(_db.products)..where((t) => t.id.equals(pId) & t.businessId.equals(businessId))).getSingleOrNull();
-        if (prodExists == null) {
-          await _db.into(_db.products).insert(ProductsCompanion.insert(
-            id: pId,
-            businessId: businessId,
-            categoryId: Value(catId),
-            productType: const Value('standard'),
-            productName: pName,
-            productCode: pCode,
-            isActive: const Value(true),
-          ));
-        }
+          final prodExists = await (_db.select(_db.products)..where((t) => t.id.equals(pId) & t.businessId.equals(businessId))).getSingleOrNull();
+          if (prodExists == null) {
+            await _db.into(_db.products).insert(ProductsCompanion.insert(
+              id: pId,
+              businessId: businessId,
+              categoryId: Value(catId),
+              productType: const Value('standard'),
+              productName: pName,
+              productCode: pCode,
+              isActive: const Value(true),
+            ));
+          }
 
-        final pUnitId = 'pu-$pId';
-        final puExists = await (_db.select(_db.productUnits)..where((t) => t.id.equals(pUnitId) & t.businessId.equals(businessId))).getSingleOrNull();
-        if (puExists == null) {
-          await _db.into(_db.productUnits).insert(ProductUnitsCompanion.insert(
-            id: pUnitId,
-            businessId: businessId,
-            productId: pId,
-            unitId: pUnit,
-            sku: Value('$pId-BASE'),
-            barcode: Value('123456$pId'),
-            conversionFactor: const Value(1.0),
-            isBaseUnit: const Value(true),
-            sellingPrice: Value(pPrice), 
-            purchasePrice: Value(pPrice * 0.7), 
-            isActive: const Value(true),
-          ));
-        }
+          final pUnitId = 'pu-$pId';
+          final puExists = await (_db.select(_db.productUnits)..where((t) => t.id.equals(pUnitId) & t.businessId.equals(businessId))).getSingleOrNull();
+          if (puExists == null) {
+            await _db.into(_db.productUnits).insert(ProductUnitsCompanion.insert(
+              id: pUnitId,
+              businessId: businessId,
+              productId: pId,
+              unitId: pUnit,
+              sku: Value('$pId-BASE'),
+              barcode: Value('123456$pId'),
+              conversionFactor: const Value(1.0),
+              isBaseUnit: const Value(true),
+              sellingPrice: Value(pPrice), 
+              purchasePrice: Value(pPrice * 0.7), 
+              isActive: const Value(true),
+            ));
+          }
 
-        final invExists = await (_db.select(_db.inventories)..where((t) => t.productUnitId.equals(pUnitId) & t.businessId.equals(businessId))).getSingleOrNull();
-        if (invExists == null) {
-          final invId = 'inv-$pId';
-          await _db.into(_db.inventories).insert(InventoriesCompanion.insert(
-            id: invId,
-            businessId: businessId,
-            warehouseId: whId,
-            productUnitId: pUnitId,
-            quantity: Value(pStock),
-            averageCost: Value(pPrice * 0.7),
-          ));
+          final invExists = await (_db.select(_db.inventories)..where((t) => t.productUnitId.equals(pUnitId) & t.businessId.equals(businessId))).getSingleOrNull();
+          if (invExists == null) {
+            final invId = 'inv-$pId';
+            await _db.into(_db.inventories).insert(InventoriesCompanion.insert(
+              id: invId,
+              businessId: businessId,
+              warehouseId: whId,
+              productUnitId: pUnitId,
+              quantity: Value(pStock),
+              averageCost: Value(pPrice * 0.7),
+            ));
 
-          final txnId = _uuid.v4();
-          await _db.into(_db.inventoryTransactions).insert(InventoryTransactionsCompanion.insert(
-            id: txnId,
-            businessId: businessId,
-            branchId: branchId,
-            transactionType: InventoryTransactionType.openingBalance,
-            movementDirection: InventoryMovementDirection.inbound,
-            transactionDate: Value(now),
-            status: const Value(InventoryTransactionStatus.posted),
-            warehouseId: whId,
-            createdBy: userId,
-          ));
+            final txnId = _uuid.v4();
+            await _db.into(_db.inventoryTransactions).insert(InventoryTransactionsCompanion.insert(
+              id: txnId,
+              businessId: businessId,
+              branchId: branchId,
+              transactionType: InventoryTransactionType.openingBalance,
+              movementDirection: InventoryMovementDirection.inbound,
+              transactionDate: Value(now),
+              status: const Value(InventoryTransactionStatus.posted),
+              warehouseId: whId,
+              createdBy: userId,
+            ));
 
-          await _db.into(_db.inventoryTransactionLines).insert(InventoryTransactionLinesCompanion.insert(
-            id: _uuid.v4(),
-            businessId: businessId,
-            inventoryTransactionId: txnId,
-            productUnitId: pUnitId,
-            quantity: pStock,
-            unitCost: Value(pPrice * 0.7),
-          ));
+            await _db.into(_db.inventoryTransactionLines).insert(InventoryTransactionLinesCompanion.insert(
+              id: _uuid.v4(),
+              businessId: businessId,
+              inventoryTransactionId: txnId,
+              productUnitId: pUnitId,
+              quantity: pStock,
+              unitCost: Value(pPrice * 0.7),
+            ));
+          }
         }
       }
 
@@ -405,50 +408,52 @@ class QaDataSeeder {
         ));
       }
 
-      const custId = 'cust-qa-01';
-      final custExists = await (_db.select(_db.customers)..where((t) => t.id.equals(custId) & t.businessId.equals(businessId))).getSingleOrNull();
-      if (custExists == null) {
-        await _db.into(_db.customers).insert(CustomersCompanion.insert(
-          id: custId,
-          businessId: businessId,
-          customerName: 'Customer QA',
-          isActive: const Value(true),
-        ));
-      }
-
-      const supId = 'supplier-qa-01';
-      final supExists = await (_db.select(_db.suppliers)..where((t) => t.id.equals(supId) & t.businessId.equals(businessId))).getSingleOrNull();
-      if (supExists == null) {
-        await _db.into(_db.suppliers).insert(SuppliersCompanion.insert(
-          id: supId,
-          businessId: businessId,
-          supplierName: 'Supplier QA',
-          isActive: const Value(true),
-        ));
-      }
-
-      final qaEmployees = [
-        {'id': 'emp-qa-01', 'name': 'أحمد محمد', 'code': 'مدير مبيعات', 'phone': '770000001', 'salary': 150000.0, 'status': 'Active'},
-        {'id': 'emp-qa-02', 'name': 'سعيد علي', 'code': 'كاشير', 'phone': '770000002', 'salary': 80000.0, 'status': 'Active'},
-        {'id': 'emp-qa-03', 'name': 'فاطمة صالح', 'code': 'محاسبة', 'phone': '770000003', 'salary': 120000.0, 'status': 'OnLeave'},
-      ];
-
-      for (var e in qaEmployees) {
-        final eId = e['id'] as String;
-        final empExists = await (_db.select(_db.employees)..where((t) => t.id.equals(eId) & t.businessId.equals(businessId))).getSingleOrNull();
-        if (empExists == null) {
-          await _db.into(_db.employees).insert(EmployeesCompanion.insert(
-            id: eId,
+      if (includeDemoProductsAndContacts) {
+        const custId = 'cust-qa-01';
+        final custExists = await (_db.select(_db.customers)..where((t) => t.id.equals(custId) & t.businessId.equals(businessId))).getSingleOrNull();
+        if (custExists == null) {
+          await _db.into(_db.customers).insert(CustomersCompanion.insert(
+            id: custId,
             businessId: businessId,
-            employeeCode: e['code'] as String,
-            firstName: e['name'] as String,
-            lastName: '',
-            hireDate: now,
-            phone: Value(e['phone'] as String),
-            salary: Value(e['salary'] as double),
-            status: Value(e['status'] as String),
-            currencyId: 'YER',
+            customerName: 'Customer QA',
+            isActive: const Value(true),
           ));
+        }
+
+        const supId = 'supplier-qa-01';
+        final supExists = await (_db.select(_db.suppliers)..where((t) => t.id.equals(supId) & t.businessId.equals(businessId))).getSingleOrNull();
+        if (supExists == null) {
+          await _db.into(_db.suppliers).insert(SuppliersCompanion.insert(
+            id: supId,
+            businessId: businessId,
+            supplierName: 'Supplier QA',
+            isActive: const Value(true),
+          ));
+        }
+
+        final qaEmployees = [
+          {'id': 'emp-qa-01', 'name': 'أحمد محمد', 'code': 'مدير مبيعات', 'phone': '770000001', 'salary': 150000.0, 'status': 'Active'},
+          {'id': 'emp-qa-02', 'name': 'سعيد علي', 'code': 'كاشير', 'phone': '770000002', 'salary': 80000.0, 'status': 'Active'},
+          {'id': 'emp-qa-03', 'name': 'فاطمة صالح', 'code': 'محاسبة', 'phone': '770000003', 'salary': 120000.0, 'status': 'OnLeave'},
+        ];
+
+        for (var e in qaEmployees) {
+          final eId = e['id'] as String;
+          final empExists = await (_db.select(_db.employees)..where((t) => t.id.equals(eId) & t.businessId.equals(businessId))).getSingleOrNull();
+          if (empExists == null) {
+            await _db.into(_db.employees).insert(EmployeesCompanion.insert(
+              id: eId,
+              businessId: businessId,
+              employeeCode: e['code'] as String,
+              firstName: e['name'] as String,
+              lastName: '',
+              hireDate: now,
+              phone: Value(e['phone'] as String),
+              salary: Value(e['salary'] as double),
+              status: Value(e['status'] as String),
+              currencyId: 'YER',
+            ));
+          }
         }
       }
     });

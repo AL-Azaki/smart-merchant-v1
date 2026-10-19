@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
+import 'balance_sheet_tab.dart';
+import 'cash_flow_tab.dart';
 import 'general_ledger_tab.dart';
 import 'profit_loss_tab.dart';
 import 'trial_balance_tab.dart';
 import 'year_end_closing_dialog.dart';
 
 /// Central Financial Reports Hub providing access to live Trial Balance,
+/// Balance Sheet (ميزان العمومية), Cash Flow Statement (التدفق المالي),
 /// Income Statement (Profit & Loss), General Ledger, and Year-End Closing.
 class FinancialReportsTab extends ConsumerStatefulWidget {
   const FinancialReportsTab({super.key});
@@ -22,7 +25,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
   @override
   void initState() {
     super.initState();
-    _reportsController = TabController(length: 3, vsync: this);
+    _reportsController = TabController(length: 5, vsync: this);
   }
 
   @override
@@ -84,6 +87,30 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
                           children: [
+                            Icon(Icons.account_balance_rounded, size: 16),
+                            SizedBox(width: 8),
+                            Text('الميزانية العمومية', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.waves_rounded, size: 16),
+                            SizedBox(width: 8),
+                            Text('قائمة التدفق المالي', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Tab(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
                             Icon(Icons.trending_up_rounded, size: 16),
                             SizedBox(width: 8),
                             Text('قائمة الدخل والأرباح', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -119,7 +146,7 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                 icon: const Icon(Icons.lock_clock_rounded, size: 18),
                 label: const Text('الإقفال السنوي', style: TextStyle(fontWeight: FontWeight.bold)),
                 onPressed: () {
-                  showDialog(
+                  showDialog<void>(
                     context: context,
                     builder: (context) => const YearEndClosingDialog(),
                   );
@@ -135,6 +162,8 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
             controller: _reportsController,
             children: const [
               TrialBalanceTab(),
+              BalanceSheetTab(),
+              CashFlowTab(),
               ProfitLossTab(),
               GeneralLedgerTab(),
             ],

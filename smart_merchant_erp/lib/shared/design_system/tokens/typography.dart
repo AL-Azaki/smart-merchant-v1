@@ -33,12 +33,14 @@ class AppTypography {
       labelLarge: GoogleFonts.cairo(
         fontSize: 14,
         fontWeight: FontWeight.w600,
+        height: 1.2,
         textStyle: const TextStyle(fontFamilyFallback: ['sans-serif']),
       ), // For Buttons
       labelSmall: GoogleFonts.cairo(
         fontSize: 11,
         fontWeight: FontWeight.w500,
         letterSpacing: 0.5,
+        height: 1.2,
         textStyle: const TextStyle(fontFamilyFallback: ['sans-serif']),
       ),
     );

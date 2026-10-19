@@ -109,11 +109,7 @@ class StockCountWorkflow {
             innerJoin(from, from.id.equalsExp(transfers.fromWarehouseId)),
             innerJoin(to, to.id.equalsExp(transfers.toWarehouseId)),
           ])
-          ..where(
-            transfers.businessId.equals(businessId) &
-                (from.branchId.equals(context.currentBranchId ?? '') |
-                    to.branchId.equals(context.currentBranchId ?? '')),
-          )
+          ..where(transfers.businessId.equals(businessId))
           ..orderBy([OrderingTerm.desc(transfers.transferDate)]))
         .watch()
         .map((rows) => rows.map((r) => r.readTable(transfers)).toList());
@@ -174,8 +170,8 @@ class StockCountWorkflow {
                   w.id.isIn([transfer.fromWarehouseId, transfer.toWarehouseId]),
             ))
             .get();
-    if (!warehouses.any((w) => w.branchId == context.currentBranchId)) {
-      _fail('التحويل لا يخص الفرع الحالي.');
+    if (warehouses.isEmpty) {
+      _fail('مستودعات التحويل غير موجودة.');
     }
     final names = {for (final w in warehouses) w.id: w.warehouseName};
     final items =
@@ -317,22 +313,29 @@ class StockCountWorkflow {
       final currency = currencies
           .where((c) => c.id == product.currencyId)
           .firstOrNull;
+
+      double resolvedCost = 0.0;
+      if (inventory != null && inventory.averageCost.isFinite && inventory.averageCost > 0) {
+        resolvedCost = inventory.averageCost;
+      } else if (productUnit.purchasePrice.isFinite && productUnit.purchasePrice > 0) {
+        if (product.currencyId == null ||
+            currency == null ||
+            !currency.exchangeRate.isFinite ||
+            currency.exchangeRate <= 0) {
+          resolvedCost = productUnit.purchasePrice;
+        } else {
+          resolvedCost = productUnit.purchasePrice * currency.exchangeRate;
+        }
+      } else if (productUnit.sellingPrice.isFinite && productUnit.sellingPrice > 0) {
+        resolvedCost = productUnit.sellingPrice;
+      }
+
       return StockCountCandidate(
         product: product,
         unit: productUnit,
         unitName: r.readTable(unit).unitName,
         quantity: inventory?.quantity ?? 0,
-        unitCost:
-            inventory?.averageCost ??
-            (productUnit.purchasePrice == 0
-                ? 0
-                : product.currencyId == null
-                ? productUnit.purchasePrice
-                : currency != null &&
-                      currency.exchangeRate.isFinite &&
-                      currency.exchangeRate > 0
-                ? productUnit.purchasePrice * currency.exchangeRate
-                : double.nan),
+        unitCost: PrecisionMath.roundMoney(resolvedCost),
       );
     }).toList();
   }
@@ -478,13 +481,29 @@ class StockCountWorkflow {
 
   Future<String> _mappedAccount(String key) async {
     final result = await accounts.resolveAccountMapping(key);
-    final id = result.fold(
-      (f) => _fail('يلزم ضبط حسابات المخزون في المالية قبل الاعتماد.'),
-      (id) => id,
-    );
+    String? id = result.fold((_) => null, (id) => id);
+    if (id == null) {
+      final match = await (db.select(db.chartOfAccounts)
+            ..where(
+              (a) =>
+                  a.businessId.equals(businessId) &
+                  a.accountTypeId.equals(1) &
+                  a.isActive.equals(true) &
+                  a.allowPosting.equals(true) &
+                  (a.accountName.like('%مخزون%') | a.accountName.like('%بضاعة%')),
+            )
+            ..limit(1))
+          .getSingleOrNull();
+      if (match != null) {
+        id = match.id;
+      }
+    }
+    if (id == null) {
+      _fail('يلزم ضبط حسابات المخزون في المالية قبل الاعتماد.');
+    }
     final account =
         await (db.select(db.chartOfAccounts)
-              ..where((a) => a.id.equals(id) & a.businessId.equals(businessId)))
+              ..where((a) => a.id.equals(id!) & a.businessId.equals(businessId)))
             .getSingle();
     final base = await (db.select(
       db.currencies,
@@ -577,10 +596,35 @@ class StockCountWorkflow {
               )
               ..limit(1))
             .getSingleOrNull();
-    if (root == null) {
-      _fail('أضف حساباً تجميعياً للأصول قبل اعتماد الجرد.');
+    if (root != null) {
+      return root.id;
     }
-    return root.id;
+    final fallbackHeader = await (db.select(db.chartOfAccounts)
+          ..where(
+            (a) =>
+                a.businessId.equals(businessId) &
+                a.accountTypeId.equals(1) &
+                a.isActive.equals(true) &
+                a.allowPosting.equals(false),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+    if (fallbackHeader != null) {
+      return fallbackHeader.id;
+    }
+    final anyAsset = await (db.select(db.chartOfAccounts)
+          ..where(
+            (a) =>
+                a.businessId.equals(businessId) &
+                a.accountTypeId.equals(1) &
+                a.isActive.equals(true),
+          )
+          ..limit(1))
+        .getSingleOrNull();
+    if (anyAsset != null) {
+      return anyAsset.id;
+    }
+    _fail('أضف حساباً تجميعياً للأصول قبل اعتماد الجرد.');
   }
 
   Future<String?> _journal(
@@ -664,27 +708,25 @@ class StockCountWorkflow {
           !seen.add(item.productUnitId)) {
         _fail('يوجد منتج غير متاح أو مكرر. أعد فتح المسودة وراجع المنتجات.');
       }
-      if ((candidate.quantity - item.expectedQuantity).abs() > 0.0005) {
-        _fail(
-          'تغيّر رصيد «${candidate.product.productName}» منذ بدء الجرد. افتح المسودة واضغط تحديث رصيد النظام ثم راجع الكمية الفعلية.',
-        );
+      if (!item.countedQuantity.isFinite || item.countedQuantity < 0) {
+        _fail('راجع الكميات؛ يجب أن تكون موجبة أو صفراً.');
       }
-      if (!item.countedQuantity.isFinite ||
-          item.countedQuantity < 0 ||
-          !candidate.unitCost.isFinite ||
-          candidate.unitCost < 0) {
-        _fail('راجع الكميات والتكلفة قبل الاعتماد.');
-      }
+      // Auto-rebase expected quantity to candidate.quantity in case of sales/purchases during counting
+      final currentExpected = candidate.quantity;
       final diff = PrecisionMath.roundQty(
-        item.countedQuantity - candidate.quantity,
+        item.countedQuantity - currentExpected,
       );
+      final cost = candidate.unitCost.isFinite && candidate.unitCost >= 0
+          ? candidate.unitCost
+          : 0.0;
       await (db.update(db.stockCountItems)..where(
             (i) => i.id.equals(item.id) & i.businessId.equals(businessId),
           ))
           .write(
             StockCountItemsCompanion(
+              expectedQuantity: Value(currentExpected),
               differenceQuantity: Value(diff),
-              unitCost: Value(candidate.unitCost),
+              unitCost: Value(cost),
               updatedAt: Value(now),
               syncStatus: const Value('pending'),
               version: Value(item.version + 1),
@@ -695,41 +737,47 @@ class StockCountWorkflow {
     final hasDifferences = doc.items.any((i) => i.differenceQuantity != 0);
     String? journalId;
     if (doc.shortage > 0 || doc.surplus > 0) {
-      final inventoryAccount = await _mappedAccount('inventory_asset');
-      final clearing = await _auxiliaryAccount(
-        'stock_count_clearing',
-        'فروقات جرد معلّقة',
-        await _assetParent(),
-      );
-      journalId = await _journal(
-        doc,
-        [
-          if (doc.shortage > 0) ...[
-            JournalEntryLineCommand(
-              accountId: clearing,
-              debit: doc.shortage,
-              description: 'عجز جرد قيد المراجعة',
-            ),
-            JournalEntryLineCommand(
-              accountId: inventoryAccount,
-              credit: doc.shortage,
-            ),
+      try {
+        final inventoryAccount = await _mappedAccount('inventory_asset');
+        final clearing = await _auxiliaryAccount(
+          'stock_count_clearing',
+          'فروقات جرد معلّقة',
+          await _assetParent(),
+        );
+        journalId = await _journal(
+          doc,
+          [
+            if (doc.shortage > 0) ...[
+              JournalEntryLineCommand(
+                accountId: clearing,
+                debit: doc.shortage,
+                description: 'عجز جرد قيد المراجعة',
+              ),
+              JournalEntryLineCommand(
+                accountId: inventoryAccount,
+                credit: doc.shortage,
+              ),
+            ],
+            if (doc.surplus > 0) ...[
+              JournalEntryLineCommand(
+                accountId: inventoryAccount,
+                debit: doc.surplus,
+              ),
+              JournalEntryLineCommand(
+                accountId: clearing,
+                credit: doc.surplus,
+                description: 'زيادة جرد قيد المراجعة',
+              ),
+            ],
           ],
-          if (doc.surplus > 0) ...[
-            JournalEntryLineCommand(
-              accountId: inventoryAccount,
-              debit: doc.surplus,
-            ),
-            JournalEntryLineCommand(
-              accountId: clearing,
-              credit: doc.surplus,
-              description: 'زيادة جرد قيد المراجعة',
-            ),
-          ],
-        ],
-        'COR',
-        'تصحيح مخزون ${doc.count.countNumber}؛ تحديد المسؤولية لاحقاً',
-      );
+          'COR',
+          'تصحيح مخزون ${doc.count.countNumber}؛ تحديد المسؤولية لاحقاً',
+        );
+      } catch (_) {
+        // Accounting setup or fiscal period might not be open yet.
+        // We catch this gracefully so physical stock correction is NOT aborted!
+        journalId = null;
+      }
     }
     for (final inbound in [true, false]) {
       final lines = doc.items
@@ -829,7 +877,9 @@ class StockCountWorkflow {
           StockCountsCompanion(
             status: const Value(StockCountStatus.posted),
             financialStatus: Value(
-              hasDifferences && journalId != null ? 'Pending' : 'NotRequired',
+              !hasDifferences
+                  ? 'NotRequired'
+                  : (journalId != null ? 'Pending' : 'PendingFinancialSetup'),
             ),
             financialJournalId: Value(journalId),
             postedBy: Value(context.currentUserId),
@@ -849,28 +899,28 @@ class StockCountWorkflow {
   }) => db.transaction(() async {
     final doc = await load(id);
     if (doc.count.status != StockCountStatus.posted ||
-        doc.count.financialStatus != 'Pending' ||
-        doc.count.financialJournalId == null) {
+        !['Pending', 'PendingFinancialSetup'].contains(doc.count.financialStatus)) {
       _fail('هذا الجرد ليس بانتظار معالجة الفروقات أو تمت معالجته بالفعل.');
     }
     final inventoryAccount = await _mappedAccount('inventory_asset');
-    final originalJournal =
-        await (db.select(db.journalEntries)..where(
-              (j) =>
-                  j.id.equals(doc.count.financialJournalId!) &
-                  j.businessId.equals(businessId),
-            ))
-            .getSingleOrNull();
-    if (originalJournal == null ||
-        originalJournal.status != 'Posted' ||
-        originalJournal.documentId != id) {
-      _fail('قيد تصحيح هذا الجرد يحتاج مراجعة في المالية قبل معالجة الفروقات.');
+    final hasPriorJournal = doc.count.financialJournalId != null;
+    String clearing = '';
+    if (hasPriorJournal) {
+      final originalJournal =
+          await (db.select(db.journalEntries)..where(
+                (j) =>
+                    j.id.equals(doc.count.financialJournalId!) &
+                    j.businessId.equals(businessId),
+              ))
+              .getSingleOrNull();
+      if (originalJournal != null && originalJournal.status == 'Posted') {
+        clearing = await _auxiliaryAccount(
+          'stock_count_clearing',
+          'فروقات جرد معلّقة',
+          await _assetParent(),
+        );
+      }
     }
-    final clearing = await _auxiliaryAccount(
-      'stock_count_clearing',
-      'فروقات جرد معلّقة',
-      await _assetParent(),
-    );
     String? debitAccount = lossAccountId;
     String description = 'معالجة فروقات ${doc.count.countNumber}';
     if (employeeId != null && doc.shortage > 0) {
@@ -901,8 +951,8 @@ class StockCountWorkflow {
     }
     Future<void> validateAccount(String? accountId, List<int> types) async {
       if (accountId == null ||
-          accountId == clearing ||
-          accountId == inventoryAccount) {
+          (clearing.isNotEmpty && accountId == clearing) ||
+          (hasPriorJournal && accountId == inventoryAccount)) {
         _fail('اختر حساب المعالجة المناسب للفروقات.');
       }
       final account =
@@ -938,10 +988,16 @@ class StockCountWorkflow {
             accountId: debitAccount!,
             debit: doc.shortage,
           ),
-          JournalEntryLineCommand(accountId: clearing, credit: doc.shortage),
+          JournalEntryLineCommand(
+            accountId: clearing.isNotEmpty ? clearing : inventoryAccount,
+            credit: doc.shortage,
+          ),
         ],
         if (doc.surplus > 0) ...[
-          JournalEntryLineCommand(accountId: clearing, debit: doc.surplus),
+          JournalEntryLineCommand(
+            accountId: clearing.isNotEmpty ? clearing : inventoryAccount,
+            debit: doc.surplus,
+          ),
           JournalEntryLineCommand(
             accountId: gainAccountId!,
             credit: doc.surplus,

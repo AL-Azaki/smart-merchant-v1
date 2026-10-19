@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
+import '../../../../shared/documents/presentation/widgets/party_statement_preview_screen.dart';
+import '../../../../shared/documents/printing/party_statement_pdf_builder.dart';
+import '../../../../shared/utils/arabic_tafqeet.dart';
 import '../../application/services/party_statement_service.dart';
 
 class PartyStatementDialog extends StatelessWidget {
   final PartyStatementReport report;
+  final String? partyPhone;
 
-  const PartyStatementDialog({super.key, required this.report});
+  const PartyStatementDialog({
+    super.key,
+    required this.report,
+    this.partyPhone,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -17,61 +25,73 @@ class PartyStatementDialog extends StatelessWidget {
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     final isCustomer = report.partyType == 'Customer';
+    final absBalance = report.closingBalance.abs();
+    final isDebit = report.closingBalance > 0;
+    final statusText = isCustomer
+        ? (isDebit ? 'عليكم / رصيد' : 'لكم / رصيد')
+        : (isDebit ? 'لنا / رصيد' : 'لكم / رصيد علينا');
 
     return Dialog(
       backgroundColor: surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 800, maxHeight: 680),
+        constraints: const BoxConstraints(maxWidth: 960, maxHeight: 720),
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header
+              // 1. Header with Title & Close Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6))
-                              .withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          isCustomer ? Icons.person_rounded : Icons.business_rounded,
-                          color: isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6),
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'كشف حساب: ${report.partyName}',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6))
+                                .withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          Text(
-                            isCustomer ? 'كشف حساب عميل مفصل' : 'كشف حساب مورد مفصل',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
+                          child: Icon(
+                            isCustomer ? Icons.person_rounded : Icons.business_rounded,
+                            color: isCustomer ? const Color(0xFF3B82F6) : const Color(0xFF8B5CF6),
+                            size: 24,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'كشف حساب تحليلي: ${report.partyName}',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: textPrimary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'رقم الحساب: ${report.partyId} • العملة: ريال يمني',
+                                style: TextStyle(fontSize: 12, color: textSecondary),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close_rounded),
+                    tooltip: 'إغلاق',
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
-              // Summary Cards
+              // 2. Summary Cards
               Row(
                 children: [
                   _SummaryBox(
@@ -81,167 +101,178 @@ class PartyStatementDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   _SummaryBox(
-                    label: isCustomer ? 'إجمالي المبيعات (مدين)' : 'إجمالي السدادات والمردودات (مدين)',
+                    label: isCustomer ? 'إجمالي المبيعات (مدين)' : 'إجمالي السدادات (مدين)',
                     value: report.totalDebit,
-                    color: const Color(0xFF10B981),
-                  ),
-                  const SizedBox(width: 8),
-                  _SummaryBox(
-                    label: isCustomer ? 'إجمالي المقبوضات والمردودات (دائن)' : 'إجمالي المشتريات (دائن)',
-                    value: report.totalCredit,
                     color: const Color(0xFFEF4444),
                   ),
                   const SizedBox(width: 8),
                   _SummaryBox(
-                    label: isCustomer
-                        ? (report.closingBalance >= 0 ? 'الرصيد المستحق (لنا)' : 'الرصيد الدائن (للعميل)')
-                        : (report.closingBalance >= 0 ? 'الرصيد المستحق (للمورد علينا)' : 'الرصيد المدين (لنا)'),
-                    value: report.closingBalance.abs(),
+                    label: isCustomer ? 'إجمالي المقبوضات (دائن)' : 'إجمالي المشتريات (دائن)',
+                    value: report.totalCredit,
+                    color: const Color(0xFF10B981),
+                  ),
+                  const SizedBox(width: 8),
+                  _SummaryBox(
+                    label: statusText,
+                    value: absBalance,
                     color: report.closingBalance > 0
-                        ? (isCustomer ? const Color(0xFF3B82F6) : const Color(0xFFEF4444))
-                        : const Color(0xFF10B981),
+                        ? (isCustomer ? const Color(0xFFEF4444) : const Color(0xFF10B981))
+                        : (isCustomer ? const Color(0xFF10B981) : const Color(0xFFEF4444)),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
 
-              // Table Content
+              // 3 & 4. Classic 8-Columns Table with Horizontal Scroll
               Expanded(
-                child: Container(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: 720,
+                    child: Column(
+                      children: [
+                        // 3. Table Header
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: const Row(
+                            children: [
+                              SizedBox(width: 80, child: Text('التاريخ', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 90, child: Text('نوع المستند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 70, child: Text('رقم السند', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              SizedBox(width: 60, child: Text('المرجع', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                              Expanded(child: Text('البيان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                              SizedBox(width: 90, child: Text('المدين (عليه)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFFEF4444)), textAlign: TextAlign.center)),
+                              SizedBox(width: 90, child: Text('الدائن (له)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Color(0xFF10B981)), textAlign: TextAlign.center)),
+                              SizedBox(width: 100, child: Text('الرصيد', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                            ],
+                          ),
+                        ),
+
+                        // 4. Table Body
+                        Expanded(
+                          child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: borderColor),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                    border: Border(
+                      left: BorderSide(color: borderColor),
+                      right: BorderSide(color: borderColor),
+                      bottom: BorderSide(color: borderColor),
+                    ),
                   ),
                   child: report.lines.isEmpty
                       ? Center(
                           child: Text(
-                            'لا توجد حركات مالية مسجلة',
+                            'لا توجد حركات مالية مسجلة في هذه الفترة',
                             style: TextStyle(color: textSecondary),
                           ),
                         )
                       : ListView.separated(
                           itemCount: report.lines.length,
-                          separatorBuilder: (_, __) => Divider(height: 1, color: borderColor),
+                          separatorBuilder: (_, __) => Divider(height: 1, color: borderColor.withValues(alpha: 0.5)),
                           itemBuilder: (context, index) {
                             final line = report.lines[index];
                             final dateStr =
-                                '${line.date.year}/${line.date.month.toString().padLeft(2, '0')}/${line.date.day.toString().padLeft(2, '0')}';
+                                '${line.date.year}-${line.date.month.toString().padLeft(2, '0')}-${line.date.day.toString().padLeft(2, '0')}';
 
-                            Color badgeColor;
-                            String badgeLabel;
-                            switch (line.documentType.toLowerCase()) {
-                              case 'return':
-                                badgeColor = const Color(0xFFF59E0B);
-                                badgeLabel = 'مردود';
-                                break;
-                              case 'payment':
-                                badgeColor = const Color(0xFF10B981);
-                                badgeLabel = isCustomer ? 'قبض' : 'صرف';
-                                break;
-                              case 'invoice':
-                                badgeColor = const Color(0xFF3B82F6);
-                                badgeLabel = 'فاتورة';
-                                break;
-                              default:
-                                badgeColor = const Color(0xFF64748B);
-                                badgeLabel = 'افتتاحي';
+                            String typeLabel = line.documentType;
+                            Color badgeColor = const Color(0xFF64748B);
+                            if (line.documentType == 'Invoice') {
+                              typeLabel = isCustomer ? 'مبيعات آجل' : 'فاتورة مشتريات';
+                              badgeColor = const Color(0xFF3B82F6);
+                            } else if (line.documentType == 'Payment') {
+                              typeLabel = isCustomer ? 'سند قبض نقداً' : 'سند صرف نقداً';
+                              badgeColor = const Color(0xFF10B981);
+                            } else if (line.documentType == 'Return') {
+                              typeLabel = isCustomer ? 'مردود مبيعات' : 'مردود مشتريات';
+                              badgeColor = const Color(0xFFF59E0B);
+                            } else if (line.documentType == 'Opening') {
+                              typeLabel = 'رصيد سابق';
+                              badgeColor = const Color(0xFF64748B);
                             }
 
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            final isLineDebit = line.runningBalance > 0;
+                            final balanceLabel = line.runningBalance == 0
+                                ? ''
+                                : (isCustomer ? (isLineDebit ? '(عليكم)' : '(لكم)') : (isLineDebit ? '(لنا)' : '(لهم)'));
+
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              color: index % 2 == 1
+                                  ? (isDark ? Colors.white.withValues(alpha: 0.02) : const Color(0xFFFAFAFA))
+                                  : Colors.transparent,
                               child: Row(
                                 children: [
-                                  // Date & Ref
                                   SizedBox(
-                                    width: 140,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          dateStr,
-                                          style: TextStyle(fontSize: 11, color: textSecondary),
-                                        ),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                              decoration: BoxDecoration(
-                                                color: badgeColor.withOpacity(0.12),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                badgeLabel,
-                                                style: TextStyle(
-                                                  fontSize: 9,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: badgeColor,
-                                                ),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 4),
-                                            Expanded(
-                                              child: Text(
-                                                line.documentNumber,
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: textPrimary,
-                                                  fontFamily: 'monospace',
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                    width: 80,
+                                    child: Text(dateStr, style: const TextStyle(fontSize: 10), textAlign: TextAlign.center),
+                                  ),
+                                  SizedBox(
+                                    width: 90,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: badgeColor.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        typeLabel,
+                                        style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: badgeColor),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
-                                  // Description
+                                  SizedBox(
+                                    width: 70,
+                                    child: Text(line.documentNumber, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+                                  ),
+                                  SizedBox(
+                                    width: 60,
+                                    child: Text(line.documentNumber.replaceAll(RegExp(r'[^0-9]'), ''), style: TextStyle(fontSize: 9.5, color: textSecondary), textAlign: TextAlign.center),
+                                  ),
                                   Expanded(
-                                    child: Text(
-                                      line.description,
-                                      style: TextStyle(fontSize: 13, color: textPrimary),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
+                                    child: Text(line.description, style: const TextStyle(fontSize: 11), textAlign: TextAlign.right, maxLines: 2, overflow: TextOverflow.ellipsis),
                                   ),
-                                  // Debit
                                   SizedBox(
                                     width: 90,
                                     child: Text(
                                       line.debit > 0 ? line.debit.toStringAsFixed(2) : '-',
-                                      textAlign: TextAlign.end,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFF10B981),
-                                      ),
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: line.debit > 0 ? const Color(0xFFEF4444) : textSecondary),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
-                                  // Credit
                                   SizedBox(
                                     width: 90,
                                     child: Text(
                                       line.credit > 0 ? line.credit.toStringAsFixed(2) : '-',
-                                      textAlign: TextAlign.end,
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                        color: Color(0xFFEF4444),
-                                      ),
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: line.credit > 0 ? const Color(0xFF10B981) : textSecondary),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
-                                  // Running Balance
                                   SizedBox(
-                                    width: 110,
-                                    child: Text(
-                                      '${line.runningBalance.toStringAsFixed(2)} ر.ي',
-                                      textAlign: TextAlign.end,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        color: textPrimary,
-                                      ),
+                                    width: 100,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          line.runningBalance.abs().toStringAsFixed(2),
+                                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                        ),
+                                        if (balanceLabel.isNotEmpty)
+                                          Text(
+                                            balanceLabel,
+                                            style: TextStyle(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: isLineDebit ? const Color(0xFFEF4444) : const Color(0xFF10B981),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ],
@@ -251,17 +282,100 @@ class PartyStatementDialog extends StatelessWidget {
                         ),
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // Bottom Actions
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('إغلاق'),
+                      ],
+                    ),
                   ),
-                ],
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // 5. Callout Box with Arabic Tafqeet
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF0F2942) : const Color(0xFFE0F2FE),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.5)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('المبلغ بالحروف:', style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          const SizedBox(height: 1),
+                          Text(
+                            ArabicTafqeet.convert(absBalance, currencyName: 'ريال يمني'),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(statusText, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                        Text(
+                          '${absBalance.toStringAsFixed(2)} ر.ي',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 6. Bottom Action Buttons (Scrollable on mobile)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      label: const Text('إغلاق'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => PartyStatementPdfBuilder.shareViaWhatsApp(
+                        report: report,
+                        phone: partyPhone,
+                      ),
+                      icon: const Icon(Icons.chat_bubble_rounded, size: 16, color: Color(0xFF25D366)),
+                      label: const Text('إرسال واتساب'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => PartyStatementPdfBuilder.sharePdf(
+                        report: report,
+                      ),
+                      icon: const Icon(Icons.share_rounded, size: 16),
+                      label: const Text('مشاركة PDF'),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => PartyStatementPreviewScreen(
+                              report: report,
+                              customerPhone: partyPhone,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.print_rounded, size: 16),
+                      label: const Text('معاينة وطباعة A4'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

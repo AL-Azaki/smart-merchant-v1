@@ -131,8 +131,11 @@ class _StockCountDetailsViewState extends ConsumerState<StockCountDetailsView> {
           ),
           data: (doc) {
             final draft = doc.count.status == StockCountStatus.draft;
+            final isSetupPending =
+                doc.count.financialStatus == 'PendingFinancialSetup' &&
+                doc.count.status == StockCountStatus.posted;
             final pending =
-                doc.count.financialStatus == 'Pending' &&
+                (doc.count.financialStatus == 'Pending' || isSetupPending) &&
                 doc.count.status == StockCountStatus.posted;
             final theme = Theme.of(context);
             return Column(
@@ -194,6 +197,8 @@ class _StockCountDetailsViewState extends ConsumerState<StockCountDetailsView> {
                                             ? 'تم إلغاء المسودة دون تغيير المخزون أو إنشاء قيد.'
                                             : draft
                                             ? 'مسودة للمراجعة. رصيد المخزون لم يتغير بعد.'
+                                            : isSetupPending
+                                            ? 'تم تصحيح المخزون الفعلي بنجاح. الفروقات بانتظار فتح الفترة المحاسبية لتسجيل القيد أو معالجتها.'
                                             : pending
                                             ? 'تم تصحيح المخزون. الفروقات في الحساب المعلّق وتنتظر تحديد جهة التحميل.'
                                             : doc.count.financialStatus ==
