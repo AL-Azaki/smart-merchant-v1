@@ -53,7 +53,8 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
           child: Row(
             children: [
               // Sub Tab Switcher
-              Container(
+              Expanded(
+                child: Container(
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
                   borderRadius: BorderRadius.circular(10),
@@ -133,7 +134,8 @@ class _FinancialReportsTabState extends ConsumerState<FinancialReportsTab> with 
                   ],
                 ),
               ),
-              const Spacer(),
+              ),
+              const SizedBox(width: 12),
 
               // Year-End Closing Button
               ElevatedButton.icon(
