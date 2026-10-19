@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../treasury/presentation/providers/treasury_provider.dart';
@@ -18,9 +19,45 @@ class ReceiptVouchersView extends ConsumerStatefulWidget {
 class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
   final TextEditingController _searchController = TextEditingController();
   String _search = '';
-  int _selectedFilterIndex = 0; // 0: الكل, 1: اليوم, 2: هذا الأسبوع, 3: هذا الشهر
+  int _selectedFilterIndex = 0; // 0: تلقائي, 1: اليوم, 2: هذا الأسبوع, 3: هذا الشهر, 4: تاريخ مخصص
+  DateTimeRange? _customDateRange;
 
-  final List<String> _filterTabs = ['الكل', 'اليوم', 'هذا الأسبوع', 'هذا الشهر'];
+  String _sortField = 'number'; // 'number' (رقم السند) أو 'date' (التاريخ)
+  bool _isAscending = false; // false = تنازلي, true = تصاعدي
+
+  Map<String, String> _contactNames = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadContacts();
+  }
+
+  Future<void> _loadContacts() async {
+    try {
+      final db = getIt<AppDatabase>();
+      final customers = await db.select(db.customers).get();
+      final suppliers = await db.select(db.suppliers).get();
+      final coa = await db.select(db.chartOfAccounts).get();
+
+      final map = <String, String>{};
+      for (final c in customers) {
+        map[c.id] = c.customerName;
+      }
+      for (final s in suppliers) {
+        map[s.id] = s.supplierName;
+      }
+      for (final a in coa) {
+        map[a.id] = a.accountName;
+      }
+
+      if (mounted) {
+        setState(() {
+          _contactNames = map;
+        });
+      }
+    } catch (_) {}
+  }
 
   @override
   void dispose() {
@@ -48,9 +85,53 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
         return date.isAfter(weekAgo.subtract(const Duration(milliseconds: 1)));
       case 3: // هذا الشهر
         return date.year == now.year && date.month == now.month;
-      case 0: // الكل
+      case 4: // تاريخ مخصص
+        if (_customDateRange == null) {
+          return true;
+        }
+        final start = DateTime(
+          _customDateRange!.start.year,
+          _customDateRange!.start.month,
+          _customDateRange!.start.day,
+        );
+        final end = DateTime(
+          _customDateRange!.end.year,
+          _customDateRange!.end.month,
+          _customDateRange!.end.day,
+          23,
+          59,
+          59,
+        );
+        return date.isAfter(start.subtract(const Duration(milliseconds: 1))) &&
+            date.isBefore(end.add(const Duration(milliseconds: 1)));
+      case 0: // تلقائي
       default:
         return true;
+    }
+  }
+
+  Future<void> _selectCustomDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      initialDateRange: _customDateRange ??
+          DateTimeRange(
+            start: now.subtract(const Duration(days: 7)),
+            end: now,
+          ),
+      helpText: 'اختر الفترة الزمنية للبحث',
+      confirmText: 'تأكيد',
+      cancelText: 'إلغاء',
+      saveText: 'تطبيق',
+    );
+
+    if (picked != null) {
+      setState(() {
+        _customDateRange = picked;
+        _selectedFilterIndex = 4;
+      });
     }
   }
 
@@ -148,88 +229,103 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
             orElse: () => const SizedBox.shrink(),
           ),
 
-          // 2. شريط البحث والفلاتر السريعة
+          // 2. شريط البحث والفرز والفلاتر المتقدمة (مطابق للتصميم المطلوب)
           Container(
             color: surface,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // مربع البحث
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'البحث برقم السند، البيان، أو الملاحظات...',
-                    hintStyle: TextStyle(fontSize: 12.5, color: textSecondary),
-                    prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                    suffixIcon: _search.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _search = '');
-                            },
-                          )
-                        : null,
-                    isDense: true,
-                    filled: true,
-                    fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  ),
-                  onChanged: (val) => setState(() => _search = val.trim()),
-                ),
-                const SizedBox(height: 10),
-
-                // أزرار الفلترة الزمنية (الكل - اليوم - هذا الأسبوع - هذا الشهر)
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: List.generate(_filterTabs.length, (index) {
-                      final isSelected = _selectedFilterIndex == index;
-                      return Padding(
-                        padding: const EdgeInsets.only(left: 6),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => setState(() => _selectedFilterIndex = index),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 180),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFF10B981)
-                                  : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isSelected
-                                    ? const Color(0xFF10B981)
-                                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                              ),
-                            ),
-                            child: Text(
-                              _filterTabs[index],
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                color: isSelected
-                                    ? Colors.white
-                                    : (isDark ? Colors.grey[300] : const Color(0xFF475569)),
-                              ),
-                            ),
+                // السطر 1: مربع البحث بالاسم/الرقم/المرجع + قائمة فرز الحقل + قائمة اتجاه الفرز
+                Row(
+                  children: [
+                    // مربع البحث
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          hintText: 'بحث بالاسم، رقم السند، أو المرجع...',
+                          hintStyle: TextStyle(fontSize: 12.5, color: textSecondary),
+                          prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                          suffixIcon: _search.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear_rounded, size: 18),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _search = '');
+                                  },
+                                )
+                              : null,
+                          isDense: true,
+                          filled: true,
+                          fillColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: borderColor),
                           ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         ),
-                      );
-                    }),
-                  ),
+                        onChanged: (val) => setState(() => _search = val.trim()),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // قائمة فرز الحقل (رقم السند / التاريخ) مع إطار بارز
+                    _buildSortFieldDropdown(isDark, surface),
+                    const SizedBox(width: 8),
+
+                    // قائمة اتجاه الفرز (تنازلي / تصاعدي)
+                    _buildSortDirectionDropdown(isDark, surface),
+                  ],
+                ),
+                const SizedBox(height: 12),
+
+                // السطر 2: عنوان الفترة الزمنية + فلاتر الفترات
+                Row(
+                  children: [
+                    Text(
+                      'الفترة الزمنية',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.grey[300] : const Color(0xFF334155),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildPeriodChip(0, 'تلقائي', isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip(1, 'اليوم', isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip(2, 'هذا الأسبوع', isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip(3, 'هذا الشهر', isDark),
+                            const SizedBox(width: 6),
+                            _buildCustomDateChip(isDark),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
 
-          // 3. قائمة السندات المطورة
+          // 3. قائمة السندات المطورة مع الفرز والتصفية المباشرة
           Expanded(
             child: vouchersAsync.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -238,17 +334,35 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
               ),
               data: (vouchers) {
                 final filtered = vouchers.where((v) {
-                  // Filter by Search
+                  // 1. تصفية بالبحث (بالاسم، برقم السند، أو بالمرجع في الملاحظات)
                   if (_search.isNotEmpty) {
-                    final matchNumber = v.paymentNumber.toLowerCase().contains(_search.toLowerCase());
-                    final matchNotes = (v.notes ?? '').toLowerCase().contains(_search.toLowerCase());
-                    if (!matchNumber && !matchNotes) {
+                    final q = _search.toLowerCase();
+                    final matchNumber = v.paymentNumber.toLowerCase().contains(q);
+                    final matchNotes = (v.notes ?? '').toLowerCase().contains(q);
+                    final contact = (v.contactId != null ? _contactNames[v.contactId!] : null) ?? '';
+                    final account = _contactNames[v.chartOfAccountId] ?? '';
+                    final matchContact = contact.toLowerCase().contains(q);
+                    final matchAccount = account.toLowerCase().contains(q);
+                    final matchAmount = v.amount.toString().contains(q);
+
+                    if (!matchNumber && !matchNotes && !matchContact && !matchAccount && !matchAmount) {
                       return false;
                     }
                   }
-                  // Filter by Time Period
+                  // 2. تصفية بالفترة الزمنية
                   return _matchesPeriod(v.paymentDate, now);
                 }).toList();
+
+                // 3. الفرز الديناميكي (حسب رقم السند أو التاريخ - تنازلي أو تصاعدي)
+                filtered.sort((a, b) {
+                  int cmp;
+                  if (_sortField == 'number') {
+                    cmp = a.paymentNumber.compareTo(b.paymentNumber);
+                  } else {
+                    cmp = a.paymentDate.compareTo(b.paymentDate);
+                  }
+                  return _isAscending ? cmp : -cmp;
+                });
 
                 if (filtered.isEmpty) {
                   return Center(
@@ -277,8 +391,10 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
                   separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = filtered[index];
+                    final contactName = item.contactId != null ? _contactNames[item.contactId!] : null;
                     return _ReceiptVoucherCard(
                       item: item,
+                      contactName: contactName,
                       surface: surface,
                       borderColor: borderColor,
                       onTap: () {
@@ -306,6 +422,263 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPeriodChip(int index, String label, bool isDark) {
+    final isSelected = _selectedFilterIndex == index;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        setState(() {
+          _selectedFilterIndex = index;
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFECFDF5))
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF10B981)
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: isSelected ? 1.2 : 1.0,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857))
+                : (isDark ? Colors.grey[300] : const Color(0xFF475569)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomDateChip(bool isDark) {
+    final isSelected = _selectedFilterIndex == 4;
+    String label = 'تاريخ مخصص';
+    if (isSelected && _customDateRange != null) {
+      final s = _customDateRange!.start;
+      final e = _customDateRange!.end;
+      label = '${s.month}/${s.day} - ${e.month}/${e.day}';
+    }
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: _selectCustomDateRange,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFECFDF5))
+              : (isDark ? const Color(0xFF1E293B) : Colors.white),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF10B981)
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            width: isSelected ? 1.2 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.calendar_month_rounded,
+              size: 14,
+              color: isSelected
+                  ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857))
+                  : (isDark ? Colors.grey[400] : const Color(0xFF64748B)),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected
+                    ? (isDark ? const Color(0xFFA7F3D0) : const Color(0xFF047857))
+                    : (isDark ? Colors.grey[300] : const Color(0xFF475569)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortFieldDropdown(bool isDark, Color surface) {
+    return PopupMenuButton<String>(
+      tooltip: 'فرز حسب',
+      onSelected: (val) {
+        setState(() => _sortField = val);
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'number',
+          child: Row(
+            children: [
+              Icon(
+                Icons.tag_rounded,
+                size: 16,
+                color: _sortField == 'number' ? const Color(0xFF10B981) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'رقم السند',
+                style: TextStyle(
+                  fontWeight: _sortField == 'number' ? FontWeight.bold : FontWeight.normal,
+                  color: _sortField == 'number' ? const Color(0xFF10B981) : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'date',
+          child: Row(
+            children: [
+              Icon(
+                Icons.calendar_today_rounded,
+                size: 16,
+                color: _sortField == 'date' ? const Color(0xFF10B981) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'التاريخ',
+                style: TextStyle(
+                  fontWeight: _sortField == 'date' ? FontWeight.bold : FontWeight.normal,
+                  color: _sortField == 'date' ? const Color(0xFF10B981) : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: const Color(0xFF10B981),
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _sortField == 'number' ? 'رقم السند' : 'التاريخ',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : const Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: Color(0xFF10B981),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSortDirectionDropdown(bool isDark, Color surface) {
+    return PopupMenuButton<bool>(
+      tooltip: 'اتجاه الفرز',
+      onSelected: (val) {
+        setState(() => _isAscending = val);
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: false,
+          child: Row(
+            children: [
+              Icon(
+                Icons.arrow_downward_rounded,
+                size: 16,
+                color: !_isAscending ? const Color(0xFF10B981) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'تنازلي',
+                style: TextStyle(
+                  fontWeight: !_isAscending ? FontWeight.bold : FontWeight.normal,
+                  color: !_isAscending ? const Color(0xFF10B981) : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: true,
+          child: Row(
+            children: [
+              Icon(
+                Icons.arrow_upward_rounded,
+                size: 16,
+                color: _isAscending ? const Color(0xFF10B981) : (isDark ? Colors.grey[400] : Colors.grey[600]),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'تصاعدي',
+                style: TextStyle(
+                  fontWeight: _isAscending ? FontWeight.bold : FontWeight.normal,
+                  color: _isAscending ? const Color(0xFF10B981) : null,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: surface,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _isAscending ? 'تصاعدي' : 'تنازلي',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey[300] : const Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 18,
+              color: isDark ? Colors.grey[400] : const Color(0xFF64748B),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -360,6 +733,7 @@ class _ReceiptVouchersViewState extends ConsumerState<ReceiptVouchersView> {
 
 class _ReceiptVoucherCard extends StatelessWidget {
   final Payment item;
+  final String? contactName;
   final Color surface;
   final Color borderColor;
   final VoidCallback onTap;
@@ -373,6 +747,7 @@ class _ReceiptVoucherCard extends StatelessWidget {
     required this.onTap,
     required this.onPrint,
     required this.onShare,
+    this.contactName,
   });
 
   String _formatAmount(double val) {
@@ -453,6 +828,21 @@ class _ReceiptVoucherCard extends StatelessWidget {
                             style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
                           ),
                         ),
+                        if (contactName != null && contactName!.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              contactName!,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.grey[300] : const Color(0xFF334155),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 4),
