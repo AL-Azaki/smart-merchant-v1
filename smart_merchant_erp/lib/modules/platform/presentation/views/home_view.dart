@@ -495,17 +495,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.chevron_left_rounded, size: 18, color: Color(0xFF6366F1)),
-          ),
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
                 'ديون العملاء',
@@ -521,6 +512,15 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 ),
               ),
             ],
+          ),
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.chevron_left_rounded, size: 18, color: Color(0xFF6366F1)),
           ),
         ],
       ),

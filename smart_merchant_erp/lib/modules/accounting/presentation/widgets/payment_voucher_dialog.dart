@@ -9,6 +9,7 @@ import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../../purchasing/domain/repositories/purchasing_repository.dart';
 import '../providers/accounting_provider.dart';
 import '../../../treasury/application/usecases/record_disbursement_usecase.dart';
+import '../../../treasury/domain/repositories/treasury_repository.dart';
 
 class PaymentVoucherDialog extends ConsumerStatefulWidget {
   final String? initialSupplierId;
@@ -32,6 +33,7 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
   final _notesController = TextEditingController();
 
   List<Supplier> _suppliers = [];
+  List<PaymentMethod> _paymentMethods = [];
   SupplierBalanceSummary? _supplierBalance;
   bool _isLoadingData = true;
   bool _isSubmitting = false;
@@ -55,12 +57,21 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
 
     try {
       final purchasingRepo = getIt<PurchasingRepository>();
+      final treasuryRepo = getIt<TreasuryRepository>();
       final suppliers = await purchasingRepo.listSuppliers(
         SupplierFilter(businessId: session.businessId!, isActive: true),
+      );
+      final paymentMethods = await treasuryRepo.listPaymentMethods(
+        session.businessId!,
+        isActive: true,
       );
       if (mounted) {
         setState(() {
           _suppliers = suppliers;
+          _paymentMethods = paymentMethods;
+          if (paymentMethods.isNotEmpty) {
+            _paymentMethod = paymentMethods.first.id;
+          }
           _isLoadingData = false;
         });
         if (widget.initialSupplierId != null) {
@@ -119,7 +130,6 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
     setState(() => _isSubmitting = true);
 
     final useCase = getIt<RecordDisbursementUseCase>();
-    final session = ref.read(sessionNotifierProvider);
 
     final command = RecordDisbursementCommand(
       type: _disbursementType,
@@ -365,20 +375,31 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<String>(
-                                value: _paymentMethod,
+                                value: _paymentMethods.any((m) => m.id == _paymentMethod)
+                                    ? _paymentMethod
+                                    : (_paymentMethods.isNotEmpty
+                                        ? _paymentMethods.first.id
+                                        : _paymentMethod),
                                 decoration: const InputDecoration(
                                   labelText: 'طريقة الدفع',
                                   border: OutlineInputBorder(),
                                 ),
-                                items: const [
-                                  DropdownMenuItem(
-                                      value: 'CASH', child: Text('نقداً')),
-                                  DropdownMenuItem(
-                                      value: 'CARD', child: Text('بطاقة/شبكة')),
-                                  DropdownMenuItem(
-                                      value: 'BANK_TRANSFER',
-                                      child: Text('تحويل بنكي')),
-                                ],
+                                items: _paymentMethods.isNotEmpty
+                                    ? _paymentMethods.map((pm) {
+                                        return DropdownMenuItem<String>(
+                                          value: pm.id,
+                                          child: Text(pm.methodName),
+                                        );
+                                      }).toList()
+                                    : const [
+                                        DropdownMenuItem(
+                                            value: 'CASH', child: Text('نقداً')),
+                                        DropdownMenuItem(
+                                            value: 'CARD', child: Text('بطاقة/شبكة')),
+                                        DropdownMenuItem(
+                                            value: 'BANK_TRANSFER',
+                                            child: Text('تحويل بنكي')),
+                                      ],
                                 onChanged: (val) {
                                   if (val != null) {
                                     setState(() => _paymentMethod = val);

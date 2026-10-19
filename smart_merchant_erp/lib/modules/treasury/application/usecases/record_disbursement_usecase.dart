@@ -187,6 +187,12 @@ class RecordDisbursementUseCase
       params.amount * params.exchangeRate,
     );
 
+    final resolvedPaymentMethodId = await _resolvePaymentMethodId(
+      businessId: businessId,
+      requestedMethodOrCode: params.paymentMethodId,
+      chartOfAccountId: params.chartOfAccountId,
+    );
+
     // 5. Build Payment Companion
     final paymentCompanion = PaymentsCompanion.insert(
       id: paymentId,
@@ -194,7 +200,7 @@ class RecordDisbursementUseCase
       branchId: branchId,
       paymentNumber: voucherNumber,
       paymentDate: drift.Value(voucherDate),
-      paymentMethodId: params.paymentMethodId,
+      paymentMethodId: resolvedPaymentMethodId,
       chartOfAccountId: params.chartOfAccountId,
       currencyId: params.currencyId,
       exchangeRate: drift.Value(params.exchangeRate),
@@ -347,4 +353,83 @@ class RecordDisbursementUseCase
       return Left(UnexpectedFailure(e.toString()));
     }
   }
+
+  /// Resolves the payment method ID safely against `payment_methods` table.
+  /// Handles UUIDs, method codes ('CASH', 'BANK', etc.), and auto-provisions if missing.
+  Future<String> _resolvePaymentMethodId({
+    required String businessId,
+    required String requestedMethodOrCode,
+    required String chartOfAccountId,
+  }) async {
+    // 1. Try finding by direct ID
+    final byId = await _treasuryRepository.getPaymentMethodById(
+      requestedMethodOrCode,
+      businessId,
+    );
+    if (byId != null) {
+      return byId.id;
+    }
+
+    // 2. Try finding by method code (e.g., CASH, BANK, WALLET)
+    final byCode = await _treasuryRepository.getPaymentMethodByCode(
+      requestedMethodOrCode.toUpperCase(),
+      businessId,
+    );
+    if (byCode != null) {
+      return byCode.id;
+    }
+
+    // 3. Try finding in active methods by code or paymentType
+    final activeMethods = await _treasuryRepository.listPaymentMethods(
+      businessId,
+      isActive: true,
+    );
+    final normalized = requestedMethodOrCode.toUpperCase();
+    final matched = activeMethods.where((m) {
+      final code = m.methodCode.toUpperCase();
+      final type = m.paymentType.toUpperCase();
+      return code == normalized ||
+          type == normalized ||
+          (normalized == 'BANK_TRANSFER' && (code == 'BANK' || type == 'BANK')) ||
+          (normalized == 'CARD' &&
+              (code == 'CARD' || code == 'BANK' || type == 'CARD' || type == 'BANK'));
+    }).firstOrNull;
+
+    if (matched != null) {
+      return matched.id;
+    }
+
+    if (activeMethods.isNotEmpty) {
+      return activeMethods.first.id;
+    }
+
+    // 4. Auto-provision default payment method if none exist in the database
+    final newPmId = _uuid.v4();
+    final code = requestedMethodOrCode.trim().isNotEmpty
+        ? requestedMethodOrCode.toUpperCase()
+        : 'CASH';
+    final name = code == 'CASH'
+        ? 'نقدي (الصندوق الرئيسي)'
+        : (code == 'BANK' || code == 'BANK_TRANSFER')
+            ? 'شبكة / مدى / بنك'
+            : code;
+    final type = (code == 'BANK' || code == 'BANK_TRANSFER' || code == 'CARD')
+        ? 'Bank'
+        : 'Cash';
+
+    await _treasuryRepository.insertPaymentMethod(
+      PaymentMethodsCompanion.insert(
+        id: newPmId,
+        businessId: businessId,
+        chartOfAccountId: chartOfAccountId,
+        methodCode: code,
+        methodName: name,
+        paymentType: type,
+        isActive: const drift.Value(true),
+      ),
+    );
+
+    return newPmId;
+  }
 }
+
