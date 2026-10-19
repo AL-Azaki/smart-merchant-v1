@@ -554,10 +554,11 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
   ) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
+    final unitsAsync = ref.watch(unitsNotifierProvider);
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: BoxConstraints(minWidth: 1400),
+        constraints: const BoxConstraints(minWidth: 1200),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -569,8 +570,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   _headerCell('الباركود/SKU', 140),
                   const SizedBox(width: 8),
                   _headerCell('المنتج', 250),
-                  const SizedBox(width: 8),
-                  _headerCell('التصنيف', 140),
                   const SizedBox(width: 8),
                   _headerCell('الوحدة', 100),
                   const SizedBox(width: 8),
@@ -605,6 +604,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       SizedBox(
                         width: 140,
                         child: _buildInput(
+                          key: ValueKey('${row.id}_barcode'),
                           value: row.barcode,
                           onChanged: (v) {
                             var newRow = row.copyWith(barcode: v);
@@ -617,11 +617,20 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                   )
                                   .firstOrNull;
                               if (match != null) {
+                                final unit = unitsAsync.value
+                                    ?.where(
+                                      (u) => u.id == match.baseUnit.unitId,
+                                    )
+                                    .firstOrNull;
+                                final resolvedUnitName =
+                                    unit?.unitName ?? 'حبة';
+
                                 newRow = newRow.copyWith(
                                   productUnitId: match.baseUnit.id,
                                   productId: match.product.id,
                                   categoryId: match.product.categoryId,
                                   productName: match.product.productName,
+                                  unitId: resolvedUnitName,
                                   purchasePrice: match.baseUnit.purchasePrice,
                                   sellingPrice: match.baseUnit.sellingPrice,
                                 );
@@ -668,6 +677,15 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                       });
                                     },
                                     onSelected: (option) {
+                                      final unit = unitsAsync.value
+                                          ?.where(
+                                            (u) =>
+                                                u.id == option.baseUnit.unitId,
+                                          )
+                                          .firstOrNull;
+                                      final resolvedUnitName =
+                                          unit?.unitName ?? 'حبة';
+
                                       notifier.updateRow(
                                         row.id,
                                         row.copyWith(
@@ -676,6 +694,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                           productUnitId: option.baseUnit.id,
                                           productId: option.product.id,
                                           categoryId: option.product.categoryId,
+                                          unitId: resolvedUnitName,
                                           purchasePrice:
                                               option.baseUnit.purchasePrice,
                                           sellingPrice:
@@ -771,19 +790,9 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       ),
                       const SizedBox(width: 8),
                       SizedBox(
-                        width: 140,
-                        child: _CategorySelectionWidget(
-                          categoryId: row.categoryId,
-                          onChanged: (v) => notifier.updateRow(
-                            row.id,
-                            row.copyWith(categoryId: v),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
                         width: 100,
                         child: _buildInput(
+                          key: ValueKey('${row.id}_unit'),
                           value: row.unitId,
                           hint: 'الوحدة',
                           onChanged: (v) => notifier.updateRow(
@@ -796,7 +805,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       SizedBox(
                         width: 100,
                         child: _buildInput(
-                          value: row.quantity.toString(),
+                          key: ValueKey('${row.id}_qty'),
+                          value: _formatNum(row.quantity),
                           keyboardType: TextInputType.number,
                           onChanged: (v) => notifier.updateRow(
                             row.id,
@@ -808,7 +818,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       SizedBox(
                         width: 120,
                         child: _buildInput(
-                          value: row.purchasePrice.toString(),
+                          key: ValueKey('${row.id}_buy_${row.productUnitId}'),
+                          value: _formatNum(row.purchasePrice),
                           keyboardType: TextInputType.number,
                           textColor: AppColors.error,
                           onChanged: (v) => notifier.updateRow(
@@ -823,7 +834,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       SizedBox(
                         width: 120,
                         child: _buildInput(
-                          value: row.sellingPrice.toString(),
+                          key: ValueKey('${row.id}_sell_${row.productUnitId}'),
+                          value: _formatNum(row.sellingPrice),
                           keyboardType: TextInputType.number,
                           textColor: AppColors.success,
                           onChanged: (v) => notifier.updateRow(
@@ -836,6 +848,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       SizedBox(
                         width: 120,
                         child: _buildInput(
+                          key: ValueKey('${row.id}_expiry'),
                           value: row.expiryDate,
                           hint: 'YYYY-MM-DD',
                           onChanged: (v) => notifier.updateRow(
@@ -908,6 +921,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
   ) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
+    final unitsAsync = ref.watch(unitsNotifierProvider);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -979,6 +993,11 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                             });
                           },
                           onSelected: (option) {
+                            final unit = unitsAsync.value
+                                ?.where((u) => u.id == option.baseUnit.unitId)
+                                .firstOrNull;
+                            final resolvedUnitName = unit?.unitName ?? 'حبة';
+
                             notifier.updateRow(
                               row.id,
                               row.copyWith(
@@ -986,6 +1005,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                 productUnitId: option.baseUnit.id,
                                 productId: option.product.id,
                                 categoryId: option.product.categoryId,
+                                unitId: resolvedUnitName,
                                 purchasePrice: option.baseUnit.purchasePrice,
                                 sellingPrice: option.baseUnit.sellingPrice,
                               ),
@@ -1068,34 +1088,20 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                 },
               ),
               const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _CategorySelectionWidget(
-                      categoryId: row.categoryId,
-                      onChanged: (v) => notifier.updateRow(
-                        row.id,
-                        row.copyWith(categoryId: v),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildInput(
-                      value: row.unitId,
-                      hint: 'الوحدة',
-                      onChanged: (v) =>
-                          notifier.updateRow(row.id, row.copyWith(unitId: v)),
-                    ),
-                  ),
-                ],
+              _buildInput(
+                key: ValueKey('${row.id}_unit'),
+                value: row.unitId,
+                hint: 'الوحدة',
+                onChanged: (v) =>
+                    notifier.updateRow(row.id, row.copyWith(unitId: v)),
               ),
               const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: _buildInput(
-                      value: row.quantity.toString(),
+                      key: ValueKey('${row.id}_qty'),
+                      value: _formatNum(row.quantity),
                       hint: 'الكمية',
                       keyboardType: TextInputType.number,
                       onChanged: (v) => notifier.updateRow(
@@ -1107,7 +1113,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildInput(
-                      value: row.purchasePrice.toString(),
+                      key: ValueKey('${row.id}_buy_${row.productUnitId}'),
+                      value: _formatNum(row.purchasePrice),
                       hint: 'سعر الشراء',
                       keyboardType: TextInputType.number,
                       textColor: AppColors.error,
@@ -1124,7 +1131,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                 children: [
                   Expanded(
                     child: _buildInput(
-                      value: row.sellingPrice.toString(),
+                      key: ValueKey('${row.id}_sell_${row.productUnitId}'),
+                      value: _formatNum(row.sellingPrice),
                       hint: 'سعر البيع',
                       keyboardType: TextInputType.number,
                       textColor: AppColors.success,
@@ -1137,6 +1145,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildInput(
+                      key: ValueKey('${row.id}_barcode'),
                       value: row.barcode,
                       hint: 'الباركود/SKU',
                       onChanged: (v) {
@@ -1150,11 +1159,20 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                               )
                               .firstOrNull;
                           if (match != null) {
+                            final unit = unitsAsync.value
+                                ?.where(
+                                  (u) => u.id == match.baseUnit.unitId,
+                                )
+                                .firstOrNull;
+                            final resolvedUnitName =
+                                unit?.unitName ?? 'حبة';
+
                             newRow = newRow.copyWith(
                               productUnitId: match.baseUnit.id,
                               productId: match.product.id,
                               categoryId: match.product.categoryId,
                               productName: match.product.productName,
+                              unitId: resolvedUnitName,
                               purchasePrice: match.baseUnit.purchasePrice,
                               sellingPrice: match.baseUnit.sellingPrice,
                             );
@@ -1891,19 +1909,30 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     return SizedBox(width: width, child: t);
   }
 
+  String _formatNum(double value) {
+    if (value == 0) return '0';
+    if (value == value.roundToDouble()) {
+      return value.toInt().toString();
+    }
+    return value.toString();
+  }
+
   Widget _buildInput({
+    Key? key,
     required String value,
     required Function(String) onChanged,
     TextInputType? keyboardType,
     Color? textColor,
     String? hint,
   }) {
-    return TextFormField(
-      initialValue: value,
-      keyboardType: keyboardType,
-      style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
-      decoration: _inputDeco(hint: hint),
+    return _SelectableCellInput(
+      key: key,
+      value: value,
       onChanged: onChanged,
+      keyboardType: keyboardType,
+      textColor: textColor,
+      hint: hint,
+      selectAllOnFocus: keyboardType == TextInputType.number,
     );
   }
 
@@ -1927,6 +1956,99 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SelectableCellInput extends StatefulWidget {
+  final String value;
+  final Function(String) onChanged;
+  final TextInputType? keyboardType;
+  final Color? textColor;
+  final String? hint;
+  final bool selectAllOnFocus;
+
+  const _SelectableCellInput({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.keyboardType,
+    this.textColor,
+    this.hint,
+    this.selectAllOnFocus = false,
+  });
+
+  @override
+  State<_SelectableCellInput> createState() => _SelectableCellInputState();
+}
+
+class _SelectableCellInputState extends State<_SelectableCellInput> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+    _focusNode.addListener(_handleFocusChange);
+  }
+
+  void _handleFocusChange() {
+    if (_focusNode.hasFocus && widget.selectAllOnFocus) {
+      _selectAll();
+    }
+  }
+
+  void _selectAll() {
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: _controller.text.length,
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _SelectableCellInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != oldWidget.value && widget.value != _controller.text) {
+      if (!_focusNode.hasFocus) {
+        _controller.text = widget.value;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_handleFocusChange);
+    _focusNode.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isNumber = widget.keyboardType == TextInputType.number;
+    return TextField(
+      controller: _controller,
+      focusNode: _focusNode,
+      keyboardType: widget.keyboardType,
+      textDirection: isNumber ? TextDirection.ltr : null,
+      textAlign: isNumber ? TextAlign.center : TextAlign.start,
+      style: TextStyle(
+        color: widget.textColor,
+        fontWeight: FontWeight.bold,
+      ),
+      decoration: InputDecoration(
+        hintText: widget.hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      ),
+      onTap: () {
+        if (widget.selectAllOnFocus) {
+          _selectAll();
+        }
+      },
+      onChanged: widget.onChanged,
     );
   }
 }
