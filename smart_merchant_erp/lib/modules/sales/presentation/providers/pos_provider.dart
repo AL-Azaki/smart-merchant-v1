@@ -30,7 +30,7 @@ class PosCartItem {
     required this.name,
     required this.quantity,
     required this.unitPrice,
-    this.taxRate = 0.15, // Defaulting to 15% VAT for standard ERP
+    this.taxRate = 0.0, // 0% Tax (No VAT)
     this.productUnitId,
     this.unitName,
   });
@@ -139,7 +139,7 @@ class PosNotifier extends _$PosNotifier {
     required String id,
     required String name,
     required double price,
-    double taxRate = 0.15,
+    double taxRate = 0.0,
     String? productUnitId,
     String? unitName,
   }) {
@@ -289,9 +289,7 @@ class PosNotifier extends _$PosNotifier {
             'منتج ${item.productUnitId.substring(0, 8)}', // Will be resolved by product lookup
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        taxRate: item.quantity > 0
-            ? (item.tax / (item.quantity * item.unitPrice)).clamp(0.0, 1.0)
-            : 0.0,
+        taxRate: 0.0,
         productUnitId: item.productUnitId,
       );
     }).toList();

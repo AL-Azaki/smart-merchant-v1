@@ -69,26 +69,24 @@ void main() {
       id: 'p1',
       name: 'Product 1',
       price: 100.0,
-      taxRate: 0.15,
     );
 
     var state = container.read(posNotifierProvider);
     expect(state.cart.length, 1);
     expect(state.cart.first.quantity, 1.0);
-    // Total should be 100 + 15 = 115
-    expect(state.totals.grandTotal, 115.0);
+    // Total should be 100 flat without tax
+    expect(state.totals.grandTotal, 100.0);
 
     notifier.addProduct(
       id: 'p1',
       name: 'Product 1',
       price: 100.0,
-      taxRate: 0.15,
     );
 
     state = container.read(posNotifierProvider);
     expect(state.cart.length, 1);
     expect(state.cart.first.quantity, 2.0);
-    expect(state.totals.grandTotal, 230.0);
+    expect(state.totals.grandTotal, 200.0);
   });
 
   test(
@@ -104,7 +102,7 @@ void main() {
       notifier.addProduct(id: 'p1', name: 'Product 1', price: 100.0);
       notifier.setCustomer('cust1', 'Ahmed');
 
-      await notifier.submitSale(cashReceived: 115.0, paymentMethodId: 'CASH');
+      await notifier.submitSale(cashReceived: 100.0, paymentMethodId: 'CASH');
 
       final state = container.read(posNotifierProvider);
 
