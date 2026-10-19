@@ -5,6 +5,8 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/accounting_dao.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/services/account_statement_service.dart';
+import '../../application/services/balance_sheet_service.dart';
+import '../../application/services/cash_flow_service.dart';
 import '../../application/services/profit_loss_service.dart';
 import '../../application/services/trial_balance_service.dart';
 import '../../domain/repositories/accounting_repository.dart';
@@ -117,4 +119,61 @@ Future<AccountStatementReport?> accountStatementReport(
     endDate: endDate,
   );
 }
+
+/// Real-time Balance Sheet Report Provider (الميزانية العمومية)
+final balanceSheetReportProvider =
+    FutureProvider.autoDispose.family<BalanceSheetReport, DateTime?>(
+  (ref, asOfDate) async {
+    final session = ref.watch(sessionNotifierProvider);
+    if (!session.isActive || session.businessId == null) {
+      return BalanceSheetReport(
+        asOfDate: asOfDate ?? DateTime.now(),
+        currentAssets: const [],
+        totalCurrentAssets: 0,
+        nonCurrentAssets: const [],
+        totalNonCurrentAssets: 0,
+        totalAssets: 0,
+        currentLiabilities: const [],
+        totalCurrentLiabilities: 0,
+        nonCurrentLiabilities: const [],
+        totalNonCurrentLiabilities: 0,
+        totalLiabilities: 0,
+        equityItems: const [],
+        currentPeriodNetProfit: 0,
+        totalEquity: 0,
+        totalLiabilitiesAndEquity: 0,
+        isBalanced: true,
+      );
+    }
+    final service = getIt<BalanceSheetService>();
+    return service.generateBalanceSheet(asOfDate: asOfDate);
+  },
+);
+
+/// Real-time Cash Flow Statement Provider (قائمة التدفق المالي / النقدي)
+final cashFlowReportProvider =
+    FutureProvider.autoDispose.family<CashFlowReport, ({DateTime? startDate, DateTime? endDate})>(
+  (ref, dates) async {
+    final session = ref.watch(sessionNotifierProvider);
+    if (!session.isActive || session.businessId == null) {
+      return const CashFlowReport(
+        openingCashBalance: 0,
+        closingCashBalance: 0,
+        netChangeInCash: 0,
+        operatingActivities: [],
+        netOperatingCashFlow: 0,
+        investingActivities: [],
+        netInvestingCashFlow: 0,
+        financingActivities: [],
+        netFinancingCashFlow: 0,
+        cashAccounts: [],
+      );
+    }
+    final service = getIt<CashFlowService>();
+    return service.generateCashFlow(
+      startDate: dates.startDate,
+      endDate: dates.endDate,
+    );
+  },
+);
 

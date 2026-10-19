@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/accounting_provider.dart';
+import 'financial_report_pdf_service.dart';
 
 /// Interactive, real-time Trial Balance Tab connected to General Ledger.
 class TrialBalanceTab extends ConsumerStatefulWidget {
@@ -110,6 +111,47 @@ class _TrialBalanceTabState extends ConsumerState<TrialBalanceTab> {
                       }),
                     ),
                   ],
+                  const SizedBox(width: 12),
+                  // Print & Export Buttons
+                  reportAsync.maybeWhen(
+                    data: (report) => Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FilledButton.icon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF3B82F6),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                          icon: const Icon(Icons.print_rounded, size: 18),
+                          label: const Text('طباعة PDF', style: TextStyle(fontWeight: FontWeight.bold)),
+                          onPressed: () => FinancialReportPdfService.printTrialBalance(
+                            context: context,
+                            report: report,
+                            startDate: _startDate,
+                            endDate: _endDate,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          style: IconButton.styleFrom(
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.all(12),
+                          ),
+                          icon: const Icon(Icons.share_rounded, size: 18),
+                          tooltip: 'مشاركة ملف PDF',
+                          onPressed: () => FinancialReportPdfService.shareTrialBalance(
+                            context: context,
+                            report: report,
+                            startDate: _startDate,
+                            endDate: _endDate,
+                          ),
+                        ),
+                      ],
+                    ),
+                    orElse: () => const SizedBox.shrink(),
+                  ),
                 ],
               ),
             ),
