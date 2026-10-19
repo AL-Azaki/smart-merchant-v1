@@ -708,25 +708,27 @@ class StockCountWorkflow {
           !seen.add(item.productUnitId)) {
         _fail('يوجد منتج غير متاح أو مكرر. أعد فتح المسودة وراجع المنتجات.');
       }
-      if (!item.countedQuantity.isFinite || item.countedQuantity < 0) {
-        _fail('راجع الكميات؛ يجب أن تكون موجبة أو صفراً.');
+      if ((candidate.quantity - item.expectedQuantity).abs() > 0.0005) {
+        _fail(
+          'تغيّر رصيد «${candidate.product.productName}» منذ بدء الجرد. افتح المسودة واضغط تحديث رصيد النظام ثم راجع الكمية الفعلية.',
+        );
       }
-      // Auto-rebase expected quantity to candidate.quantity in case of sales/purchases during counting
-      final currentExpected = candidate.quantity;
+      if (!item.countedQuantity.isFinite ||
+          item.countedQuantity < 0 ||
+          !candidate.unitCost.isFinite ||
+          candidate.unitCost < 0) {
+        _fail('راجع الكميات والتكلفة قبل الاعتماد.');
+      }
       final diff = PrecisionMath.roundQty(
-        item.countedQuantity - currentExpected,
+        item.countedQuantity - candidate.quantity,
       );
-      final cost = candidate.unitCost.isFinite && candidate.unitCost >= 0
-          ? candidate.unitCost
-          : 0.0;
       await (db.update(db.stockCountItems)..where(
             (i) => i.id.equals(item.id) & i.businessId.equals(businessId),
           ))
           .write(
             StockCountItemsCompanion(
-              expectedQuantity: Value(currentExpected),
               differenceQuantity: Value(diff),
-              unitCost: Value(cost),
+              unitCost: Value(candidate.unitCost),
               updatedAt: Value(now),
               syncStatus: const Value('pending'),
               version: Value(item.version + 1),
@@ -737,47 +739,41 @@ class StockCountWorkflow {
     final hasDifferences = doc.items.any((i) => i.differenceQuantity != 0);
     String? journalId;
     if (doc.shortage > 0 || doc.surplus > 0) {
-      try {
-        final inventoryAccount = await _mappedAccount('inventory_asset');
-        final clearing = await _auxiliaryAccount(
-          'stock_count_clearing',
-          'فروقات جرد معلّقة',
-          await _assetParent(),
-        );
-        journalId = await _journal(
-          doc,
-          [
-            if (doc.shortage > 0) ...[
-              JournalEntryLineCommand(
-                accountId: clearing,
-                debit: doc.shortage,
-                description: 'عجز جرد قيد المراجعة',
-              ),
-              JournalEntryLineCommand(
-                accountId: inventoryAccount,
-                credit: doc.shortage,
-              ),
-            ],
-            if (doc.surplus > 0) ...[
-              JournalEntryLineCommand(
-                accountId: inventoryAccount,
-                debit: doc.surplus,
-              ),
-              JournalEntryLineCommand(
-                accountId: clearing,
-                credit: doc.surplus,
-                description: 'زيادة جرد قيد المراجعة',
-              ),
-            ],
+      final inventoryAccount = await _mappedAccount('inventory_asset');
+      final clearing = await _auxiliaryAccount(
+        'stock_count_clearing',
+        'فروقات جرد معلّقة',
+        await _assetParent(),
+      );
+      journalId = await _journal(
+        doc,
+        [
+          if (doc.shortage > 0) ...[
+            JournalEntryLineCommand(
+              accountId: clearing,
+              debit: doc.shortage,
+              description: 'عجز جرد قيد المراجعة',
+            ),
+            JournalEntryLineCommand(
+              accountId: inventoryAccount,
+              credit: doc.shortage,
+            ),
           ],
-          'COR',
-          'تصحيح مخزون ${doc.count.countNumber}؛ تحديد المسؤولية لاحقاً',
-        );
-      } catch (_) {
-        // Accounting setup or fiscal period might not be open yet.
-        // We catch this gracefully so physical stock correction is NOT aborted!
-        journalId = null;
-      }
+          if (doc.surplus > 0) ...[
+            JournalEntryLineCommand(
+              accountId: inventoryAccount,
+              debit: doc.surplus,
+            ),
+            JournalEntryLineCommand(
+              accountId: clearing,
+              credit: doc.surplus,
+              description: 'زيادة جرد قيد المراجعة',
+            ),
+          ],
+        ],
+        'COR',
+        'تصحيح مخزون ${doc.count.countNumber}؛ تحديد المسؤولية لاحقاً',
+      );
     }
     for (final inbound in [true, false]) {
       final lines = doc.items

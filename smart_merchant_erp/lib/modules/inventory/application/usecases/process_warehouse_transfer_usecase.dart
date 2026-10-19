@@ -222,9 +222,7 @@ class ProcessWarehouseTransferUseCase
               : to.averageCost;
           final total = PrecisionMath.roundQty(oldQty + e.value);
           final average = total > 0
-              ? PrecisionMath.roundMoney(
-                  (oldQty * oldCost + e.value * from.averageCost) / total,
-                )
+              ? (oldQty * oldCost + e.value * from.averageCost) / total
               : from.averageCost;
           if (to == null) {
             await _inventoryRepository.insertInventory(

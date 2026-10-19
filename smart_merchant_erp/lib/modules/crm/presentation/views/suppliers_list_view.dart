@@ -343,7 +343,7 @@ class _SupplierBalanceSubtitle extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final balanceAsync = ref.watch(supplierBalanceSummaryProvider(supplier.id));
+    final balanceAsync = ref.watch(supplierBalanceSummaryProvider(supplier.id as String));
 
     return balanceAsync.when(
       data: (summary) {
