@@ -554,11 +554,10 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
   ) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
-    final units = ref.watch(unitsNotifierProvider).value ?? [];
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 1200),
+        constraints: BoxConstraints(minWidth: 1400),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -570,6 +569,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   _headerCell('الباركود/SKU', 140),
                   const SizedBox(width: 8),
                   _headerCell('المنتج', 250),
+                  const SizedBox(width: 8),
+                  _headerCell('التصنيف', 140),
                   const SizedBox(width: 8),
                   _headerCell('الوحدة', 100),
                   const SizedBox(width: 8),
@@ -616,13 +617,11 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                   )
                                   .firstOrNull;
                               if (match != null) {
-                                final unitTitle = _resolveUnitName(match.baseUnit.unitId, units);
                                 newRow = newRow.copyWith(
                                   productUnitId: match.baseUnit.id,
                                   productId: match.product.id,
                                   categoryId: match.product.categoryId,
                                   productName: match.product.productName,
-                                  unitId: unitTitle,
                                   purchasePrice: match.baseUnit.purchasePrice,
                                   sellingPrice: match.baseUnit.sellingPrice,
                                 );
@@ -669,7 +668,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                       });
                                     },
                                     onSelected: (option) {
-                                      final unitTitle = _resolveUnitName(option.baseUnit.unitId, units);
                                       notifier.updateRow(
                                         row.id,
                                         row.copyWith(
@@ -678,8 +676,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                           productUnitId: option.baseUnit.id,
                                           productId: option.product.id,
                                           categoryId: option.product.categoryId,
-                                          barcode: option.baseUnit.barcode ?? row.barcode,
-                                          unitId: unitTitle,
                                           purchasePrice:
                                               option.baseUnit.purchasePrice,
                                           sellingPrice:
@@ -771,6 +767,17 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                               ],
                             );
                           },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 140,
+                        child: _CategorySelectionWidget(
+                          categoryId: row.categoryId,
+                          onChanged: (v) => notifier.updateRow(
+                            row.id,
+                            row.copyWith(categoryId: v),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -901,7 +908,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
   ) {
     final productsAsync = ref.watch(posProductsNotifierProvider);
-    final units = ref.watch(unitsNotifierProvider).value ?? [];
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -973,7 +979,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                             });
                           },
                           onSelected: (option) {
-                            final unitTitle = _resolveUnitName(option.baseUnit.unitId, units);
                             notifier.updateRow(
                               row.id,
                               row.copyWith(
@@ -981,8 +986,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                                 productUnitId: option.baseUnit.id,
                                 productId: option.product.id,
                                 categoryId: option.product.categoryId,
-                                barcode: option.baseUnit.barcode ?? row.barcode,
-                                unitId: unitTitle,
                                 purchasePrice: option.baseUnit.purchasePrice,
                                 sellingPrice: option.baseUnit.sellingPrice,
                               ),
@@ -1068,43 +1071,21 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildInput(
-                      value: row.unitId,
-                      hint: 'الوحدة',
-                      onChanged: (v) =>
-                          notifier.updateRow(row.id, row.copyWith(unitId: v)),
+                    child: _CategorySelectionWidget(
+                      categoryId: row.categoryId,
+                      onChanged: (v) => notifier.updateRow(
+                        row.id,
+                        row.copyWith(categoryId: v),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildInput(
-                      value: row.barcode,
-                      hint: 'الباركود/SKU',
-                      onChanged: (v) {
-                        var newRow = row.copyWith(barcode: v);
-                        productsAsync.whenData((products) {
-                          final match = products
-                              .where(
-                                (p) =>
-                                    p.baseUnit.barcode == v ||
-                                    p.baseUnit.sku == v,
-                              )
-                              .firstOrNull;
-                          if (match != null) {
-                            final unitTitle = _resolveUnitName(match.baseUnit.unitId, units);
-                            newRow = newRow.copyWith(
-                              productUnitId: match.baseUnit.id,
-                              productId: match.product.id,
-                              categoryId: match.product.categoryId,
-                              productName: match.product.productName,
-                              unitId: unitTitle,
-                              purchasePrice: match.baseUnit.purchasePrice,
-                              sellingPrice: match.baseUnit.sellingPrice,
-                            );
-                          }
-                        });
-                        notifier.updateRow(row.id, newRow);
-                      },
+                      value: row.unitId,
+                      hint: 'الوحدة',
+                      onChanged: (v) =>
+                          notifier.updateRow(row.id, row.copyWith(unitId: v)),
                     ),
                   ),
                 ],
@@ -1136,7 +1117,11 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
                   Expanded(
                     child: _buildInput(
                       value: row.sellingPrice.toString(),
@@ -1147,6 +1132,36 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                         row.id,
                         row.copyWith(sellingPrice: double.tryParse(v) ?? 0),
                       ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildInput(
+                      value: row.barcode,
+                      hint: 'الباركود/SKU',
+                      onChanged: (v) {
+                        var newRow = row.copyWith(barcode: v);
+                        productsAsync.whenData((products) {
+                          final match = products
+                              .where(
+                                (p) =>
+                                    p.baseUnit.barcode == v ||
+                                    p.baseUnit.sku == v,
+                              )
+                              .firstOrNull;
+                          if (match != null) {
+                            newRow = newRow.copyWith(
+                              productUnitId: match.baseUnit.id,
+                              productId: match.product.id,
+                              categoryId: match.product.categoryId,
+                              productName: match.product.productName,
+                              purchasePrice: match.baseUnit.purchasePrice,
+                              sellingPrice: match.baseUnit.sellingPrice,
+                            );
+                          }
+                        });
+                        notifier.updateRow(row.id, newRow);
+                      },
                     ),
                   ),
                 ],
@@ -1876,22 +1891,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     return SizedBox(width: width, child: t);
   }
 
-  String _resolveUnitName(String unitId, List<dynamic> units) {
-    for (final u in units) {
-      if (u.id == unitId) {
-        return (u.unitName as String?) ?? unitId;
-      }
-    }
-    if (unitId.startsWith('unit_')) {
-      final sub = unitId.replaceFirst('unit_', '');
-      if (sub == 'piece' || sub == 'item') return 'حبة';
-      if (sub == 'box' || sub == 'carton') return 'كرتون';
-      if (sub == 'kg') return 'كجم';
-      return sub;
-    }
-    return unitId;
-  }
-
   Widget _buildInput({
     required String value,
     required Function(String) onChanged,
@@ -1899,12 +1898,12 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color? textColor,
     String? hint,
   }) {
-    return _SmartInputField(
-      value: value,
-      onChanged: onChanged,
+    return TextFormField(
+      initialValue: value,
       keyboardType: keyboardType,
-      textColor: textColor,
-      hint: hint,
+      style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+      decoration: _inputDeco(hint: hint),
+      onChanged: onChanged,
     );
   }
 
@@ -1928,83 +1927,6 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _SmartInputField extends StatefulWidget {
-  final String value;
-  final ValueChanged<String> onChanged;
-  final TextInputType? keyboardType;
-  final Color? textColor;
-  final String? hint;
-
-  const _SmartInputField({
-    required this.value,
-    required this.onChanged,
-    this.keyboardType,
-    this.textColor,
-    this.hint,
-  });
-
-  @override
-  State<_SmartInputField> createState() => _SmartInputFieldState();
-}
-
-class _SmartInputFieldState extends State<_SmartInputField> {
-  late final TextEditingController _controller;
-  late final FocusNode _focusNode;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = TextEditingController(text: widget.value);
-    _focusNode = FocusNode();
-    _focusNode.addListener(() {
-      if (_focusNode.hasFocus) {
-        _controller.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: _controller.text.length,
-        );
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant _SmartInputField oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.value != _controller.text && !_focusNode.hasFocus) {
-      _controller.text = widget.value;
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: _controller,
-      focusNode: _focusNode,
-      keyboardType: widget.keyboardType,
-      style: TextStyle(color: widget.textColor, fontWeight: FontWeight.bold),
-      decoration: InputDecoration(
-        hintText: widget.hint,
-        labelText: widget.hint,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      ),
-      onTap: () {
-        _controller.selection = TextSelection(
-          baseOffset: 0,
-          extentOffset: _controller.text.length,
-        );
-      },
-      onChanged: widget.onChanged,
     );
   }
 }
@@ -2125,3 +2047,203 @@ class _SupplierSelectionDialogState extends State<_SupplierSelectionDialog> {
   }
 }
 
+class _CategorySelectionWidget extends ConsumerWidget {
+  final String categoryId;
+  final Function(String) onChanged;
+
+  const _CategorySelectionWidget({
+    required this.categoryId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final categoriesAsync = ref.watch(categoriesNotifierProvider);
+    return categoriesAsync.when(
+      data: (categories) {
+        final currentCategory = categories
+            .where((c) => c.id == categoryId)
+            .firstOrNull;
+        return InkWell(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => _CategorySelectionDialog(
+                categories: categories,
+                onSelected: (c) => onChanged(c.id as String),
+                onAddNew: () {
+                  Navigator.pop(ctx);
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (formCtx) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 24,
+                      ),
+                      child: CategoryFormSheet(
+                        onClose: () => Navigator.pop(formCtx),
+                        onSave: (data) async {
+                          final successId = await ref
+                              .read(categoriesNotifierProvider.notifier)
+                              .saveCategory(data.cast<String, dynamic>());
+                          if (successId != null && formCtx.mounted) {
+                            Navigator.pop(formCtx);
+                            onChanged(successId);
+                          }
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+          child: InputDecorator(
+            decoration: InputDecoration(
+              hintText: 'التصنيف',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+            ),
+            child: Text(
+              currentCategory?.categoryName ?? 'التصنيف',
+              style: TextStyle(
+                color: currentCategory == null ? Colors.grey : null,
+                fontWeight: FontWeight.bold,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (_, __) => const Text('خطأ'),
+    );
+  }
+}
+
+class _CategorySelectionDialog extends StatefulWidget {
+  final List<dynamic> categories;
+  final Function(dynamic) onSelected;
+  final VoidCallback onAddNew;
+
+  const _CategorySelectionDialog({
+    required this.categories,
+    required this.onSelected,
+    required this.onAddNew,
+  });
+
+  @override
+  State<_CategorySelectionDialog> createState() =>
+      _CategorySelectionDialogState();
+}
+
+class _CategorySelectionDialogState extends State<_CategorySelectionDialog> {
+  String _searchQuery = '';
+  late List<dynamic> _filteredCategories;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredCategories = widget.categories;
+  }
+
+  void _filter(String query) {
+    setState(() {
+      _searchQuery = query;
+      final q = query.toLowerCase();
+      _filteredCategories = widget.categories.where((c) {
+        return (c.categoryName as String).toLowerCase().contains(q);
+      }).toList();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Container(
+        width: 400,
+        height: 500,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'اختيار تصنيف',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              decoration: InputDecoration(
+                hintText: 'بحث باسم التصنيف...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+              onChanged: _filter,
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: _filteredCategories.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final c = _filteredCategories[index];
+                  return ListTile(
+                    title: Text(
+                      (c.categoryName as String?) ?? '',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    onTap: () {
+                      widget.onSelected(c);
+                      Navigator.pop(context);
+                    },
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: widget.onAddNew,
+                icon: const Icon(Icons.add),
+                label: const Text(
+                  'إضافة تصنيف جديد',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  side: const BorderSide(color: AppColors.primary),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -64,75 +64,72 @@ class MainLayout extends ConsumerWidget {
               ),
             ),
           ),
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // Notification Bell (Left)
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
-                    ),
-                  ),
-                  child: IconButton(
-                    icon: const Icon(Icons.notifications_none_rounded, size: 22),
-                    onPressed: () {},
-                    color: isDark ? Colors.white : const Color(0xFF1E293B),
-                    tooltip: 'الإشعارات',
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Notification Bell (Right on RTL)
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
                   ),
                 ),
-
-                // Center Brand Title ("Smart Merchant \n التاجر الذكي")
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Smart Merchant',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Text(
-                      'التاجر الذكي',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
+                child: IconButton(
+                  icon: const Icon(Icons.notifications_none_rounded, size: 22),
+                  onPressed: () {},
+                  color: isDark ? Colors.white : const Color(0xFF1E293B),
+                  tooltip: 'الإشعارات',
                 ),
+              ),
 
-                // User Profile Avatar "B" (Right)
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFEDE9FE),
-                    shape: BoxShape.circle,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Text(
-                    'B',
+              // Center Brand Title ("Smart Merchant \n التاجر الذكي")
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Smart Merchant',
                     style: TextStyle(
-                      color: Color(0xFF7C3AED),
+                      fontSize: 16,
                       fontWeight: FontWeight.w900,
-                      fontSize: 18,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      letterSpacing: -0.2,
                     ),
                   ),
+                  const SizedBox(height: 1),
+                  Text(
+                    'التاجر الذكي',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+
+              // User Profile Avatar "B" (Left on RTL)
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEDE9FE),
+                  shape: BoxShape.circle,
                 ),
-              ],
-            ),
+                alignment: Alignment.center,
+                child: const Text(
+                  'B',
+                  style: TextStyle(
+                    color: Color(0xFF7C3AED),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
