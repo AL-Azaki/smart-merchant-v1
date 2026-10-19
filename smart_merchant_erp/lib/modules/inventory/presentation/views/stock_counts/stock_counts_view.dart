@@ -20,6 +20,7 @@ String stockCountStatusLabel(
     ? 'مسودة'
     : switch (financial) {
         'Pending' => 'بانتظار المعالجة',
+        'PendingFinancialSetup' => 'بانتظار التهيئة المالية',
         'Settled' => 'مكتمل',
         'NotRequired' => 'دون فروقات مالية',
         _ => 'جرد سابق',
@@ -115,7 +116,7 @@ class _StockCountsViewState extends ConsumerState<StockCountsView> {
                 if (_filter == 'draft' && !draft ||
                     _filter == 'pending' &&
                         (c.status != StockCountStatus.posted ||
-                            c.financialStatus != 'Pending') ||
+                            !['Pending', 'PendingFinancialSetup'].contains(c.financialStatus)) ||
                     _filter == 'done' &&
                         (c.status != StockCountStatus.posted ||
                             ![
@@ -146,7 +147,9 @@ class _StockCountsViewState extends ConsumerState<StockCountsView> {
                 itemBuilder: (_, index) {
                   final c = filtered[index],
                       draft = c.status == StockCountStatus.draft;
-                  final color = !draft && c.financialStatus == 'Pending'
+                  final color = !draft &&
+                          (c.financialStatus == 'Pending' ||
+                              c.financialStatus == 'PendingFinancialSetup')
                       ? (theme.brightness == Brightness.dark
                             ? const Color(0xFFFCD34D)
                             : const Color(0xFF92400E))

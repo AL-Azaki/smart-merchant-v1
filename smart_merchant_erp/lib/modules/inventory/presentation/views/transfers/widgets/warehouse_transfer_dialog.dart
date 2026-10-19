@@ -111,6 +111,7 @@ class _WarehouseTransferDialogState
       }
       ref.invalidate(warehouseStockBalancesProvider(_source!));
       ref.invalidate(warehouseStockBalancesProvider(_destination!));
+      ref.invalidate(warehouseTransfersStreamProvider);
       if (mounted) {
         Navigator.pop(context, true);
       }

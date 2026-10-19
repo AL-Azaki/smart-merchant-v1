@@ -55,10 +55,8 @@ class ProcessWarehouseTransferUseCase
   Future<Either<Failure, String>> call(
     ProcessWarehouseTransferCommand params,
   ) async {
-    final businessId = _context.currentBusinessId,
-        branchId = _context.currentBranchId;
-    if (branchId == null ||
-        params.items.isEmpty ||
+    final businessId = _context.currentBusinessId;
+    if (params.items.isEmpty ||
         params.sourceWarehouseId == params.destinationWarehouseId) {
       return const Left(
         ValidationFailure('اختر مستودعين مختلفين ومنتجاً واحداً على الأقل.'),
@@ -79,9 +77,10 @@ class ProcessWarehouseTransferUseCase
             destination == null ||
             !source.isActive ||
             !destination.isActive ||
-            source.branchId != branchId) {
+            source.businessId != businessId ||
+            destination.businessId != businessId) {
           throw const ValidationFailure(
-            'اختر مستودعين نشطين، والمصدر من الفرع الحالي.',
+            'اختر مستودعين نشطين مسجلين لهذه المنشأة.',
           );
         }
         final sources = <String, Inventory>{},
@@ -222,8 +221,11 @@ class ProcessWarehouseTransferUseCase
               ? 0.0
               : to.averageCost;
           final total = PrecisionMath.roundQty(oldQty + e.value);
-          final average =
-              (oldQty * oldCost + e.value * from.averageCost) / total;
+          final average = total > 0
+              ? PrecisionMath.roundMoney(
+                  (oldQty * oldCost + e.value * from.averageCost) / total,
+                )
+              : from.averageCost;
           if (to == null) {
             await _inventoryRepository.insertInventory(
               InventoriesCompanion.insert(
