@@ -5,6 +5,7 @@ import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
+import '../../../treasury/presentation/providers/treasury_provider.dart';
 import '../../application/usecases/post_journal_entry_usecase.dart';
 import '../../domain/repositories/accounting_repository.dart';
 import '../providers/accounting_provider.dart';
@@ -21,6 +22,8 @@ class JournalEntriesTab extends ConsumerStatefulWidget {
 class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
   String _search = '';
   String _selectedStatus = 'all';
+  String _selectedDateFilter = 'all'; // all, today, week, month
+  String _selectedTypeFilter = 'all'; // all, Manual, SalesInvoice, PurchaseInvoice, Payment, Returns
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
@@ -46,6 +49,30 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
       default:
         return status;
     }
+  }
+
+  String _journalTypeLabelAr(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('salesinvoice') || lower == 'sales') return 'فاتورة مبيعات';
+    if (lower.contains('purchaseinvoice') || lower == 'purchase') return 'فاتورة مشتريات';
+    if (lower.contains('salesreturn')) return 'مردود مبيعات';
+    if (lower.contains('purchasereturn')) return 'مردود مشتريات';
+    if (lower.contains('payment') || lower.contains('receipt')) return 'سند قبض';
+    if (lower.contains('disbursement')) return 'سند صرف';
+    if (lower.contains('transfer')) return 'تحويل مالي';
+    if (lower.contains('closing')) return 'إقفال سنوي';
+    if (lower.contains('manual')) return 'قيد يدوي';
+    return type;
+  }
+
+  Color _journalTypeColor(String type) {
+    final lower = type.toLowerCase();
+    if (lower.contains('sales')) return const Color(0xFF10B981);
+    if (lower.contains('purchase')) return const Color(0xFF3B82F6);
+    if (lower.contains('return')) return const Color(0xFFF59E0B);
+    if (lower.contains('payment') || lower.contains('receipt')) return const Color(0xFF06B6D4);
+    if (lower.contains('disbursement')) return const Color(0xFF8B5CF6);
+    return const Color(0xFF64748B);
   }
 
   Future<void> _handleCreateJournalEntry(
@@ -89,14 +116,54 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
         );
       },
       (journalId) {
+        // Refresh accounting, cash registers, and trial balance
+        ref.invalidate(journalEntriesNotifierProvider);
+        ref.invalidate(trialBalanceReportProvider());
+        ref.invalidate(cashRegistersStreamProvider);
+        ref.invalidate(bankAccountsStreamProvider);
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم ترحيل القيد اليومي بنجاح.'),
+            content: Text('تم ترحيل وحفظ القيد اليومي بنجاح.'),
             backgroundColor: Color(0xFF10B981),
           ),
         );
       },
     );
+  }
+
+  bool _matchesDateFilter(DateTime date) {
+    final now = DateTime.now();
+    switch (_selectedDateFilter) {
+      case 'today':
+        return date.year == now.year && date.month == now.month && date.day == now.day;
+      case 'week':
+        final weekAgo = now.subtract(const Duration(days: 7));
+        return date.isAfter(weekAgo);
+      case 'month':
+        return date.year == now.year && date.month == now.month;
+      default:
+        return true;
+    }
+  }
+
+  bool _matchesTypeFilter(String type) {
+    if (_selectedTypeFilter == 'all') return true;
+    final lower = type.toLowerCase();
+    switch (_selectedTypeFilter) {
+      case 'Manual':
+        return lower.contains('manual');
+      case 'SalesInvoice':
+        return lower.contains('sales') && !lower.contains('return');
+      case 'PurchaseInvoice':
+        return lower.contains('purchase') && !lower.contains('return');
+      case 'Payment':
+        return lower.contains('payment') || lower.contains('receipt') || lower.contains('disbursement');
+      case 'Returns':
+        return lower.contains('return');
+      default:
+        return true;
+    }
   }
 
   @override
@@ -141,14 +208,16 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
               (e.description?.contains(_search) ?? false);
           final matchesStatus = _selectedStatus == 'all' ||
               e.status.toLowerCase() == _selectedStatus.toLowerCase();
-          return matchesSearch && matchesStatus;
+          final matchesDate = _matchesDateFilter(e.documentDate);
+          final matchesType = _matchesTypeFilter(e.journalType);
+          return matchesSearch && matchesStatus && matchesDate && matchesType;
         }).toList();
 
         return Column(
           children: [
-            // Toolbar
+            // ── Toolbar ──
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 color: surface,
                 border: Border(bottom: BorderSide(color: borderColor)),
@@ -158,17 +227,17 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: const EdgeInsets.all(7),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF8B5CF6).withOpacity(0.1),
+                          color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF8B5CF6), size: 18),
+                        child: const Icon(Icons.menu_book_rounded, color: Color(0xFF1E3A8A), size: 18),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Text(
-                        'دفتر اليومية العامة',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimary),
+                        'سجل القيود اليومية (اليومية العامة)',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: textPrimary),
                       ),
                       const SizedBox(width: 8),
                       Container(
@@ -179,11 +248,20 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                           border: Border.all(color: borderColor),
                         ),
                         child: Text(
-                          '${entries.length} قيد',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF8B5CF6)),
+                          '${filteredEntries.length} من أصل ${entries.length}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
                         ),
                       ),
                       const Spacer(),
+                      IconButton(
+                        tooltip: 'تحديث القيود',
+                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                        onPressed: () {
+                          ref.invalidate(journalEntriesNotifierProvider);
+                          ref.invalidate(trialBalanceReportProvider());
+                        },
+                      ),
+                      const SizedBox(width: 6),
                       ElevatedButton.icon(
                         onPressed: () {
                           JournalEntryFormSheet.show(
@@ -192,29 +270,32 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                             onSave: _handleCreateJournalEntry,
                           );
                         },
-                        icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                        label: const Text('قيد يدوي جديد', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                        label: const Text('إنشاء قيد يدوي', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8B5CF6),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           elevation: 0,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  // Search bar
+                  const SizedBox(height: 10),
+
+                  // Filters Row (بحث + فرز بالنوع + فرز بالتاريخ + فرز بالحالة)
                   Row(
                     children: [
+                      // 1. Search Box
                       Expanded(
+                        flex: 3,
                         child: SizedBox(
-                          height: 36,
+                          height: 38,
                           child: TextField(
                             onChanged: (v) => setState(() => _search = v.trim()),
                             decoration: InputDecoration(
-                              hintText: 'بحث برقم القيد أو البيان...',
-                              hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                              hintText: 'بحث برقم القيد أو البيان العام...',
+                              hintStyle: TextStyle(fontSize: 11, color: textSecondary),
                               prefixIcon: const Icon(Icons.search_rounded, size: 18),
                               filled: true,
                               fillColor: bgLight,
@@ -226,18 +307,90 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      DropdownButton<String>(
-                        value: _selectedStatus,
-                        underline: const SizedBox(),
-                        items: const [
-                          DropdownMenuItem(value: 'all', child: Text('كافة الحالات', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'Posted', child: Text('مرحل', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'Draft', child: Text('مسودة', style: TextStyle(fontSize: 12))),
-                          DropdownMenuItem(value: 'Reversed', child: Text('معكوس', style: TextStyle(fontSize: 12))),
-                        ],
-                        onChanged: (v) {
-                          if (v != null) setState(() => _selectedStatus = v);
-                        },
+
+                      // 2. Date Filter
+                      Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: bgLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedDateFilter,
+                            icon: const Icon(Icons.calendar_month_rounded, size: 16),
+                            style: TextStyle(fontSize: 12, color: textPrimary, fontWeight: FontWeight.w600),
+                            items: const [
+                              DropdownMenuItem(value: 'all', child: Text('كافة التواريخ')),
+                              DropdownMenuItem(value: 'today', child: Text('قيود اليوم')),
+                              DropdownMenuItem(value: 'week', child: Text('هذا الأسبوع')),
+                              DropdownMenuItem(value: 'month', child: Text('هذا الشهر')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _selectedDateFilter = v);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // 3. Type Filter
+                      Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: bgLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedTypeFilter,
+                            icon: const Icon(Icons.filter_alt_outlined, size: 16),
+                            style: TextStyle(fontSize: 12, color: textPrimary, fontWeight: FontWeight.w600),
+                            items: const [
+                              DropdownMenuItem(value: 'all', child: Text('كافة أنواع العمليات')),
+                              DropdownMenuItem(value: 'Manual', child: Text('قيود يدوية')),
+                              DropdownMenuItem(value: 'SalesInvoice', child: Text('فواتير مبيعات')),
+                              DropdownMenuItem(value: 'PurchaseInvoice', child: Text('فواتير مشتريات')),
+                              DropdownMenuItem(value: 'Payment', child: Text('سندات قبض وصرف')),
+                              DropdownMenuItem(value: 'Returns', child: Text('مردودات مبيعات/مشتريات')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _selectedTypeFilter = v);
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // 4. Status Filter
+                      Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: bgLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: borderColor),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedStatus,
+                            icon: const Icon(Icons.tune_rounded, size: 16),
+                            style: TextStyle(fontSize: 12, color: textPrimary, fontWeight: FontWeight.w600),
+                            items: const [
+                              DropdownMenuItem(value: 'all', child: Text('كافة الحالات')),
+                              DropdownMenuItem(value: 'Posted', child: Text('مرحل')),
+                              DropdownMenuItem(value: 'Draft', child: Text('مسودة')),
+                              DropdownMenuItem(value: 'Reversed', child: Text('معكوس')),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _selectedStatus = v);
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -245,7 +398,7 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
               ),
             ),
 
-            // Entries List
+            // ── Entries List ──
             Expanded(
               child: filteredEntries.isEmpty
                   ? Center(
@@ -254,11 +407,11 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.receipt_long_outlined, color: textSecondary.withOpacity(0.5), size: 48),
+                            Icon(Icons.receipt_long_outlined, color: textSecondary.withValues(alpha: 0.4), size: 48),
                             const SizedBox(height: 12),
                             Text(
-                              'لا توجد قيود يومية مسجلة مطابقة للبحث',
-                              style: TextStyle(fontSize: 14, color: textSecondary),
+                              'لا توجد قيود يومية مسجلة مطابقة للبحث أو الفلتر المحدد',
+                              style: TextStyle(fontSize: 14, color: textSecondary, fontWeight: FontWeight.bold),
                             ),
                           ],
                         ),
@@ -270,12 +423,13 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                       itemBuilder: (context, index) {
                         final entry = filteredEntries[index];
                         final dateStr = '${entry.documentDate.year}/${entry.documentDate.month.toString().padLeft(2, '0')}/${entry.documentDate.day.toString().padLeft(2, '0')}';
+                        final typeColor = _journalTypeColor(entry.journalType);
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: BoxDecoration(
                             color: surface,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: borderColor),
                           ),
                           child: InkWell(
@@ -285,26 +439,39 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                 final repo = getIt<AccountingRepository>();
                                 final details = await repo.getJournalEntryWithLinesById(entry.id, session.businessId!);
                                 if (details != null && context.mounted) {
+                                  final coaAccounts = accountsAsync.value ?? [];
+                                  final coaMap = {for (var a in coaAccounts) a.id: a};
+
+                                  final mappedLines = details.lines.map((l) {
+                                    final acc = coaMap[l.chartOfAccountId];
+                                    return <String, dynamic>{
+                                      'account_code': acc?.accountCode ?? l.chartOfAccountId,
+                                      'account_name': acc?.accountName ?? 'حساب محاسبي',
+                                      'debit': l.type.toLowerCase() == 'debit' ? l.baseAmount : 0.0,
+                                      'credit': l.type.toLowerCase() == 'credit' ? l.baseAmount : 0.0,
+                                      'description': l.description ?? '',
+                                    };
+                                  }).toList();
+
                                   JournalEntryDetailsSheet.show(
                                     context,
                                     entry: {
                                       'id': details.entry.id,
                                       'number': details.entry.journalNumber,
-                                      'date': '${details.entry.documentDate.year}/${details.entry.documentDate.month.toString().padLeft(2, '0')}/${details.entry.documentDate.day.toString().padLeft(2, '0')}',
+                                      'date': dateStr,
                                       'status': details.entry.status,
                                       'description': details.entry.description,
                                       'refType': details.entry.journalType,
+                                      'documentType': details.entry.documentType,
+                                      'documentId': details.entry.documentId,
+                                      'documentNumber': details.entry.documentNumber,
                                     },
-                                    lines: details.lines.map((l) => <String, dynamic>{
-                                      'account_code': l.chartOfAccountId,
-                                      'debit': l.type.toLowerCase() == 'debit' ? l.baseAmount : 0.0,
-                                      'credit': l.type.toLowerCase() == 'credit' ? l.baseAmount : 0.0,
-                                      'description': l.description,
-                                    }).toList(),
+                                    lines: mappedLines,
                                   );
                                   return;
                                 }
                               }
+
                               if (context.mounted) {
                                 JournalEntryDetailsSheet.show(
                                   context,
@@ -316,12 +483,15 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                     'status': entry.status,
                                     'description': entry.description,
                                     'refType': entry.journalType,
+                                    'documentType': entry.documentType,
+                                    'documentId': entry.documentId,
+                                    'documentNumber': entry.documentNumber,
                                   },
                                   lines: const [],
                                 );
                               }
                             },
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(12),
                             child: Padding(
                               padding: const EdgeInsets.all(12),
                               child: Row(
@@ -329,7 +499,7 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                   Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: _statusColor(entry.status).withOpacity(0.1),
+                                      color: _statusColor(entry.status).withValues(alpha: 0.12),
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(Icons.receipt_rounded, color: _statusColor(entry.status), size: 18),
@@ -351,10 +521,11 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
+                                            // Status Badge (Arabic)
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: _statusColor(entry.status).withOpacity(0.12),
+                                                color: _statusColor(entry.status).withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
@@ -367,15 +538,20 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
+                                            // Operation Type Badge (Arabic)
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: Colors.blue.withOpacity(0.1),
+                                                color: typeColor.withValues(alpha: 0.12),
                                                 borderRadius: BorderRadius.circular(4),
                                               ),
                                               child: Text(
-                                                entry.journalType,
-                                                style: const TextStyle(fontSize: 10, color: Colors.blue),
+                                                _journalTypeLabelAr(entry.journalType),
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: typeColor,
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -395,7 +571,7 @@ class _JournalEntriesTabState extends ConsumerState<JournalEntriesTab> {
                                     children: [
                                       Text(
                                         dateStr,
-                                        style: TextStyle(fontSize: 11, color: textSecondary),
+                                        style: TextStyle(fontSize: 11, color: textSecondary, fontWeight: FontWeight.w600),
                                       ),
                                       const SizedBox(height: 4),
                                       const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),

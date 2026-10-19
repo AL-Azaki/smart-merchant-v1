@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/widgets/app_modal_sheet.dart';
 import '../../../../shared/design_system/widgets/app_status_badge.dart';
 import '../../../../shared/design_system/widgets/app_text_field.dart';
 
@@ -41,17 +40,24 @@ class JournalEntryFormSheet extends StatefulWidget {
     required void Function(Map<String, dynamic> entry, List<JournalEntryLineModel> lines) onSave,
     List<Map<String, String>>? availableAccounts,
   }) {
-    showModalBottomSheet<void>(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => JournalEntryFormSheet(
-        availableAccounts: availableAccounts,
-        onClose: () => Navigator.of(ctx).pop(),
-        onSave: (entry, lines) {
-          Navigator.of(ctx).pop();
-          onSave(entry, lines);
-        },
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        clipBehavior: Clip.antiAlias,
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 860, maxHeight: 720),
+          child: JournalEntryFormSheet(
+            availableAccounts: availableAccounts,
+            onClose: () => Navigator.of(ctx).pop(),
+            onSave: (entry, lines) {
+              Navigator.of(ctx).pop();
+              onSave(entry, lines);
+            },
+          ),
+        ),
       ),
     );
   }
@@ -63,18 +69,19 @@ class JournalEntryFormSheet extends StatefulWidget {
 class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
   late TextEditingController _descriptionController;
   late TextEditingController _referenceController;
+  final ScrollController _scrollController = ScrollController();
   DateTime _selectedDate = DateTime.now();
 
   final List<Map<String, String>> _mockAccounts = const [
-    {'id': '1101', 'code': '1101', 'name': 'الصندوق (النقدية)'},
-    {'id': '1102', 'code': '1102', 'name': 'بنك التضامن'},
-    {'id': '1103', 'code': '1103', 'name': 'المدينون (العملاء)'},
-    {'id': '2101', 'code': '2101', 'name': 'الموردون (الدائنون)'},
-    {'id': '3100', 'code': '3100', 'name': 'رأس المال'},
-    {'id': '4100', 'code': '4100', 'name': 'إيرادات المبيعات'},
-    {'id': '5100', 'code': '5100', 'name': 'تكلفة المبيعات'},
-    {'id': '5200', 'code': '5200', 'name': 'مصروفات تشغيلية'},
-    {'id': '5300', 'code': '5300', 'name': 'أرباح/خسائر فروق الصرف'},
+    {'id': '1101', 'code': '11101', 'name': 'الصندوق الرئيسي (النقدية)'},
+    {'id': '1102', 'code': '11102', 'name': 'بنك التضامن'},
+    {'id': '1103', 'code': '11201', 'name': 'المدينون (العملاء)'},
+    {'id': '2101', 'code': '21101', 'name': 'الموردون (الدائنون)'},
+    {'id': '3100', 'code': '31101', 'name': 'رأس المال'},
+    {'id': '4100', 'code': '41101', 'name': 'إيرادات المبيعات'},
+    {'id': '5100', 'code': '51101', 'name': 'تكلفة المبيعات'},
+    {'id': '5200', 'code': '52101', 'name': 'مصروفات تشغيلية'},
+    {'id': '5300', 'code': '53101', 'name': 'أرباح/خسائر فروق الصرف'},
   ];
 
   late List<JournalEntryLineModel> _lines;
@@ -99,6 +106,7 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
   void dispose() {
     _descriptionController.dispose();
     _referenceController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -110,6 +118,15 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
   void _addLine() {
     setState(() {
       _lines.add(JournalEntryLineModel(id: DateTime.now().millisecondsSinceEpoch.toString()));
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+        );
+      }
     });
   }
 
@@ -136,6 +153,135 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
         _lines.removeAt(index);
       });
     }
+  }
+
+  void _openAccountPickerDialog(JournalEntryLineModel line) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) {
+        String query = '';
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final filtered = _effectiveAccounts.where((a) {
+              final q = query.trim().toLowerCase();
+              if (q.isEmpty) return true;
+              final code = a['code']?.toLowerCase() ?? '';
+              final name = a['name']?.toLowerCase() ?? '';
+              return code.contains(q) || name.contains(q);
+            }).toList();
+
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+              clipBehavior: Clip.antiAlias,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 480, maxHeight: 560),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.account_balance_outlined, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'اختر الحساب المحاسبي',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        hintText: 'ابحث برمز أو اسم الحساب...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        filled: true,
+                        fillColor: Colors.grey.withValues(alpha: 0.08),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() => query = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: filtered.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'لا يوجد حساب مطابق للبحث',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.separated(
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              itemBuilder: (context, index) {
+                                final acc = filtered[index];
+                                final isSelected = acc['id'] == line.accountId;
+                                return ListTile(
+                                  dense: true,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  tileColor: isSelected ? AppColors.primary.withValues(alpha: 0.08) : null,
+                                  title: Text(
+                                    acc['name'] ?? '',
+                                    style: TextStyle(
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                      fontSize: 13,
+                                      color: isSelected ? AppColors.primary : null,
+                                    ),
+                                  ),
+                                  leading: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      acc['code'] ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'monospace',
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18)
+                                      : null,
+                                  onTap: () {
+                                    setState(() {
+                                      line.accountId = acc['id']!;
+                                      line.accountCode = acc['code']!;
+                                      line.accountName = acc['name']!;
+                                    });
+                                    Navigator.pop(ctx);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _submit() {
@@ -168,250 +314,437 @@ class _JournalEntryFormSheetState extends State<JournalEntryFormSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppColors.surfaceDark : Colors.white;
+    final bg = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
     final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
 
-    return AppModalSheet(
-      title: 'إضافة قيد يومية',
-      icon: Icons.receipt_long_outlined,
-      iconColor: const Color(0xFF10B981),
-      onClose: widget.onClose,
-      primaryLabel: 'حفظ وترحيل القيد',
-      onPrimary: _isBalanced ? _submit : null,
-      maxHeightFactor: 0.9,
+    return Container(
+      color: bg,
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: AppTextField(
-                  label: 'البيان / الوصف *',
-                  hint: 'مثال: إثبات فاتورة مشتريات',
-                  controller: _descriptionController,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: AppTextField(
-                  label: 'التاريخ',
-                  initialValue: '${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}',
-                  readOnly: true,
-                  suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _selectedDate,
-                      firstDate: DateTime(2020),
-                      lastDate: DateTime(2030),
-                    );
-                    if (picked != null) {
-                      setState(() => _selectedDate = picked);
-                    }
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 1,
-                child: AppTextField(
-                  label: 'رقم المرجع',
-                  hint: 'INV-001',
-                  controller: _referenceController,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Table Header
+          // 1. Header
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: BoxDecoration(
-              color: isDark ? AppColors.surfaceDark : Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
+              color: surface,
+              border: Border(bottom: BorderSide(color: borderColor)),
             ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981), size: 22),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Text(
+                    'إنشاء قيد يومية يدوي',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                ),
+                IconButton(
+                  onPressed: widget.onClose,
+                  icon: const Icon(Icons.close_rounded, size: 22),
+                  tooltip: 'إغلاق',
+                ),
+              ],
+            ),
+          ),
+
+          // 2. Fixed Top Inputs (البيان، التاريخ، المرجع)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: surface,
+              border: Border(bottom: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: AppTextField(
+                    label: 'البيان / الوصف العام للقيد *',
+                    hint: 'مثال: إثبات مصاريف تشغيلية، تسوية حسابات...',
+                    controller: _descriptionController,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: AppTextField(
+                    label: 'تاريخ القيد',
+                    initialValue: '${_selectedDate.year}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.day.toString().padLeft(2, '0')}',
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.calendar_today_outlined, size: 18),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2030),
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDate = picked);
+                      }
+                    },
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: AppTextField(
+                    label: 'رقم المرجع / المستند (اختياري)',
+                    hint: 'REF-001',
+                    controller: _referenceController,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // 3. Lines Table Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            color: isDark ? AppColors.surfaceDark.withValues(alpha: 0.6) : const Color(0xFFEDF2F7),
             child: const Row(
               children: [
-                Expanded(flex: 3, child: Text('الحساب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                SizedBox(width: 8),
-                Expanded(flex: 2, child: Text('البيان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13))),
-                SizedBox(width: 8),
-                Expanded(flex: 1, child: Center(child: Text('مدين', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.blue)))),
-                SizedBox(width: 8),
-                Expanded(flex: 1, child: Center(child: Text('دائن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red)))),
+                Expanded(flex: 4, child: Text('الحساب المحاسبي', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 10),
+                Expanded(flex: 3, child: Text('البيان الخاص بالسطر', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 10),
+                Expanded(flex: 2, child: Center(child: Text('مدين (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFF2563EB))))),
+                SizedBox(width: 10),
+                Expanded(flex: 2, child: Center(child: Text('دائن (ر.ي)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Color(0xFFDC2626))))),
                 SizedBox(width: 36),
               ],
             ),
           ),
-          const SizedBox(height: 8),
 
-          // Lines List
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _lines.length,
-            separatorBuilder: (ctx, idx) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final line = _lines[index];
-              final selectedAcc = _effectiveAccounts.cast<Map<String, String>?>().firstWhere(
-                (a) => a!['id'] == line.accountId,
-                orElse: () => null,
-              );
+          // 4. Scrollable Lines List
+          Expanded(
+            child: Scrollbar(
+              controller: _scrollController,
+              thumbVisibility: true,
+              child: ListView.separated(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                itemCount: _lines.length,
+                separatorBuilder: (ctx, idx) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final line = _lines[index];
+                  final bool hasAccount = line.accountId.isNotEmpty;
 
-              return Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: AppTextField(
-                      label: '',
-                      initialValue: selectedAcc != null ? '${selectedAcc['code']} - ${selectedAcc['name']}' : 'اختر الحساب...',
-                      readOnly: true,
-                      suffixIcon: PopupMenuButton<String>(
-                        icon: const Icon(Icons.arrow_drop_down),
-                        onSelected: (val) {
-                          final acc = _effectiveAccounts.firstWhere((a) => a['id'] == val);
-                          setState(() {
-                            line.accountId = acc['id']!;
-                            line.accountCode = acc['code']!;
-                            line.accountName = acc['name']!;
-                          });
-                        },
-                        itemBuilder: (ctx) => _effectiveAccounts
-                            .map((acc) => PopupMenuItem(
-                                  value: acc['id'],
-                                  child: Text('${acc['code']} - ${acc['name']}'),
-                                ))
-                            .toList(),
+                  return Row(
+                    children: [
+                      // A. Clickable Account Picker Box
+                      Expanded(
+                        flex: 4,
+                        child: InkWell(
+                          onTap: () => _openAccountPickerDialog(line),
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            height: 46,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: surface,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: hasAccount ? AppColors.primary.withValues(alpha: 0.5) : borderColor,
+                                width: hasAccount ? 1.4 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.account_balance_rounded,
+                                  size: 16,
+                                  color: hasAccount ? AppColors.primary : Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    hasAccount
+                                        ? '${line.accountCode} - ${line.accountName}'
+                                        : 'اختر الحساب المحاسبي...',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: hasAccount ? FontWeight.bold : FontWeight.normal,
+                                      color: hasAccount ? textPrimary : Colors.grey,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const Icon(Icons.arrow_drop_down_rounded, color: Colors.grey, size: 22),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: AppTextField(
-                      label: '',
-                      hint: 'شرح السطر...',
-                      initialValue: line.description,
-                      onChanged: (val) => line.description = val,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: AppNumberField(
-                      label: '',
-                      hint: '0',
-                      initialValue: line.debit > 0 ? line.debit.toString() : '',
-                      onChanged: (val) {
-                        setState(() {
-                          line.debit = double.tryParse(val) ?? 0.0;
-                          if (line.debit > 0) {
-                            line.credit = 0.0;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: AppNumberField(
-                      label: '',
-                      hint: '0',
-                      initialValue: line.credit > 0 ? line.credit.toString() : '',
-                      onChanged: (val) {
-                        setState(() {
-                          line.credit = double.tryParse(val) ?? 0.0;
-                          if (line.credit > 0) {
-                            line.debit = 0.0;
-                          }
-                        });
-                      },
-                    ),
-                  ),
-                  SizedBox(
-                    width: 36,
-                    child: IconButton(
-                      onPressed: _lines.length > 2 ? () => _removeLine(index) : null,
-                      icon: Icon(
-                        Icons.delete_outline_rounded,
-                        color: _lines.length > 2 ? Colors.red : Colors.grey.shade400,
-                        size: 20,
+                      const SizedBox(width: 10),
+
+                      // B. Line Description
+                      Expanded(
+                        flex: 3,
+                        child: SizedBox(
+                          height: 46,
+                          child: TextFormField(
+                            initialValue: line.description,
+                            style: const TextStyle(fontSize: 12),
+                            decoration: InputDecoration(
+                              hintText: 'شرح اختياري...',
+                              hintStyle: const TextStyle(fontSize: 11, color: Colors.grey),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                              filled: true,
+                              fillColor: surface,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                            ),
+                            onChanged: (val) => line.description = val,
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              TextButton.icon(
-                onPressed: _addLine,
-                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF10B981), size: 20),
-                label: const Text(
-                  'إضافة سطر جديد للقيد',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 13),
-                ),
+                      const SizedBox(width: 10),
+
+                      // C. Debit
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 46,
+                          child: TextFormField(
+                            initialValue: line.debit > 0 ? line.debit.toStringAsFixed(0) : '',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF2563EB)),
+                            decoration: InputDecoration(
+                              hintText: '0.00',
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              filled: true,
+                              fillColor: surface,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                line.debit = double.tryParse(val) ?? 0.0;
+                                if (line.debit > 0) {
+                                  line.credit = 0.0;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // D. Credit
+                      Expanded(
+                        flex: 2,
+                        child: SizedBox(
+                          height: 46,
+                          child: TextFormField(
+                            initialValue: line.credit > 0 ? line.credit.toStringAsFixed(0) : '',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFDC2626)),
+                            decoration: InputDecoration(
+                              hintText: '0.00',
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              filled: true,
+                              fillColor: surface,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: borderColor),
+                              ),
+                            ),
+                            onChanged: (val) {
+                              setState(() {
+                                line.credit = double.tryParse(val) ?? 0.0;
+                                if (line.credit > 0) {
+                                  line.debit = 0.0;
+                                }
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+
+                      // E. Delete Button
+                      SizedBox(
+                        width: 36,
+                        child: IconButton(
+                          onPressed: _lines.length > 2 ? () => _removeLine(index) : null,
+                          icon: Icon(
+                            Icons.delete_outline_rounded,
+                            color: _lines.length > 2 ? const Color(0xFFDC2626) : Colors.grey.shade400,
+                            size: 20,
+                          ),
+                          tooltip: 'حذف السطر',
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-              const Spacer(),
-              if (!_isBalanced && _difference > 0)
-                OutlinedButton.icon(
-                  onPressed: _autoBalance,
-                  icon: const Icon(Icons.balance_rounded, size: 16, color: Color(0xFF3B82F6)),
-                  label: Text(
-                    'موازنة تلقائية (${_difference.toStringAsFixed(0)})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF3B82F6), fontSize: 12),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF3B82F6)),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+          ),
+
+          // 5. Add Line & Auto Balance Toolbar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: surface,
+              border: Border(top: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _addLine,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    foregroundColor: const Color(0xFF047857),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text(
+                    'إضافة سطر جديد للقيد',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
-            ],
+                const SizedBox(width: 10),
+                Text(
+                  '(${_lines.length} أسطر)',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+                const Spacer(),
+                if (!_isBalanced && _difference > 0)
+                  OutlinedButton.icon(
+                    onPressed: _autoBalance,
+                    icon: const Icon(Icons.balance_rounded, size: 16, color: Color(0xFF2563EB)),
+                    label: Text(
+                      'موازنة تلقائية (${_difference.toStringAsFixed(2)} ر.ي)',
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB), fontSize: 12),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF2563EB)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+              ],
+            ),
           ),
-          const SizedBox(height: 16),
-          Divider(color: borderColor),
-          const SizedBox(height: 12),
 
-          // Summary & Balance Status
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('إجمالي المدين', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      Text(
-                        _totalDebit.toStringAsFixed(0),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.blue),
+          // 6. Bottom Totals and Actions Footer
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              color: surface,
+              border: Border(top: BorderSide(color: borderColor)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                    ],
-                  ),
-                  const SizedBox(width: 24),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('إجمالي الدائن', style: TextStyle(fontSize: 11, color: Colors.grey)),
-                      Text(
-                        _totalCredit.toStringAsFixed(0),
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('إجمالي المدين', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${_totalDebit.toStringAsFixed(2)} ر.ي',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFF2563EB)),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
-              ),
-              AppStatusBadge(
-                label: _isBalanced ? 'القيد متوازن' : 'غير متوازن (${_difference.toStringAsFixed(0)})',
-                variant: _isBalanced ? AppStatusBadgeVariant.success : AppStatusBadgeVariant.error,
-              ),
-            ],
+                    ),
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('إجمالي الدائن', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
+                          Text(
+                            '${_totalCredit.toStringAsFixed(2)} ر.ي',
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Color(0xFFDC2626)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    AppStatusBadge(
+                      label: _isBalanced
+                          ? 'القيد متوازن ✓'
+                          : 'غير متوازن (الفرق: ${_difference.toStringAsFixed(2)})',
+                      variant: _isBalanced ? AppStatusBadgeVariant.success : AppStatusBadgeVariant.error,
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    OutlinedButton(
+                      onPressed: widget.onClose,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                      child: const Text('إلغاء'),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _isBalanced ? _submit : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFF10B981).withValues(alpha: 0.4),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        elevation: 0,
+                      ),
+                      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                      label: const Text(
+                        'حفظ وترحيل القيد',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),

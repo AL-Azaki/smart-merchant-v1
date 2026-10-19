@@ -622,6 +622,24 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             postedAt: drift.Value(invoiceDate),
           );
           await _treasuryRepository.insertPayment(cashReceipt);
+
+          // Update active cash register live balance
+          try {
+            final activeRegisters = await _treasuryRepository.listCashRegisters(
+              CashRegisterFilter(businessId: businessId),
+            );
+            if (activeRegisters.isNotEmpty) {
+              final targetReg = activeRegisters
+                      .where((r) => r.branchId == branchId && r.status == 'Open')
+                      .firstOrNull ??
+                  activeRegisters.first;
+              await _treasuryRepository.updateCashRegisterBalance(
+                targetReg.id,
+                businessId,
+                targetReg.currentBalance + effectiveCash,
+              );
+            }
+          } catch (_) {}
         }
 
         // Record Treasury Receipt Vouchers for any immediate bank/network collection
@@ -649,6 +667,24 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             postedAt: drift.Value(invoiceDate),
           );
           await _treasuryRepository.insertPayment(bankReceipt);
+
+          // Update active bank account live balance
+          try {
+            final bankAccounts = await _treasuryRepository.listBankAccounts(
+              BankAccountFilter(businessId: businessId),
+            );
+            if (bankAccounts.isNotEmpty) {
+              final targetBank = bankAccounts
+                      .where((b) => b.id == resolvedBankAccountId)
+                      .firstOrNull ??
+                  bankAccounts.first;
+              await _treasuryRepository.updateBankAccountBalance(
+                targetBank.id,
+                businessId,
+                targetBank.currentBalance + effectiveBank,
+              );
+            }
+          } catch (_) {}
         }
 
         // Deduct Inventory

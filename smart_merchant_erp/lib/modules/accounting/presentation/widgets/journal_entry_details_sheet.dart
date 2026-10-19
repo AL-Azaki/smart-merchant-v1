@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../../app/di/injection.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
+import '../../../sales/presentation/mappers/sales_invoice_document_mapper.dart';
+import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import 'journal_entry_print_service.dart';
 import 'original_invoice_paper_widget.dart';
 
@@ -39,6 +42,68 @@ class JournalEntryDetailsSheet extends StatefulWidget {
 
 class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
   int _activeTab = 0; // 0 = عرض القيد, 1 = الفاتورة الأصلية
+  CommercialDocumentData? _invoiceDocument;
+  bool _isLoadingInvoice = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLinkedDocument();
+  }
+
+  void _loadLinkedDocument() async {
+    final docId = widget.entry['documentId']?.toString();
+    final docType = (widget.entry['documentType']?.toString() ??
+            widget.entry['refType']?.toString() ??
+            '')
+        .toLowerCase();
+
+    if (docId == null || docId.isEmpty || docType == 'manual') return;
+
+    setState(() => _isLoadingInvoice = true);
+    try {
+      if (docType.contains('sales')) {
+        final mapper = getIt<SalesInvoiceDocumentMapper>();
+        final doc = await mapper.mapToDocumentData(docId);
+        if (mounted) {
+          setState(() => _invoiceDocument = doc);
+        }
+      }
+    } catch (_) {
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingInvoice = false);
+      }
+    }
+  }
+
+  String _statusArabic(String status) {
+    switch (status.toLowerCase()) {
+      case 'posted':
+        return 'مرحل';
+      case 'draft':
+        return 'مسودة';
+      case 'reversed':
+        return 'معكوس';
+      default:
+        return status;
+    }
+  }
+
+  String _operationTypeArabic(String? type) {
+    if (type == null) return 'قيد محاسبي عام';
+    final lower = type.toLowerCase();
+    if (lower.contains('salesinvoice') || lower == 'sales') return 'فاتورة مبيعات';
+    if (lower.contains('purchaseinvoice') || lower == 'purchase') return 'فاتورة مشتريات';
+    if (lower.contains('salesreturn')) return 'مردود مبيعات';
+    if (lower.contains('purchasereturn')) return 'مردود مشتريات';
+    if (lower.contains('payment') || lower.contains('receipt')) return 'سند قبض';
+    if (lower.contains('disbursement')) return 'سند صرف';
+    if (lower.contains('transfer')) return 'تحويل مالي بين الصناديق';
+    if (lower.contains('closing')) return 'إقفال سنوي';
+    if (lower.contains('manual')) return 'قيد يومية يدوي';
+    return type;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,13 +119,18 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
 
     final journalNumber = widget.entry['number']?.toString() ??
         widget.entry['journal_number']?.toString() ??
-        'JE-2024-001';
-    final dateStr = widget.entry['date']?.toString() ?? '2024/06/25';
+        '---';
+    final dateStr = widget.entry['date']?.toString() ?? '';
     final status = widget.entry['status']?.toString() ?? 'Posted';
-    final isPosted = status == 'Posted' || status == 'مُرحَّل' || status == 'مُرحّل';
-    final operationType = widget.entry['refType'] == 'Sales'
-        ? 'فاتورة مبيعات'
-        : (widget.entry['refType'] == 'Expense' ? 'مصروف' : 'قيد يدوي');
+    final isPosted = status.toLowerCase() == 'posted' || status == 'مرحل';
+    final operationType = _operationTypeArabic(widget.entry['refType']?.toString() ?? widget.entry['documentType']?.toString());
+
+    final docId = widget.entry['documentId']?.toString();
+    final docType = (widget.entry['documentType']?.toString() ?? widget.entry['refType']?.toString() ?? '').toLowerCase();
+    final bool hasLinkedInvoice = docId != null &&
+        docId.isNotEmpty &&
+        docType != 'manual' &&
+        (docType.contains('sales') || docType.contains('purchase') || docType.contains('return'));
 
     double totalDebit = 0;
     double totalCredit = 0;
@@ -70,11 +140,9 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
       totalDebit += (rawDb is num ? rawDb : 0).toDouble();
       totalCredit += (rawCr is num ? rawCr : 0).toDouble();
     }
-    if (totalDebit == 0) totalDebit = 8700;
-    if (totalCredit == 0) totalCredit = 8700;
 
     final isBalanced = (totalDebit - totalCredit).abs() < 0.01;
-    final lineCount = widget.lines.isNotEmpty ? widget.lines.length : 2;
+    final lineCount = widget.lines.length;
 
     return Container(
       decoration: BoxDecoration(
@@ -86,88 +154,79 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
       ),
       child: Column(
         children: [
-          // ── Responsive Header Banner ──
+          // ── Header Banner ──
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: const BoxDecoration(
-              color: Color(0xFF2563EB),
+              color: Color(0xFF1E3A8A),
               borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
             ),
-            child: Column(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      onPressed: widget.onClose,
-                      icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.2),
-                        padding: const EdgeInsets.all(6),
-                      ),
-                    ),
-                    if (!isMobile) ...[
-                      Container(
-                        padding: const EdgeInsets.all(3),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _buildTabBtn('عرض القيد', 0),
-                            _buildTabBtn('الفاتورة الأصلية', 1),
-                          ],
-                        ),
-                      ),
-                    ],
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          const Text(
-                            'تفاصيل القيد المحاسبي',
-                            style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            journalNumber,
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.white),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                IconButton(
+                  onPressed: widget.onClose,
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 22),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.2),
+                    padding: const EdgeInsets.all(6),
+                  ),
                 ),
-                if (isMobile) ...[
-                  const SizedBox(height: 10),
+                if (hasLinkedInvoice && !isMobile)
                   Container(
-                    width: double.infinity,
                     padding: const EdgeInsets.all(3),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Expanded(child: Center(child: _buildTabBtn('عرض القيد', 0))),
-                        Expanded(child: Center(child: _buildTabBtn('الفاتورة الأصلية', 1))),
+                        _buildTabBtn('عرض القيد المحاسبي', 0),
+                        _buildTabBtn('الفاتورة الأصلية', 1),
                       ],
                     ),
                   ),
-                ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    const Text(
+                      'تفاصيل القيد المحاسبي',
+                      style: TextStyle(fontSize: 11, color: Colors.white70, fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      journalNumber,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: Colors.white),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
-          // ── Scrollable Body Content ──
+          // ── Mobile Tab Bar (if invoice linked) ──
+          if (hasLinkedInvoice && isMobile)
+            Container(
+              color: const Color(0xFF1E3A8A),
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildTabBtn('عرض القيد المحاسبي', 0),
+                  const SizedBox(width: 8),
+                  _buildTabBtn('الفاتورة الأصلية', 1),
+                ],
+              ),
+            ),
+
+          // ── Scrollable Body ──
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Action Buttons (مشاركة، طباعة)
                   Row(
                     children: [
                       Expanded(
@@ -184,7 +243,7 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                             elevation: 0,
                           ),
                           icon: const Icon(Icons.share_rounded, size: 16),
-                          label: const Text('مشاركة واتساب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                          label: const Text('مشاركة عبر واتساب', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -204,18 +263,16 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
                           icon: const Icon(Icons.print_outlined, size: 16, color: Color(0xFF2563EB)),
-                          label: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              _activeTab == 0 ? 'طباعة القيد' : 'طباعة الفاتورة',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                            ),
+                          label: Text(
+                            _activeTab == 0 ? 'طباعة القيد' : 'طباعة الفاتورة',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 14),
+
                   _activeTab == 0
                       ? _buildJournalEntryPaper(
                           surface,
@@ -241,13 +298,34 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                           dateStr: dateStr,
                           totalDebit: totalDebit,
                           isMobile: isMobile,
+                          documentData: _invoiceDocument,
+                          isLoading: _isLoadingInvoice,
                         ),
+
                   const SizedBox(height: 14),
+
+                  // Bottom Summary Cards
                   Row(
                     children: [
-                      Expanded(child: _buildBottomStatCard('نوع العملية', operationType, isDark ? Colors.white : const Color(0xFF1E3A8A))),
+                      Expanded(
+                        child: _buildBottomStatCard(
+                          'إجمالي المدين',
+                          '${totalDebit.toStringAsFixed(2)} ر.ي',
+                          const Color(0xFF10B981),
+                        ),
+                      ),
                       const SizedBox(width: 6),
-                      Expanded(child: _buildBottomStatCard('عدد الأسطر', '$lineCount سطر', const Color(0xFF2563EB))),
+                      Expanded(
+                        child: _buildBottomStatCard(
+                          'إجمالي الدائن',
+                          '${totalCredit.toStringAsFixed(2)} ر.ي',
+                          const Color(0xFFEF4444),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _buildBottomStatCard('عدد الأسطر', '$lineCount سطر', const Color(0xFF2563EB)),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: _buildBottomStatCard(
@@ -305,8 +383,12 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
     int lineCount,
     bool isMobile,
   ) {
+    final refDocNumber = widget.entry['documentNumber']?.toString() ??
+        widget.entry['reference']?.toString() ??
+        'لا يوجد';
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(16),
@@ -325,7 +407,7 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('متجر النور', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+                  const Text('الفرع الرئيسي', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
                   const SizedBox(height: 2),
                   Text('رقم القيد: $journalNumber  •  التاريخ: $dateStr', style: TextStyle(fontSize: 11, color: textSecondary)),
                 ],
@@ -344,12 +426,16 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                        color: (isPosted ? const Color(0xFF10B981) : const Color(0xFFF59E0B)).withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        isPosted ? 'مُرحَّل' : 'مسودة',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                        _statusArabic(widget.entry['status']?.toString() ?? 'Posted'),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isPosted ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                        ),
                       ),
                     ),
                   ],
@@ -358,33 +444,85 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
             ],
           ),
           const Divider(height: 20),
-          const Text('معلومات التدقيق والعملية (AUDIT INFORMATION)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A))),
+
+          // Audit Info (بدون أي نصوص إنجليزية)
+          const Text('معلومات القيد والتدقيق', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A))),
           const SizedBox(height: 8),
-          if (isMobile) ...[
-            _buildInfoCard('مصدر القيد', operationType, 'رقم المرجع', 'si_001', 'الفرع/الشركة', 'متجر النور', 'نوع العملة', 'ر.ي', textSecondary, textPrimary),
-            const SizedBox(height: 8),
-            _buildInfoCard('أنشئ بواسطة', 'محمد أحمد', 'تاريخ الإنشاء', dateStr, 'وقت الإنشاء', '01:30 م', 'آخر تعديل', '2024/06/25 01:30 م', textSecondary, textPrimary),
-            const SizedBox(height: 8),
-            _buildInfoCard('تم الترحيل بواسطة', 'مدير الحسابات', 'وقت الترحيل', '01:30 م', 'حالة التوازن', isBalanced ? 'متوازن ✓' : 'غير متوازن', 'إجمالي الأسطر', '$lineCount', textSecondary, textPrimary),
-          ] else ...[
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
               children: [
-                Expanded(child: _buildInfoCard('مصدر القيد', operationType, 'رقم المرجع', 'si_001', 'الفرع/الشركة', 'متجر النور', 'نوع العملة', 'ر.ي', textSecondary, textPrimary)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildInfoCard('أنشئ بواسطة', 'محمد أحمد', 'تاريخ الإنشاء', dateStr, 'وقت الإنشاء', '01:30 م', 'آخر تعديل', '2024/06/25 01:30 م', textSecondary, textPrimary)),
-                const SizedBox(width: 8),
-                Expanded(child: _buildInfoCard('تم الترحيل بواسطة', 'مدير الحسابات', 'وقت الترحيل', '01:30 م', 'حالة التوازن', isBalanced ? 'متوازن ✓' : 'غير متوازن', 'إجمالي الأسطر', '$lineCount', textSecondary, textPrimary)),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('مصدر العملية:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(operationType, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('رقم المرجع / الفاتورة:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(refDocNumber, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('حالة التوازن:', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      const SizedBox(height: 2),
+                      Text(
+                        isBalanced ? 'متوازن ✓' : 'غير متوازن',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isBalanced ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
+          ),
+
+          if (widget.entry['description'] != null && widget.entry['description'].toString().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'البيان العام: ${widget.entry['description']}',
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
           ],
+
           const SizedBox(height: 14),
-          const Text('تفاصيل الأسطر (المدين والدائن)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A))),
+
+          // Lines Table
+          const Text('تفاصيل أسطر القيد (المدين والدائن)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF1E3A8A))),
           const SizedBox(height: 8),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: ConstrainedBox(
-              constraints: BoxConstraints(minWidth: isMobile ? 500 : 600),
+              constraints: BoxConstraints(minWidth: isMobile ? 550 : 680),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Table(
@@ -394,17 +532,17 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                     1: FixedColumnWidth(90),
                     2: FlexColumnWidth(1.8),
                     3: FlexColumnWidth(2.0),
-                    4: FixedColumnWidth(90),
-                    5: FixedColumnWidth(90),
+                    4: FixedColumnWidth(95),
+                    5: FixedColumnWidth(95),
                   },
                   children: [
                     TableRow(
                       decoration: const BoxDecoration(color: Color(0xFF1E3A8A)),
                       children: [
-                        _buildTableCell('رقم', isHeader: true),
+                        _buildTableCell('م', isHeader: true),
                         _buildTableCell('رمز الحساب', isHeader: true),
                         _buildTableCell('اسم الحساب', isHeader: true),
-                        _buildTableCell('البيان', isHeader: true),
+                        _buildTableCell('البيان الخاص بالسطر', isHeader: true),
                         _buildTableCell('مدين (ر.ي)', isHeader: true),
                         _buildTableCell('دائن (ر.ي)', isHeader: true),
                       ],
@@ -419,35 +557,32 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
                           children: [
                             _buildTableCell('$idx'),
                             _buildTableCell(l['account_code']?.toString() ?? '---'),
-                            _buildTableCell(l['account_name']?.toString() ?? '---', isBold: true),
-                            _buildTableCell(l['description']?.toString() ?? '---'),
-                            _buildTableCell(debit > 0 ? '$debit' : '—', color: debit > 0 ? const Color(0xFF10B981) : Colors.grey, isBold: debit > 0),
-                            _buildTableCell(credit > 0 ? '$credit' : '—', color: credit > 0 ? const Color(0xFFEF4444) : Colors.grey, isBold: credit > 0),
+                            _buildTableCell(l['account_name']?.toString() ?? 'حساب محاسبي', isBold: true),
+                            _buildTableCell(l['description']?.toString() ?? '—'),
+                            _buildTableCell(
+                              debit > 0 ? debit.toStringAsFixed(2) : '—',
+                              color: debit > 0 ? const Color(0xFF10B981) : Colors.grey,
+                              isBold: debit > 0,
+                            ),
+                            _buildTableCell(
+                              credit > 0 ? credit.toStringAsFixed(2) : '—',
+                              color: credit > 0 ? const Color(0xFFEF4444) : Colors.grey,
+                              isBold: credit > 0,
+                            ),
                           ],
                         );
                       })
-                    else ...[
+                    else
                       TableRow(
                         children: [
                           _buildTableCell('1'),
-                          _buildTableCell('COA_111'),
-                          _buildTableCell('الصندوق (النقدي)', isBold: true),
-                          _buildTableCell('استلام نقدية مبيعات'),
-                          _buildTableCell('${totalDebit.toInt()}', color: const Color(0xFF10B981), isBold: true),
-                          _buildTableCell('—', color: Colors.grey),
+                          _buildTableCell('---'),
+                          _buildTableCell('لا توجد أسطر مسجلة', isBold: true),
+                          _buildTableCell('—'),
+                          _buildTableCell('0.00'),
+                          _buildTableCell('0.00'),
                         ],
                       ),
-                      TableRow(
-                        children: [
-                          _buildTableCell('2'),
-                          _buildTableCell('COA_41'),
-                          _buildTableCell('إيرادات المبيعات', isBold: true),
-                          _buildTableCell('إيراد مبيعات فاتورة INV-2024-001'),
-                          _buildTableCell('—', color: Colors.grey),
-                          _buildTableCell('${totalCredit.toInt()}', color: const Color(0xFFEF4444), isBold: true),
-                        ],
-                      ),
-                    ],
                   ],
                 ),
               ),
@@ -464,8 +599,14 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('إجمالي المدين: ${totalDebit.toStringAsFixed(2)} ر.ي', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981))),
-                Text('إجمالي الدائن: ${totalCredit.toStringAsFixed(2)} ر.ي', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFEF4444))),
+                Text(
+                  'إجمالي المدين: ${totalDebit.toStringAsFixed(2)} ر.ي',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                ),
+                Text(
+                  'إجمالي الدائن: ${totalCredit.toStringAsFixed(2)} ر.ي',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFFEF4444)),
+                ),
               ],
             ),
           ),
@@ -474,85 +615,35 @@ class _JournalEntryDetailsSheetState extends State<JournalEntryDetailsSheet> {
     );
   }
 
-  Widget _buildInfoCard(
-    String label1, String val1,
-    String label2, String val2,
-    String label3, String val3,
-    String label4, String val4,
-    Color textSecondary, Color textPrimary,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildInfoPair(label1, val1, textSecondary, textPrimary),
-              _buildInfoPair(label2, val2, textSecondary, textPrimary),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildInfoPair(label3, val3, textSecondary, textPrimary),
-              _buildInfoPair(label4, val4, textSecondary, textPrimary),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildInfoPair(String label, String value, Color textSecondary, Color textPrimary) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 10, color: textSecondary)),
-        Text(value, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: textPrimary)),
-      ],
-    );
-  }
-
   Widget _buildTableCell(String text, {bool isHeader = false, bool isBold = false, Color? color}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
       child: Text(
         text,
+        textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: isHeader ? 11 : 12,
-          fontWeight: (isHeader || isBold) ? FontWeight.w700 : FontWeight.w500,
+          fontWeight: isHeader || isBold ? FontWeight.bold : FontWeight.normal,
           color: isHeader ? Colors.white : (color ?? const Color(0xFF1E293B)),
-          height: 1.3,
         ),
-        textAlign: TextAlign.center,
-        softWrap: true,
       ),
     );
   }
 
   Widget _buildBottomStatCard(String label, String value, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFCBD5E1)),
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+          Text(label, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.bold)),
           const SizedBox(height: 2),
           FittedBox(
             fit: BoxFit.scaleDown,
-            child: Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, color: color)),
+            child: Text(value, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: color)),
           ),
         ],
       ),

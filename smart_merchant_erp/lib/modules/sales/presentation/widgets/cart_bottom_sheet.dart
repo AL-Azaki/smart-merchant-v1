@@ -38,10 +38,8 @@ class CartBottomSheet extends ConsumerWidget {
           ? null
           : () {
               Navigator.pop(context);
-              showModalBottomSheet<void>(
+              showDialog<void>(
                 context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
                 builder: (_) => const PaymentModal(),
               );
             },

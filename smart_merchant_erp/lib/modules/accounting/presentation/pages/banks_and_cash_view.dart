@@ -64,6 +64,8 @@ class _BanksAndCashViewState extends ConsumerState<BanksAndCashView>
       for (final item in tb.items) {
         final net = item.netDebit - item.netCredit;
         accountBalances[item.accountId] = net;
+        accountBalances[item.accountCode] = net;
+        accountBalances[item.accountName.trim()] = net;
         if (item.accountCode.startsWith('11101') ||
             item.accountName.contains('صندوق') ||
             item.accountName.contains('خزينة')) {
@@ -479,7 +481,17 @@ class _BanksAndCashViewState extends ConsumerState<BanksAndCashView>
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final reg = registers[index];
-            final bal = reg.currentBalance != 0.0 ? reg.currentBalance : (accountBalances[reg.id] ?? 0.0);
+            final coaList = coaAsync.value ?? [];
+            final matchedCoa = coaList.where((a) =>
+                a.accountName.trim() == reg.registerName.trim() ||
+                (reg.registerName.contains('صندوق') && a.accountCode.startsWith('11101')) ||
+                (registers.length == 1 && a.accountCode.startsWith('11101'))).firstOrNull;
+
+            final ledgerBal = accountBalances[reg.id] ??
+                accountBalances[reg.registerName.trim()] ??
+                (matchedCoa != null ? (accountBalances[matchedCoa.id] ?? accountBalances[matchedCoa.accountCode] ?? 0.0) : 0.0);
+
+            final bal = ledgerBal != 0.0 ? ledgerBal : reg.currentBalance;
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -636,7 +648,18 @@ class _BanksAndCashViewState extends ConsumerState<BanksAndCashView>
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final w = wallets[index];
-            final bal = w.currentBalance != 0.0 ? w.currentBalance : (accountBalances[w.id] ?? 0.0);
+            final coaList = coaAsync.value ?? [];
+            final name = (w.displayName ?? w.bankName).trim();
+            final matchedCoa = coaList.where((a) =>
+                a.accountName.trim() == name ||
+                a.accountName.contains(w.bankName) ||
+                (a.accountCode.startsWith('11103') && name.contains('محفظة'))).firstOrNull;
+
+            final ledgerBal = accountBalances[w.id] ??
+                accountBalances[name] ??
+                (matchedCoa != null ? (accountBalances[matchedCoa.id] ?? accountBalances[matchedCoa.accountCode] ?? 0.0) : 0.0);
+
+            final bal = ledgerBal != 0.0 ? ledgerBal : w.currentBalance;
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -792,7 +815,18 @@ class _BanksAndCashViewState extends ConsumerState<BanksAndCashView>
           separatorBuilder: (_, __) => const SizedBox(height: 10),
           itemBuilder: (context, index) {
             final b = banks[index];
-            final bal = b.currentBalance != 0.0 ? b.currentBalance : (accountBalances[b.id] ?? 0.0);
+            final coaList = coaAsync.value ?? [];
+            final name = (b.displayName ?? b.bankName).trim();
+            final matchedCoa = coaList.where((a) =>
+                a.accountName.trim() == name ||
+                a.accountName.contains(b.bankName) ||
+                (a.accountCode.startsWith('11102'))).firstOrNull;
+
+            final ledgerBal = accountBalances[b.id] ??
+                accountBalances[name] ??
+                (matchedCoa != null ? (accountBalances[matchedCoa.id] ?? accountBalances[matchedCoa.accountCode] ?? 0.0) : 0.0);
+
+            final bal = ledgerBal != 0.0 ? ledgerBal : b.currentBalance;
             return Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
