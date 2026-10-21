@@ -47,6 +47,7 @@ import '../../modules/inventory/application/usecases/post_stock_count_usecase.da
 import '../../modules/inventory/application/usecases/process_stock_adjustment_usecase.dart';
 import '../../modules/inventory/application/usecases/process_warehouse_transfer_usecase.dart';
 import '../../modules/inventory/application/usecases/save_stock_count_usecase.dart';
+import '../../modules/inventory/application/services/inventory_reports_service.dart';
 
 import '../../modules/sales/domain/repositories/sales_repository.dart';
 import '../../modules/sales/infrastructure/repositories/sales_repository_impl.dart';
@@ -180,6 +181,7 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => StockCountWorkflow(getIt(), getIt(), getIt(), getIt()));
   getIt.registerLazySingleton(() => SaveStockCountUseCase(getIt()));
   getIt.registerLazySingleton(() => PostStockCountUseCase(getIt()));
+  getIt.registerLazySingleton(() => InventoryReportsService(getIt(), getIt()));
 
   // Sales
   getIt.registerLazySingleton(() => CustomerApplicationService(getIt(), getIt()));
