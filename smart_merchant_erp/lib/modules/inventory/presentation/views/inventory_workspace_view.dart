@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/inventory_navigation_tabs.dart';
+import 'inventory_reports_view.dart';
 import 'warehouses/warehouses_view.dart';
 import 'stock_counts/stock_counts_view.dart';
 import 'stock_adjustments/stock_adjustments_view.dart';
@@ -19,13 +20,14 @@ class _InventoryWorkspaceViewState extends State<InventoryWorkspaceView>
   Widget build(BuildContext context) {
     super.build(context);
     return const DefaultTabController(
-      length: 4,
+      length: 5,
       child: Column(
         children: [
           InventoryNavigationTabs(
             compact: true,
             tabs: [
               InventoryTab('المستودعات والمخازن', Icons.warehouse_rounded),
+              InventoryTab('التقارير المخزنية', Icons.assessment_rounded),
               InventoryTab('الجرد التصحيحي', Icons.fact_check_outlined),
               InventoryTab('التحويلات', Icons.swap_horiz_rounded),
               InventoryTab('التسويات', Icons.tune_rounded),
@@ -36,6 +38,7 @@ class _InventoryWorkspaceViewState extends State<InventoryWorkspaceView>
               physics: NeverScrollableScrollPhysics(),
               children: [
                 WarehousesView(),
+                InventoryReportsView(),
                 StockCountsView(),
                 WarehouseTransfersView(),
                 StockAdjustmentsView(),
