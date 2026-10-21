@@ -233,7 +233,7 @@ class AppDatabase extends _$AppDatabase {
   factory AppDatabase.injectable() => AppDatabase();
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -276,6 +276,38 @@ class AppDatabase extends _$AppDatabase {
             );
             await customStatement(
               'CREATE UNIQUE INDEX uq_product_units_one_base ON product_units (product_id) WHERE is_base_unit = 1;',
+            );
+          }
+          if (from < 7) {
+            await customStatement('''
+              CREATE TABLE IF NOT EXISTS order_status_feedback_outbox (
+                id TEXT PRIMARY KEY NOT NULL,
+                order_id TEXT NOT NULL,
+                target_status TEXT NOT NULL,
+                invoice_id TEXT,
+                invoice_number TEXT,
+                completed_at TEXT,
+                idempotency_key TEXT NOT NULL UNIQUE,
+                sync_status TEXT NOT NULL DEFAULT 'pending',
+                attempt_count INTEGER NOT NULL DEFAULT 0,
+                last_error_code INTEGER,
+                last_error_message TEXT,
+                next_retry_at INTEGER,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+              );
+            ''');
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_osfo_sync_status ON order_status_feedback_outbox (sync_status);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_osfo_next_retry ON order_status_feedback_outbox (next_retry_at);',
+            );
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_osfo_order_id ON order_status_feedback_outbox (order_id);',
+            );
+            await customStatement(
+              'CREATE UNIQUE INDEX IF NOT EXISTS idx_osfo_idempotency_key ON order_status_feedback_outbox (idempotency_key);',
             );
           }
         });

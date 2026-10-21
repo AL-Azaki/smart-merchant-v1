@@ -50,6 +50,9 @@ import '../../modules/inventory/application/usecases/save_stock_count_usecase.da
 
 import '../../modules/sales/domain/repositories/sales_repository.dart';
 import '../../modules/sales/infrastructure/repositories/sales_repository_impl.dart';
+import '../../modules/sales/domain/repositories/order_status_feedback_storage.dart';
+import '../../modules/sales/infrastructure/repositories/drift_order_status_feedback_storage.dart';
+import '../../modules/sales/application/services/order_status_feedback_service.dart';
 import '../../modules/sales/application/services/customer_application_service.dart';
 import '../../modules/sales/application/services/online_order_service.dart';
 import '../../modules/sales/application/usecases/complete_sale_usecase.dart';
@@ -92,6 +95,10 @@ import '../../modules/system/infrastructure/repositories/system_repository_impl.
 import '../../modules/system/application/services/archive_document_service.dart';
 import '../../modules/system/application/services/document_application_service.dart';
 
+import '../../modules/settings/domain/repositories/storefront_repository.dart';
+import '../../modules/settings/infrastructure/api/storefront_remote_api_client.dart';
+import '../../modules/settings/infrastructure/repositories/storefront_repository_impl.dart';
+
 final getIt = GetIt.instance;
 
 Future<void> initDependencies() async {
@@ -105,6 +112,10 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => ApiClient(environment: getIt(), secureStorage: getIt()));
   getIt.registerLazySingleton(() => AuthRemoteApiClient(getIt()));
   getIt.registerLazySingleton(() => SyncRemoteApiClient(getIt()));
+  getIt.registerLazySingleton(() => StorefrontRemoteApiClient(getIt()));
+  getIt.registerLazySingleton<StorefrontRepository>(
+    () => StorefrontRepositoryImpl(getIt()),
+  );
   
   getIt.registerLazySingleton<NetworkMonitorContract>(() => NetworkMonitorImpl());
   
@@ -178,8 +189,19 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => PostStockCountUseCase(getIt()));
 
   // Sales
+  getIt.registerLazySingleton<OrderStatusFeedbackStorage>(
+    () => DriftOrderStatusFeedbackStorage(getIt<AppDatabase>()),
+  );
+  getIt.registerLazySingleton(() {
+    final service = OrderStatusFeedbackService(
+      apiClient: getIt(),
+      storage: getIt(),
+    );
+    service.initializeConnectivityListener(getIt<NetworkMonitorContract>());
+    return service;
+  });
   getIt.registerLazySingleton(() => CustomerApplicationService(getIt(), getIt()));
-  getIt.registerLazySingleton(() => OnlineOrderService(getIt(), getIt()));
+  getIt.registerLazySingleton(() => OnlineOrderService(getIt(), getIt(), getIt<OrderStatusFeedbackService>()));
   getIt.registerLazySingleton(() => CompleteSaleUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
   getIt.registerLazySingleton(() => ProcessSalesReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
 

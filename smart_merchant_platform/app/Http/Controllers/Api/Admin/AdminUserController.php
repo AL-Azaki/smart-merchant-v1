@@ -40,4 +40,53 @@ class AdminUserController extends Controller
             ]
         ]);
     }
+
+    public function index(Request $request)
+    {
+        $query = \App\Models\User::with(['account', 'roles', 'branches']);
+
+        // Scope to user's account if account_id exists
+        if ($request->user()->account_id) {
+            $query->where('account_id', $request->user()->account_id);
+        }
+
+        if ($request->filled('search')) {
+            $search = '%' . $request->query('search') . '%';
+            $query->where(function ($q) use ($search) {
+                $q->where('full_name', 'like', $search)
+                  ->orWhere('username', 'like', $search)
+                  ->orWhere('email', 'like', $search);
+            });
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', filter_var($request->query('is_active'), FILTER_VALIDATE_BOOLEAN));
+        }
+
+        $users = $query->latest()->paginate(20);
+
+        return response()->json($users);
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $query = \App\Models\User::query();
+        if ($request->user()->account_id) {
+            $query->where('account_id', $request->user()->account_id);
+        }
+        $user = $query->findOrFail($id);
+
+        $validated = $request->validate([
+            'full_name' => 'sometimes|string|max:255',
+            'phone' => 'nullable|string|max:30',
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        $user->update($validated);
+
+        return response()->json([
+            'data' => $user->fresh()->load(['account', 'roles', 'branches']),
+            'message' => 'تم تحديث بيانات المستخدم بنجاح',
+        ]);
+    }
 }

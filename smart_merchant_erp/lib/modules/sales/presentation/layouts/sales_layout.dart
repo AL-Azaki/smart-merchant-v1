@@ -81,7 +81,7 @@ class _SalesLayoutState extends ConsumerState<SalesLayout>
 
     final ordersAsync = ref.watch(onlineOrdersNotifierProvider);
     final int pendingOrdersCount = ordersAsync.asData?.value
-            .where((o) => o.status == 'PENDING' && o.deletedAt == null)
+            .where((o) => o.status.toUpperCase() == 'PENDING' && o.deletedAt == null)
             .length ??
         0;
 

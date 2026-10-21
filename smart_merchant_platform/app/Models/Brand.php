@@ -11,7 +11,28 @@ class Brand extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['business_id', 'name', 'slug', 'description', 'logo_path', 'is_active', 'revision'];
+    protected $fillable = [
+        'id',
+        'business_id',
+        'brand_name',
+        'name',
+        'slug',
+        'description',
+        'logo_path',
+        'is_active',
+        'revision',
+        'deleted_at',
+    ];
+
+    public function getNameAttribute()
+    {
+        return $this->brand_name;
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['brand_name'] = $value;
+    }
 
     public function business()
     {

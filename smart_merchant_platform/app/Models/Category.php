@@ -11,7 +11,31 @@ class Category extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['business_id', 'parent_id', 'name', 'slug', 'description', 'is_active', 'revision'];
+    protected $fillable = [
+        'id',
+        'business_id',
+        'parent_id',
+        'category_name',
+        'category_code',
+        'name',
+        'slug',
+        'description',
+        'image_path',
+        'sort_order',
+        'is_active',
+        'revision',
+        'deleted_at',
+    ];
+
+    public function getNameAttribute()
+    {
+        return $this->category_name;
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['category_name'] = $value;
+    }
 
     public function business()
     {

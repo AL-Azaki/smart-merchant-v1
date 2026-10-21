@@ -384,9 +384,12 @@ class AuthNotifier extends _$AuthNotifier {
       }
 
       return LoginResult.success(bootstrapResponse);
+    } on ApiException catch (e) {
+      state = AuthStatus.unauthenticated;
+      return LoginResult.failure(e.message);
     } catch (e) {
       state = AuthStatus.unauthenticated;
-      return LoginResult.failure(e.toString());
+      return LoginResult.failure('حدث خطأ أثناء مزامنة الجلسة: ${e.toString()}');
     }
   }
 

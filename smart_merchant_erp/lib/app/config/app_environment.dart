@@ -13,22 +13,26 @@ class AppEnvironment {
     required this.envName,
   });
 
+  static const String customBaseUrl = String.fromEnvironment('BASE_URL', defaultValue: '');
+
   /// Development / local server.
-  factory AppEnvironment.development() => const AppEnvironment(
-    baseUrl: 'http://10.0.2.2:8000/api', // Android emulator → host
+  factory AppEnvironment.development() => AppEnvironment(
+    baseUrl: customBaseUrl.isNotEmpty ? customBaseUrl : 'http://127.0.0.1:8000/api',
+    connectTimeout: const Duration(seconds: 10),
+    receiveTimeout: const Duration(seconds: 15),
     envName: 'development',
   );
 
   /// QA server/mode.
-  factory AppEnvironment.qa() => const AppEnvironment(
-    baseUrl: 'http://10.0.2.2:8000/api', // Or a dedicated QA URL
+  factory AppEnvironment.qa() => AppEnvironment(
+    baseUrl: customBaseUrl.isNotEmpty ? customBaseUrl : 'http://127.0.0.1:8000/api',
     envName: 'qa',
   );
 
   /// Production server.
   factory AppEnvironment.production() =>
-      const AppEnvironment(
-        baseUrl: 'https://api.smartmerchant.app/api',
+      AppEnvironment(
+        baseUrl: customBaseUrl.isNotEmpty ? customBaseUrl : 'http://127.0.0.1:8000/api',
         envName: 'production',
       );
 
@@ -36,7 +40,7 @@ class AppEnvironment {
   factory AppEnvironment.test({String baseUrl = 'http://localhost:8080/api'}) =>
       AppEnvironment(baseUrl: baseUrl, envName: 'test');
 
-  static const String currentEnv = String.fromEnvironment('APP_ENV', defaultValue: 'production');
+  static const String currentEnv = String.fromEnvironment('APP_ENV', defaultValue: 'development');
   static const bool _enableQaAuthBypassFlag = bool.fromEnvironment('ENABLE_QA_AUTH_BYPASS', defaultValue: false);
 
   /// Safe check for QA Bypass. Fails closed in production.
@@ -47,6 +51,12 @@ class AppEnvironment {
   }
 
   static AppEnvironment get current {
+    if (customBaseUrl.isNotEmpty) {
+      return AppEnvironment(
+        baseUrl: customBaseUrl,
+        envName: currentEnv.isNotEmpty ? currentEnv : 'custom',
+      );
+    }
     switch (currentEnv) {
       case 'development':
         return AppEnvironment.development();

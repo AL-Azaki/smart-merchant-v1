@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
+import '../../../authentication/presentation/providers/auth_provider.dart';
 import '../models/settings_card_item_model.dart';
 import '../widgets/settings_group_section_widget.dart';
 import '../widgets/settings_header_widget.dart';
@@ -13,12 +15,13 @@ import 'currencies_view.dart';
 import 'print_settings_view.dart';
 import 'product_categories_view.dart';
 import 'roles_permissions_view.dart';
+import 'storefront_settings_view.dart';
 import 'taxes_and_fees_view.dart';
 import 'units_of_measure_view.dart';
 import 'users_management_view.dart';
 import 'warehouses_and_branches_view.dart';
 
-class SettingsControlCenterView extends StatelessWidget {
+class SettingsControlCenterView extends ConsumerWidget {
   const SettingsControlCenterView({super.key});
 
   List<SettingsGroupModel> _getSettingsGroups() {
@@ -34,6 +37,16 @@ class SettingsControlCenterView extends StatelessWidget {
             color: Color(0xFF3B82F6),
             stats: ['المركز الرئيسي', 'الرقم الضريبي مسجل'],
             destinationView: BusinessProfileView(),
+          ),
+          SettingsCardItemModel(
+            id: 'storefront',
+            title: 'المتجر الإلكتروني',
+            description:
+                'إدارة متجر العملاء، الرابط العام، وتفعيل استقبال الطلبات أونلاين',
+            icon: Icons.storefront_rounded,
+            color: Color(0xFF2563EB),
+            stats: ['الطلبات أونلاين', 'رابط المتجر'],
+            destinationView: StorefrontSettingsView(),
           ),
           SettingsCardItemModel(
             id: 'users',
@@ -144,13 +157,22 @@ class SettingsControlCenterView extends StatelessWidget {
             stats: ['1,240 عملية اليوم'],
             destinationView: ActivityLogView(),
           ),
+          SettingsCardItemModel(
+            id: 'logout',
+            title: 'تسجيل الخروج',
+            description: 'إنهاء الجلسة الحالية وتسجيل الدخول بحساب آخر',
+            icon: Icons.logout_rounded,
+            color: Color(0xFFEF4444),
+            stats: ['تبديل الحساب'],
+            destinationView: SizedBox.shrink(),
+          ),
         ],
       ),
     ];
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final groups = _getSettingsGroups();
 
@@ -178,7 +200,34 @@ class SettingsControlCenterView extends StatelessWidget {
                       for (int i = 0; i < groups.length; i++) ...[
                         SettingsGroupSectionWidget(
                           group: groups[i],
-                          onCardTap: (cardItem) {
+                          mainAxisExtent: groups[i].cards.any((c) => c.stats.isNotEmpty) ? 210 : 185,
+                          onCardTap: (cardItem) async {
+                            if (cardItem.id == 'logout') {
+                              final shouldLogout = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('تسجيل الخروج'),
+                                  content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج والعودة لشاشة الدخول؟'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.of(ctx).pop(false),
+                                      child: const Text('إلغاء'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.error,
+                                      ),
+                                      onPressed: () => Navigator.of(ctx).pop(true),
+                                      child: const Text('تأكيد الخروج', style: TextStyle(color: Colors.white)),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (shouldLogout == true) {
+                                await ref.read(authNotifierProvider.notifier).logout();
+                              }
+                              return;
+                            }
                             Navigator.of(context).push(
                               MaterialPageRoute<void>(
                                 builder: (_) => cardItem.destinationView,

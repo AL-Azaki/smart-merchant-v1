@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../../../app/di/manual_injection.dart';
 import '../../../../kernel/sync/coordinator/sync_coordinator.dart';
 
 part 'sync_provider.g.dart';
@@ -26,6 +27,13 @@ class SyncNotifier extends _$SyncNotifier {
     ref.onDispose(() {
       _statusSubscription?.cancel();
     });
+    if (getIt.isRegistered<SyncCoordinator>()) {
+      final coordinator = getIt<SyncCoordinator>();
+      _coordinator = coordinator;
+      _statusSubscription = coordinator.statusStream.listen((status) {
+        state = state.copyWith(status: status);
+      });
+    }
     return const SyncState.initial();
   }
 
@@ -40,6 +48,9 @@ class SyncNotifier extends _$SyncNotifier {
 
   /// Trigger a full bidirectional sync cycle.
   Future<void> syncNow() async {
+    if (_coordinator == null && getIt.isRegistered<SyncCoordinator>()) {
+      initialize(getIt<SyncCoordinator>());
+    }
     final coordinator = _coordinator;
     if (coordinator == null) {
       state = state.copyWith(status: SyncStatus.authenticationRequired);

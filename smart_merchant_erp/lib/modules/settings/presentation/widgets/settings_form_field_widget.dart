@@ -13,10 +13,15 @@ class SettingsFormFieldWidget extends StatelessWidget {
   final TextInputType keyboardType;
   final VoidCallback? onTap;
   final bool readOnly;
+  final ValueChanged<String>? onChanged;
+  final String? errorText;
+  final Widget? suffix;
+  final String? prefixText;
+  final String? helperText;
 
   const SettingsFormFieldWidget({
-    super.key,
     required this.label,
+    super.key,
     this.hint,
     this.controller,
     this.isRequired = false,
@@ -26,6 +31,11 @@ class SettingsFormFieldWidget extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.onTap,
     this.readOnly = false,
+    this.onChanged,
+    this.errorText,
+    this.suffix,
+    this.prefixText,
+    this.helperText,
   });
 
   @override
@@ -70,6 +80,7 @@ class SettingsFormFieldWidget extends StatelessWidget {
           keyboardType: keyboardType,
           readOnly: readOnly,
           onTap: onTap,
+          onChanged: onChanged,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -85,6 +96,9 @@ class SettingsFormFieldWidget extends StatelessWidget {
                   ? AppColors.textSecondaryDark
                   : AppColors.textSecondaryLight,
             ),
+            errorText: errorText,
+            helperText: helperText,
+            prefixText: prefixText,
             filled: true,
             fillColor: surface,
             contentPadding: const EdgeInsets.symmetric(
@@ -100,6 +114,7 @@ class SettingsFormFieldWidget extends StatelessWidget {
                         : AppColors.textSecondaryLight,
                   )
                 : null,
+            suffix: suffix,
             suffixIcon: suffixIcon != null
                 ? Icon(
                     suffixIcon,
@@ -117,6 +132,20 @@ class SettingsFormFieldWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               borderSide: const BorderSide(
                 color: AppColors.primary,
+                width: 1.8,
+              ),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              borderSide: const BorderSide(
+                color: AppColors.error,
+                width: 1.5,
+              ),
+            ),
+            focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              borderSide: const BorderSide(
+                color: AppColors.error,
                 width: 1.8,
               ),
             ),

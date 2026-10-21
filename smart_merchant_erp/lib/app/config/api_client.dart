@@ -76,6 +76,33 @@ class ApiClient {
     return _execute(() => _dio.delete(path, data: data));
   }
 
+  int _fallbackIndex = 0;
+  static const List<String> _localCandidateHosts = [
+    'http://127.0.0.1:8000/api', // Physical Android via adb reverse, Desktop, Web
+    'http://192.168.8.139:8000/api', // Local PC Wi-Fi (Actual host IP)
+    'http://10.0.2.2:8000/api',   // Android Emulator
+  ];
+
+  bool _isLocalHost(String url) {
+    return url.contains('127.0.0.1') ||
+        url.contains('localhost') ||
+        url.contains('10.0.2.2') ||
+        url.contains('192.168.');
+  }
+
+  bool _tryNextFallbackUrl() {
+    if (!_isLocalHost(_dio.options.baseUrl)) return false;
+    for (int i = 0; i < _localCandidateHosts.length; i++) {
+      final candidate = _localCandidateHosts[(_fallbackIndex + 1 + i) % _localCandidateHosts.length];
+      if (candidate != _dio.options.baseUrl) {
+        _fallbackIndex = (_fallbackIndex + 1 + i) % _localCandidateHosts.length;
+        _dio.options.baseUrl = candidate;
+        return true;
+      }
+    }
+    return false;
+  }
+
   // ── Internal execution with error mapping ────────────────
 
   Future<ApiResponse> _execute(
@@ -88,10 +115,59 @@ class ApiClient {
         data: response.data,
       );
     } on DioException catch (e) {
+      if ((e.type == DioExceptionType.connectionError ||
+              e.type == DioExceptionType.connectionTimeout) &&
+          _tryNextFallbackUrl()) {
+        try {
+          final fallbackResponse = await request();
+          return ApiResponse(
+            statusCode: fallbackResponse.statusCode ?? 200,
+            data: fallbackResponse.data,
+          );
+        } catch (_) {
+          // ignore fallback error
+        }
+      }
       throw _mapDioException(e);
     } on SocketException {
+      if (_tryNextFallbackUrl()) {
+        try {
+          final fallbackResponse = await request();
+          return ApiResponse(
+            statusCode: fallbackResponse.statusCode ?? 200,
+            data: fallbackResponse.data,
+          );
+        } catch (_) {}
+      }
       throw const ApiException.noNetwork();
     }
+  }
+
+  static String _translateError(String? raw, {String fallback = 'حدث خطأ غير متوقع'}) {
+    if (raw == null || raw.trim().isEmpty) return fallback;
+    final lower = raw.toLowerCase();
+    if (lower.contains('invalid credentials') || lower.contains('these credentials do not match')) {
+      return 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
+    }
+    if (lower.contains('user account is inactive') || lower.contains('account is inactive')) {
+      return 'هذا الحساب غير نشط حالياً، يرجى التواصل مع الإدارة';
+    }
+    if (lower.contains('email has already been taken')) {
+      return 'البريد الإلكتروني مسجل مسبقاً، يرجى استخدام بريد آخر';
+    }
+    if (lower.contains('username has already been taken')) {
+      return 'اسم المستخدم محجوز مسبقاً، يرجى اختيار اسم آخر';
+    }
+    if (lower.contains('password must be at least')) {
+      return 'كلمة المرور يجب أن لا تقل عن 6 خانات';
+    }
+    if (lower.contains('connection refused') || lower.contains('failed host lookup') || lower.contains('network is unreachable')) {
+      return 'تعذر الاتصال بالخادم، يرجى التأكد من تشغيل السيرفر والاتصال بالشبكة';
+    }
+    if (lower.contains('connection timed out') || lower.contains('timeout')) {
+      return 'انتهت مهلة انتظار الخادم، يرجى التحقق من اتصال الشبكة والمحاولة مجدداً';
+    }
+    return raw;
   }
 
   ApiException _mapDioException(DioException e) {
@@ -107,36 +183,49 @@ class ApiClient {
 
     final statusCode = e.response?.statusCode;
     final data = e.response?.data;
-    final message = _extractMessage(data) ?? e.message ?? 'Unknown error';
+    final rawMessage = _extractMessage(data) ?? e.message ?? 'حدث خطأ غير متوقع';
+    final message = _translateError(rawMessage);
 
     switch (statusCode) {
       case 401:
-        return ApiException.unauthorized(message);
+        return ApiException.unauthorized(
+          _translateError(rawMessage, fallback: 'بيانات تسجيل الدخول غير صحيحة، يرجى التأكد من البريد الإلكتروني وكلمة المرور'),
+        );
       case 403:
-        // Check for device revocation
         final reason = _extractReason(data);
-        if (reason == 'device_revoked' || message.contains('revoked')) {
-          return ApiException.deviceRevoked(message);
+        if (reason == 'device_revoked' || rawMessage.contains('revoked')) {
+          return ApiException.deviceRevoked('تم إلغاء تفعيل هذا الجهاز من قبل إدارة النظام');
         }
-        return ApiException.forbidden(message);
+        return ApiException.forbidden(
+          _translateError(rawMessage, fallback: 'ليس لديك صلاحية للوصول إلى هذا الإجراء'),
+        );
       case 409:
         return ApiException.conflict(message, data: data);
       case 422:
+        final errors = _extractErrors(data);
+        String validationMsg = message;
+        if (errors != null && errors.isNotEmpty) {
+          final firstError = errors.values.first.first;
+          validationMsg = _translateError(firstError);
+        }
         return ApiException.validation(
-          message,
-          validationErrors: _extractErrors(data),
+          validationMsg,
+          validationErrors: errors,
         );
       case 429:
         final retryAfter = e.response?.headers['retry-after']?.first;
         return ApiException.rateLimited(
-          message,
+          'تم تجاوز عدد المحاولات المسموح بها، يرجى الانتظار قليلاً ثم المحاولة ثانية',
           retryAfterSeconds: retryAfter != null
               ? int.tryParse(retryAfter)
               : null,
         );
       default:
         if (statusCode != null && statusCode >= 500) {
-          return ApiException.server(message, statusCode: statusCode);
+          return ApiException.server(
+            'حدث خطأ في الخادم ($statusCode)، يرجى مراجعة الخادم والمحاولة مجدداً',
+            statusCode: statusCode,
+          );
         }
         return ApiException(
           type: ApiExceptionType.unknown,
@@ -242,7 +331,7 @@ class ApiException implements Exception {
 
   const ApiException.noNetwork()
     : type = ApiExceptionType.noNetwork,
-      message = 'No network connection',
+      message = 'تعذر الاتصال بالخادم، يرجى التأكد من تشغيل السيرفر أو الاتصال بالشبكة',
       statusCode = null,
       validationErrors = null,
       retryAfterSeconds = null,
@@ -250,7 +339,7 @@ class ApiException implements Exception {
 
   const ApiException.timeout()
     : type = ApiExceptionType.timeout,
-      message = 'Request timed out',
+      message = 'انتهت مهلة انتظار الخادم، يرجى التحقق من اتصال الشبكة والمحاولة مجدداً',
       statusCode = null,
       validationErrors = null,
       retryAfterSeconds = null,

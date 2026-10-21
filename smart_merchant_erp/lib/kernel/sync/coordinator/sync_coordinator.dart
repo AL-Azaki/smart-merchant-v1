@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:uuid/uuid.dart';
 
 import '../../../app/config/api_client.dart';
 import '../../../app/config/app_environment.dart';
@@ -16,6 +15,7 @@ import '../../../database/daos/sales_dao.dart';
 import '../../../database/daos/catalog_sync_queries.dart';
 import '../../../database/daos/inventory_sync_queries.dart';
 import '../../../database/daos/sales_sync_queries.dart';
+import '../../core/application_context.dart';
 
 /// Sync state exposed via Riverpod.
 enum SyncStatus {
@@ -129,15 +129,16 @@ class SyncCoordinator {
 
     // QA SYNC SAFETY GUARD
     if (AppEnvironment.isQaBypassEnabled) {
-      if (AppEnvironment.current.envName == 'production' || 
+      if (AppEnvironment.current.envName == 'production' ||
           AppEnvironment.current.baseUrl.contains('api.smartmerchant.app')) {
         return SyncCycleResult(
           status: SyncStatus.offline, // Fake offline to prevent sync
           failures: const [
             SyncFailureInfo(
               type: ApiExceptionType.unauthorized,
-              message: 'SYNC BLOCKED: Cannot sync QA data to production environment.',
-            )
+              message:
+                  'SYNC BLOCKED: Cannot sync QA data to production environment.',
+            ),
           ],
           timestamp: DateTime.now(),
         );
@@ -316,8 +317,17 @@ class SyncCoordinator {
     }
   }
 
+  String? get _activeBusinessId {
+    try {
+      final holder = SessionHolder();
+      return holder.isActive ? holder.businessId : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> _queryPendingCategories() async {
-    final rows = await _catalogDao.listPendingSyncCategories();
+    final rows = await _catalogDao.listPendingSyncCategories(_activeBusinessId);
     return rows
         .map(
           (c) => {
@@ -329,6 +339,7 @@ class SyncCoordinator {
             'image_path': c.imagePath,
             'sort_order': c.sortOrder,
             'is_active': c.isActive,
+            'deleted_at': c.deletedAt?.toUtc().toIso8601String(),
             'revision': RevisionMapper.toServerRevision(c.version),
           },
         )
@@ -336,7 +347,7 @@ class SyncCoordinator {
   }
 
   Future<List<Map<String, dynamic>>> _queryPendingBrands() async {
-    final rows = await _catalogDao.listPendingSyncBrands();
+    final rows = await _catalogDao.listPendingSyncBrands(_activeBusinessId);
     return rows
         .map(
           (b) => {
@@ -351,7 +362,7 @@ class SyncCoordinator {
   }
 
   Future<List<Map<String, dynamic>>> _queryPendingUnits() async {
-    final rows = await _catalogDao.listPendingSyncUnits();
+    final rows = await _catalogDao.listPendingSyncUnits(_activeBusinessId);
     return rows
         .map(
           (u) => {
@@ -359,6 +370,7 @@ class SyncCoordinator {
             'unit_name': u.unitName,
             'unit_code': u.unitSymbol,
             'is_active': u.isActive,
+            'deleted_at': u.deletedAt?.toUtc().toIso8601String(),
             'revision': RevisionMapper.toServerRevision(u.version),
           },
         )
@@ -366,7 +378,7 @@ class SyncCoordinator {
   }
 
   Future<List<Map<String, dynamic>>> _queryPendingProducts() async {
-    final rows = await _catalogDao.listPendingSyncProducts();
+    final rows = await _catalogDao.listPendingSyncProducts(_activeBusinessId);
     return rows
         .map(
           (p) => {
@@ -378,6 +390,8 @@ class SyncCoordinator {
             'brand_id': p.brandId,
             'description': p.description,
             'is_active': p.isActive,
+            'show_in_store': p.showInStore,
+            'deleted_at': p.deletedAt?.toUtc().toIso8601String(),
             'revision': RevisionMapper.toServerRevision(p.version),
           },
         )
@@ -385,7 +399,7 @@ class SyncCoordinator {
   }
 
   Future<List<Map<String, dynamic>>> _queryPendingProductUnits() async {
-    final rows = await _catalogDao.listPendingSyncProductUnits();
+    final rows = await _catalogDao.listPendingSyncProductUnits(_activeBusinessId);
     return rows
         .map(
           (pu) => {
@@ -399,6 +413,7 @@ class SyncCoordinator {
             'selling_price': pu.sellingPrice,
             'cost_price': pu.purchasePrice,
             'is_active': pu.isActive,
+            'deleted_at': pu.deletedAt?.toUtc().toIso8601String(),
             'revision': RevisionMapper.toServerRevision(pu.version),
           },
         )
@@ -406,7 +421,7 @@ class SyncCoordinator {
   }
 
   Future<List<Map<String, dynamic>>> _queryPendingProductImages() async {
-    final rows = await _catalogDao.listPendingSyncProductImages();
+    final rows = await _catalogDao.listPendingSyncProductImages(_activeBusinessId);
     return rows
         .map(
           (pi) => {
@@ -568,7 +583,7 @@ class SyncCoordinator {
           rethrow;
         }
         final delay = _retryPolicy.calculateNextDelay(attempt);
-        await Future.delayed(delay);
+        await Future<void>.delayed(delay);
       }
     }
   }

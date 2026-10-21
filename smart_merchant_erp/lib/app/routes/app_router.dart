@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../shared/design_system/layouts/main_layout.dart';
 import '../../modules/platform/presentation/views/home_view.dart';
-import '../../shared/design_system/widgets/coming_soon_view.dart';
 import '../../modules/sales/presentation/layouts/sales_layout.dart';
 import '../../modules/authentication/presentation/providers/auth_provider.dart';
 import '../../modules/authentication/presentation/pages/auth_gate_view.dart';
@@ -16,6 +15,7 @@ import '../../modules/authentication/presentation/pages/splash_view.dart';
 import '../../kernel/security/permissions_provider.dart';
 import '../../modules/inventory/presentation/views/inventory_module_view.dart';
 import '../../modules/settings/presentation/views/settings_control_center_view.dart';
+import '../../modules/settings/presentation/views/storefront_settings_view.dart';
 import '../../modules/accounting/presentation/pages/financial_dashboard_view.dart';
 
 part 'app_router.g.dart';
@@ -146,6 +146,10 @@ GoRouter appRouter(AppRouterRef ref) {
           currentIndex: 4,
           child: SettingsControlCenterView(),
         ),
+      ),
+      GoRoute(
+        path: '/settings/storefront',
+        builder: (context, state) => const StorefrontSettingsView(),
       ),
     ],
   );

@@ -11,7 +11,10 @@ class ProductUnitResource extends JsonResource
         return [
             'id' => $this->id,
             'unit_id' => $this->unit_id,
-            'is_base_unit' => $this->is_base_unit,
+            'unit_name' => $this->relationLoaded('unit') ? $this->unit?->unit_name : null,
+            'unit_symbol' => $this->relationLoaded('unit') ? $this->unit?->unit_symbol : null,
+            'is_base_unit' => (bool) $this->is_base_unit,
+            'is_active' => (bool) $this->is_active,
             'conversion_factor' => $this->conversion_factor,
             'barcode' => $this->barcode,
             'selling_price' => (float) $this->selling_price,

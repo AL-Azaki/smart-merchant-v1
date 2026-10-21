@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Sync;
 
 use App\Http\Controllers\Controller;
-use App\Services\Sync\SyncEngine;
-use App\Services\Sync\SyncContextResolver;
-use App\Http\Requests\Sync\PushSyncRequest;
-use App\Http\Requests\Sync\PullSyncRequest;
 use App\Http\Requests\Sync\AckSyncRequest;
+use App\Http\Requests\Sync\PullSyncRequest;
+use App\Http\Requests\Sync\PushSyncRequest;
+use App\Http\Requests\Sync\UpdateOrderStatusRequest;
+use App\Services\Sync\SyncContextResolver;
+use App\Services\Sync\SyncEngine;
 use Illuminate\Http\JsonResponse;
 
 class SyncController extends Controller
@@ -21,6 +22,7 @@ class SyncController extends Controller
     {
         $context = $this->contextResolver->resolve($request);
         $result = $this->engine->push($request, $context);
+
         return response()->json($result);
     }
 
@@ -28,6 +30,7 @@ class SyncController extends Controller
     {
         $context = $this->contextResolver->resolve($request);
         $result = $this->engine->pull($request, $context);
+
         return response()->json($result);
     }
 
@@ -35,6 +38,15 @@ class SyncController extends Controller
     {
         $context = $this->contextResolver->resolve($request);
         $result = $this->engine->ack($request, $context);
+
+        return response()->json($result);
+    }
+
+    public function updateOrderStatus(UpdateOrderStatusRequest $request, string $order): JsonResponse
+    {
+        $context = $this->contextResolver->resolve($request);
+        $result = $this->engine->updateOrderStatus($order, $request->validated(), $context);
+
         return response()->json($result);
     }
 }

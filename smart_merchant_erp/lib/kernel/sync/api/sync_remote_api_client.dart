@@ -37,4 +37,28 @@ class SyncRemoteApiClient {
     final response = await _apiClient.post('/sync/ack', data: request.toJson());
     return AckSyncResponseDto.fromJson(response.json);
   }
+
+  /// POST /sync/orders/{order}/status — send secure, limited order status feedback to Laravel.
+  Future<Map<String, dynamic>> updateOrderStatus({
+    required String orderId,
+    required String status,
+    required String idempotencyKey,
+    String? invoiceId,
+    String? invoiceNumber,
+    String? completedAt,
+    int? revision,
+  }) async {
+    final response = await _apiClient.post(
+      '/sync/orders/$orderId/status',
+      data: {
+        'status': status,
+        'idempotency_key': idempotencyKey,
+        'invoice_id': ?invoiceId,
+        'invoice_number': ?invoiceNumber,
+        'completed_at': ?completedAt,
+        'revision': ?revision,
+      },
+    );
+    return response.json;
+  }
 }

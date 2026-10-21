@@ -11,7 +11,26 @@ class Product extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['business_id', 'category_id', 'brand_id', 'tax_id', 'product_type', 'product_code', 'product_name', 'description', 'is_active', 'revision'];
+    protected $fillable = [
+        'id',
+        'business_id',
+        'category_id',
+        'brand_id',
+        'tax_id',
+        'product_type',
+        'product_code',
+        'product_name',
+        'description',
+        'is_active',
+        'show_in_store',
+        'revision',
+        'deleted_at',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'show_in_store' => 'boolean',
+    ];
 
     public function business()
     {
@@ -46,5 +65,15 @@ class Product extends Model
     public function scopeForBusiness($query, $businessId)
     {
         return $query->where('business_id', $businessId);
+    }
+
+    public function scopePublishedToStorefront($query, $businessId = null)
+    {
+        if ($businessId) {
+            $query->where('business_id', $businessId);
+        }
+
+        return $query->where('is_active', true)
+            ->where('show_in_store', true);
     }
 }

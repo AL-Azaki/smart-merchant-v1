@@ -872,10 +872,16 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
   }
 
   /// Soft-deletes a product (`deletedAt = now`, `syncStatus = 'pending_delete'`).
-  Future<int> softDeleteProduct(String id, String businessId) {
+  Future<int> softDeleteProduct(String id, String businessId) async {
     if (businessId.trim().isEmpty) {
       throw const TenantScopingException();
     }
+    final existing =
+        await (select(products)..where(
+              (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
+            ))
+            .getSingleOrNull();
+    final newVersion = (existing?.version ?? 0) + 1;
     return (update(products)..where(
           (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
         ))
@@ -883,22 +889,30 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
           ProductsCompanion(
             deletedAt: Value(DateTime.now()),
             syncStatus: const Value('pending_delete'),
+            version: Value(newVersion),
           ),
         );
   }
 
   /// Restores a soft-deleted product (`deletedAt = null`, `syncStatus = 'pending_update'`).
-  Future<int> restoreProduct(String id, String businessId) {
+  Future<int> restoreProduct(String id, String businessId) async {
     if (businessId.trim().isEmpty) {
       throw const TenantScopingException();
     }
+    final existing =
+        await (select(products)..where(
+              (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
+            ))
+            .getSingleOrNull();
+    final newVersion = (existing?.version ?? 0) + 1;
     return (update(products)..where(
           (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
         ))
         .write(
-          const ProductsCompanion(
-            deletedAt: Value(null),
-            syncStatus: Value('pending_update'),
+          ProductsCompanion(
+            deletedAt: const Value(null),
+            syncStatus: const Value('pending_update'),
+            version: Value(newVersion),
           ),
         );
   }
@@ -1076,10 +1090,16 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
   }
 
   /// Soft-deletes a product unit (`deletedAt = now`, `syncStatus = 'pending_delete'`).
-  Future<int> softDeleteProductUnit(String id, String businessId) {
+  Future<int> softDeleteProductUnit(String id, String businessId) async {
     if (businessId.trim().isEmpty) {
       throw const TenantScopingException();
     }
+    final existing =
+        await (select(productUnits)..where(
+              (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
+            ))
+            .getSingleOrNull();
+    final newVersion = (existing?.version ?? 0) + 1;
     return (update(productUnits)..where(
           (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
         ))
@@ -1087,22 +1107,30 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
           ProductUnitsCompanion(
             deletedAt: Value(DateTime.now()),
             syncStatus: const Value('pending_delete'),
+            version: Value(newVersion),
           ),
         );
   }
 
   /// Restores a soft-deleted product unit (`deletedAt = null`, `syncStatus = 'pending_update'`).
-  Future<int> restoreProductUnit(String id, String businessId) {
+  Future<int> restoreProductUnit(String id, String businessId) async {
     if (businessId.trim().isEmpty) {
       throw const TenantScopingException();
     }
+    final existing =
+        await (select(productUnits)..where(
+              (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
+            ))
+            .getSingleOrNull();
+    final newVersion = (existing?.version ?? 0) + 1;
     return (update(productUnits)..where(
           (tbl) => tbl.id.equals(id) & tbl.businessId.equals(businessId),
         ))
         .write(
-          const ProductUnitsCompanion(
-            deletedAt: Value(null),
-            syncStatus: Value('pending_update'),
+          ProductUnitsCompanion(
+            deletedAt: const Value(null),
+            syncStatus: const Value('pending_update'),
+            version: Value(newVersion),
           ),
         );
   }
