@@ -14,6 +14,15 @@ class InventoryProjectionService
      */
     public function upsertProjection(string $businessId, string $branchId, string $productUnitId, float $quantity, int $revision): array
     {
+        // Branch Verification / Fallback
+        $branch = \App\Models\Branch::where('business_id', $businessId)->where('id', $branchId)->first();
+        if (! $branch) {
+            $branch = \App\Models\Branch::where('business_id', $businessId)->first();
+            if ($branch) {
+                $branchId = $branch->id;
+            }
+        }
+
         // Tenant Verification
         $productUnit = ProductUnit::where('id', $productUnitId)->where('business_id', $businessId)->first();
         if (!$productUnit) {

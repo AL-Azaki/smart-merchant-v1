@@ -21,12 +21,24 @@ class AdminDashboardController extends Controller
         $ordersCount = \App\Models\Order::whereIn('business_id', $businessIds)->count();
         $devicesCount = \App\Models\Device::whereIn('business_id', $businessIds)->count();
 
+        // Platform-level account stats
+        $totalAccounts = \App\Models\Account::count();
+        $activeAccounts = \App\Models\Account::where('status', 'Active')->count();
+        $suspendedAccounts = \App\Models\Account::where('status', 'Suspended')->count();
+        $closedAccounts = \App\Models\Account::where('status', 'Closed')->count();
+
         return response()->json([
             'data' => [
                 'total_businesses' => $businessCount,
                 'total_users' => $userCount,
                 'total_orders' => $ordersCount,
                 'total_devices' => $devicesCount,
+                'accounts' => [
+                    'total' => $totalAccounts,
+                    'active' => $activeAccounts,
+                    'suspended' => $suspendedAccounts,
+                    'closed' => $closedAccounts,
+                ],
             ]
         ]);
     }

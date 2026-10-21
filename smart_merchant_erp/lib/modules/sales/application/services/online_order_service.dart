@@ -1,9 +1,9 @@
 import 'package:dartz/dartz.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
-import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/sales_dao.dart';
 import '../../domain/repositories/sales_repository.dart';
+import 'order_status_feedback_service.dart';
 
 /// Application service for Online Order cashier review workflow.
 ///
@@ -21,8 +21,13 @@ import '../../domain/repositories/sales_repository.dart';
 class OnlineOrderService {
   final SalesRepository _salesRepository;
   final ApplicationContext _context;
+  final OrderStatusFeedbackService? _feedbackService;
 
-  OnlineOrderService(this._salesRepository, this._context);
+  OnlineOrderService(
+    this._salesRepository,
+    this._context, [
+    this._feedbackService,
+  ]);
 
   /// Accepts an online order by setting status to 'Confirmed'.
   ///
@@ -58,6 +63,13 @@ class OnlineOrderService {
 
       if (!updated) {
         return const Left(ValidationFailure('فشل تحديث حالة الطلب.'));
+      }
+
+      if (_feedbackService != null) {
+        await _feedbackService.sendFeedback(
+          orderId: orderId,
+          status: 'Confirmed',
+        );
       }
 
       return const Right(true);
@@ -97,6 +109,13 @@ class OnlineOrderService {
         return const Left(ValidationFailure('فشل تحديث حالة الطلب.'));
       }
 
+      if (_feedbackService != null) {
+        await _feedbackService.sendFeedback(
+          orderId: orderId,
+          status: 'Cancelled',
+        );
+      }
+
       return const Right(true);
     } catch (e) {
       return Left(UnexpectedFailure(e.toString()));
@@ -107,7 +126,11 @@ class OnlineOrderService {
   ///
   /// This MUST be called only after the actual sale transaction has been committed.
   /// Never call this before the sale succeeds.
-  Future<Either<Failure, bool>> markOrderFulfilled(String orderId) async {
+  Future<Either<Failure, bool>> markOrderFulfilled(
+    String orderId, {
+    String? invoiceId,
+    String? invoiceNumber,
+  }) async {
     final businessId = _context.currentBusinessId;
 
     try {
@@ -134,6 +157,16 @@ class OnlineOrderService {
 
       if (!updated) {
         return const Left(ValidationFailure('فشل تحديث حالة الطلب.'));
+      }
+
+      if (_feedbackService != null) {
+        await _feedbackService.sendFeedback(
+          orderId: orderId,
+          status: 'Delivered',
+          invoiceId: invoiceId,
+          invoiceNumber: invoiceNumber,
+          completedAt: DateTime.now().toIso8601String(),
+        );
       }
 
       return const Right(true);

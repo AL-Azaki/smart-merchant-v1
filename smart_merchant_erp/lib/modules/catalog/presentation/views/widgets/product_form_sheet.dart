@@ -57,7 +57,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   String _currencyId = '';
   String? _openingWarehouseId;
   bool _isActive = true;
-  bool _showInStore = false;
+  bool _showInStore = true;
   bool _trackStock = true;
 
   File? _selectedImage;
@@ -104,7 +104,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
     _currencyId = widget.product?['currency_id']?.toString() ?? '';
     _openingWarehouseId = widget.product?['opening_warehouse_id']?.toString();
     _isActive = (widget.product?['is_active'] as bool?) ?? true;
-    _showInStore = (widget.product?['show_in_store'] as bool?) ?? false;
+    _showInStore = (widget.product?['show_in_store'] as bool?) ?? true;
     _trackStock = (widget.product?['track_stock'] as bool?) ?? true;
 
     if (widget.product != null &&
@@ -385,7 +385,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
           _selectedImage = null;
           _originalImagePath = null;
           _isActive = true;
-          _showInStore = false;
+          _showInStore = true;
         });
         _nameFocus.requestFocus();
         final fieldContext = _nameFieldKey.currentContext;
@@ -521,6 +521,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final isEdit = widget.product != null;
     final categoriesAsync = ref.watch(categoriesNotifierProvider);
     final unitsAsync = ref.watch(unitsNotifierProvider);
@@ -719,7 +720,48 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
                                 setState(() => _openingWarehouseId = v),
                           ),
                       ]),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _showInStore
+                              ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                              : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: _showInStore
+                                ? theme.colorScheme.primary.withValues(alpha: 0.35)
+                                : theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          secondary: Icon(
+                            Icons.storefront_rounded,
+                            color: _showInStore
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.onSurfaceVariant,
+                            size: 26,
+                          ),
+                          title: const Text(
+                            'إظهار في المتجر الإلكتروني',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                          subtitle: const Text(
+                            'نشر هذا المنتج في المتجر الإلكتروني ليظهر لجميع العملاء فور المزامنة',
+                            style: TextStyle(fontSize: 12),
+                          ),
+                          value: _showInStore,
+                          onChanged: (v) => setState(() => _showInStore = v),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
                       const Divider(height: 1),
                       ExpansionTile(
                         tilePadding: EdgeInsets.zero,

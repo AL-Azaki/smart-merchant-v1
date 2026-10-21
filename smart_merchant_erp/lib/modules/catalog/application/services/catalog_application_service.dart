@@ -97,7 +97,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, String>> saveProduct(ProductCommand command) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -105,21 +105,32 @@ class CatalogApplicationService {
       final isNew = command.id == null || command.id!.isEmpty;
       final productId = isNew ? _uuid.v4() : command.id!;
 
+      final existingProduct = isNew
+          ? null
+          : await _catalogRepository.getProductById(productId, businessId);
+
+      final productCode = (command.sku != null && command.sku!.isNotEmpty)
+          ? command.sku!
+          : (existingProduct?.productCode ??
+                'PRD-${DateTime.now().millisecondsSinceEpoch}');
+
+      final newVersion = isNew ? 1 : (existingProduct?.version ?? 0) + 1;
+
       final companion = ProductsCompanion(
         id: drift.Value(productId),
         businessId: drift.Value(businessId),
         categoryId: drift.Value(command.categoryId),
         currencyId: drift.Value(command.currencyId),
         productName: drift.Value(command.name),
-        productCode: drift.Value(
-          command.sku ?? 'PRD-${DateTime.now().millisecondsSinceEpoch}',
-        ),
+        productCode: drift.Value(productCode),
         description: drift.Value(command.description),
         isActive: drift.Value(command.isActive),
         showInStore: drift.Value(command.showInStore),
         syncStatus: const drift.Value('pending'),
+        version: drift.Value(newVersion),
+        updatedAt: drift.Value(DateTime.now()),
       );
-      List<ProductImagesCompanion> images = [];
+      final List<ProductImagesCompanion> images = [];
       if (command.imagePath != null && command.imagePath!.isNotEmpty) {
         images.add(
           ProductImagesCompanion(
@@ -168,7 +179,7 @@ class CatalogApplicationService {
         if (images.isNotEmpty) {
           final existingImages = await _catalogRepository
               .getProductImagesByProductId(productId);
-          for (var img in existingImages) {
+          for (final img in existingImages) {
             await _catalogRepository.deleteProductImage(img.id);
           }
           await _catalogRepository.insertProductImage(images.first);
@@ -183,11 +194,20 @@ class CatalogApplicationService {
             await _catalogRepository.updateProductUnit(
               ProductUnitsCompanion(
                 id: drift.Value(existingBase.id),
+                businessId: drift.Value(businessId),
+                productId: drift.Value(productId),
+                unitId: drift.Value(command.unitId!),
                 barcode: drift.Value(command.barcode),
+                sku: drift.Value(existingBase.sku),
+                conversionFactor: drift.Value(existingBase.conversionFactor),
+                isBaseUnit: drift.Value(existingBase.isBaseUnit),
+                isActive: drift.Value(existingBase.isActive),
                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
-                unitId: drift.Value(command.unitId!),
+                minimumPrice: drift.Value(existingBase.minimumPrice),
                 syncStatus: const drift.Value('pending'),
+                version: drift.Value(existingBase.version + 1),
+                updatedAt: drift.Value(DateTime.now()),
               ),
             );
           } else {
@@ -242,7 +262,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, Unit>> deleteProduct(String id) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -256,7 +276,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, String>> saveCategory(CategoryCommand command) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -296,7 +316,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, Unit>> deleteCategory(String id) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -310,7 +330,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, String>> saveUnit(UnitCommand command) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 
@@ -342,7 +362,7 @@ class CatalogApplicationService {
 
   Future<Either<Failure, Unit>> deleteUnit(String id) async {
     final businessId = _context.currentBusinessId;
-    if (businessId == null) {
+    if (businessId.isEmpty) {
       return const Left(ValidationFailure('Business ID is required.'));
     }
 

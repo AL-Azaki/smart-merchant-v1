@@ -7,11 +7,13 @@ import 'settings_card_widget.dart';
 class SettingsGroupSectionWidget extends StatelessWidget {
   final SettingsGroupModel group;
   final void Function(SettingsCardItemModel) onCardTap;
+  final double? mainAxisExtent;
 
   const SettingsGroupSectionWidget({
-    super.key,
     required this.group,
     required this.onCardTap,
+    super.key,
+    this.mainAxisExtent,
   });
 
   @override
@@ -25,14 +27,18 @@ class SettingsGroupSectionWidget extends StatelessWidget {
         // Group Header Title & Line
         Row(
           children: [
-            Text(
-              group.title,
-              style: TextStyle(
-                fontSize: 19,
-                fontWeight: FontWeight.w900,
-                color: isDark
-                    ? AppColors.textPrimaryDark
-                    : AppColors.textPrimaryLight,
+            Flexible(
+              flex: 5,
+              child: Text(
+                group.title,
+                style: TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                  color: isDark
+                      ? AppColors.textPrimaryDark
+                      : AppColors.textPrimaryLight,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -51,6 +57,13 @@ class SettingsGroupSectionWidget extends StatelessWidget {
             } else if (width > 680) {
               crossAxisCount = 2;
             }
+            final hasStats = group.cards.any((c) => c.stats.isNotEmpty);
+            final double effectiveExtent;
+            if (width <= 700) {
+              effectiveExtent = hasStats ? 230.0 : 185.0;
+            } else {
+              effectiveExtent = mainAxisExtent ?? (hasStats ? 210.0 : 185.0);
+            }
 
             return GridView.builder(
               shrinkWrap: true,
@@ -60,7 +73,7 @@ class SettingsGroupSectionWidget extends StatelessWidget {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: AppSpacing.lg,
                 mainAxisSpacing: AppSpacing.lg,
-                mainAxisExtent: width <= 700 ? 215 : 185,
+                mainAxisExtent: effectiveExtent,
               ),
               itemBuilder: (context, index) {
                 final cardItem = group.cards[index];

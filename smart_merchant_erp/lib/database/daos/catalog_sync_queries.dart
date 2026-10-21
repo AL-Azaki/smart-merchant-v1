@@ -7,36 +7,55 @@ import 'catalog_dao.dart';
 extension CatalogSyncQueries on CatalogDao {
   // ── Pending sync queries ─────────────────────────────────
 
-  Future<List<Category>> listPendingSyncCategories() {
-    return (select(
-      categories,
-    )..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<Category>> listPendingSyncCategories([String? businessId]) {
+    final query = select(categories)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      query.where((t) => t.businessId.equals(businessId));
+    }
+    return query.get();
   }
 
-  Future<List<Brand>> listPendingSyncBrands() {
-    return (select(brands)..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<Brand>> listPendingSyncBrands([String? businessId]) {
+    final query = select(brands)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      query.where((t) => t.businessId.equals(businessId));
+    }
+    return query.get();
   }
 
-  Future<List<Unit>> listPendingSyncUnits() {
-    return (select(units)..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<Unit>> listPendingSyncUnits([String? businessId]) {
+    final query = select(units)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      query.where((t) => t.businessId.equals(businessId));
+    }
+    return query.get();
   }
 
-  Future<List<Product>> listPendingSyncProducts() {
-    return (select(
-      products,
-    )..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<Product>> listPendingSyncProducts([String? businessId]) {
+    final query = select(products)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      query.where((t) => t.businessId.equals(businessId));
+    }
+    return query.get();
   }
 
-  Future<List<ProductUnit>> listPendingSyncProductUnits() {
-    return (select(
-      productUnits,
-    )..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<ProductUnit>> listPendingSyncProductUnits([String? businessId]) {
+    final query = select(productUnits)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      query.where((t) => t.businessId.equals(businessId));
+    }
+    return query.get();
   }
 
-  Future<List<ProductImage>> listPendingSyncProductImages() {
-    return (select(
-      productImages,
-    )..where((t) => t.syncStatus.equals('pending'))).get();
+  Future<List<ProductImage>> listPendingSyncProductImages([String? businessId]) {
+    final query = select(productImages)..where((t) => t.syncStatus.isNotValue('synced'));
+    if (businessId != null) {
+      final productSubquery = selectOnly(products)
+        ..addColumns([products.id])
+        ..where(products.businessId.equals(businessId));
+      query.where((t) => t.productId.isInQuery(productSubquery));
+    }
+    return query.get();
   }
 
   // ── Mark synced ──────────────────────────────────────────

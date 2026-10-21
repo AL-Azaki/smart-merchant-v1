@@ -28,16 +28,66 @@ extension SalesSyncQueries on SalesDao {
     }
     orderDate ??= DateTime.now();
 
+    double parseDouble(dynamic val, [double defaultVal = 0.0]) {
+      if (val == null) return defaultVal;
+      if (val is num) return val.toDouble();
+      return double.tryParse(val.toString()) ?? defaultVal;
+    }
+
+    int parseInt(dynamic val, [int defaultVal = 1]) {
+      if (val == null) return defaultVal;
+      if (val is num) return val.toInt();
+      return int.tryParse(val.toString()) ?? defaultVal;
+    }
+
     final currencyId = json['currency_id']?.toString() ?? '';
-    final exchangeRate = (json['exchange_rate'] as num?)?.toDouble() ?? 1.0;
-    final subTotal = (json['sub_total'] as num?)?.toDouble() ?? 0.0;
-    final discountTotal = (json['discount_total'] as num?)?.toDouble() ?? 0.0;
-    final taxTotal = (json['tax_total'] as num?)?.toDouble() ?? 0.0;
-    final grandTotal = (json['grand_total'] as num?)?.toDouble() ?? 0.0;
+    final exchangeRate = parseDouble(json['exchange_rate'], 1.0);
+    final subTotal = parseDouble(json['sub_total'], 0.0);
+    final discountTotal = parseDouble(json['discount_total'], 0.0);
+    final taxTotal = parseDouble(json['tax_total'], 0.0);
+    final grandTotal = parseDouble(json['grand_total'], 0.0);
     final status = json['status']?.toString() ?? 'Pending';
     final customerId = json['customer_id']?.toString();
     final notes = json['notes']?.toString();
-    final revision = json['revision'] as int? ?? 1;
+    final revision = parseInt(json['revision'], 1);
+
+    // Resolve currencyId: must exist in local currencies table
+    String resolvedCurrencyId = currencyId;
+    final existingCurr = await (attachedDatabase.select(attachedDatabase.currencies)
+          ..where((c) => c.id.equals(resolvedCurrencyId)))
+        .getSingleOrNull();
+    if (existingCurr == null) {
+      // Fallback to base currency or first available currency locally
+      final baseCurr = await (attachedDatabase.select(attachedDatabase.currencies)
+            ..where((c) => c.isBaseCurrency.equals(true)))
+          .getSingleOrNull()
+          ?? await (attachedDatabase.select(attachedDatabase.currencies)..limit(1)).getSingleOrNull();
+      if (baseCurr != null) {
+        resolvedCurrencyId = baseCurr.id;
+      }
+    }
+
+    // Ensure the channel exists locally to satisfy FK (business_id, channel_id)
+    if (channelId.isNotEmpty) {
+      final existingChannel = await (select(channels)
+            ..where((c) => c.businessId.equals(businessId) & c.id.equals(channelId)))
+          .getSingleOrNull();
+      if (existingChannel == null) {
+        await into(channels).insert(
+          ChannelsCompanion.insert(
+            id: channelId,
+            businessId: businessId,
+            channelName: 'Online Store',
+            channelCode: 'ONLINE-STORE-01',
+            channelType: 'Ecommerce',
+            isActive: const Value(true),
+            syncStatus: const Value('synced'),
+            version: const Value(1),
+          ),
+          mode: InsertMode.insertOrIgnore,
+        );
+      }
+    }
 
     await into(orders).insert(
       OrdersCompanion.insert(
@@ -47,7 +97,7 @@ extension SalesSyncQueries on SalesDao {
         channelId: channelId,
         orderNumber: orderNumber,
         orderDate: Value(orderDate),
-        currencyId: currencyId,
+        currencyId: resolvedCurrencyId,
         exchangeRate: Value(exchangeRate),
         subTotal: Value(subTotal),
         discountTotal: Value(discountTotal),
@@ -69,13 +119,13 @@ extension SalesSyncQueries on SalesDao {
         if (item is Map<String, dynamic>) {
           final itemId = item['id']?.toString() ?? _uuid.v4();
           final productUnitId = item['product_unit_id']?.toString() ?? '';
-          final quantity = (item['quantity'] as num?)?.toDouble() ?? 0.0;
-          final unitPrice = (item['unit_price'] as num?)?.toDouble() ?? 0.0;
-          final discount = (item['discount'] as num?)?.toDouble() ?? 0.0;
-          final tax = (item['tax'] as num?)?.toDouble() ?? 0.0;
-          final lineTotal =
-              (item['line_total'] as num?)?.toDouble() ??
-              (quantity * unitPrice);
+          final quantity = parseDouble(item['quantity'], 0.0);
+          final unitPrice = parseDouble(item['unit_price'], 0.0);
+          final discount = parseDouble(item['discount'], 0.0);
+          final tax = parseDouble(item['tax'], 0.0);
+          final lineTotal = item['line_total'] != null
+              ? parseDouble(item['line_total'], quantity * unitPrice)
+              : (quantity * unitPrice);
 
           await into(orderItems).insert(
             OrderItemsCompanion.insert(

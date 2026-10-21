@@ -18,6 +18,7 @@ class ProductFactory extends Factory
             'product_code' => Str::random(10),
             'product_name' => $this->faker->word(),
             'is_active' => true,
+            'show_in_store' => true,
             'revision' => 1,
         ];
     }

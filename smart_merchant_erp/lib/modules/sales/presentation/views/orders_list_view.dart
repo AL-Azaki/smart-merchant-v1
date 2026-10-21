@@ -11,6 +11,7 @@ import '../../../authentication/presentation/providers/session_provider.dart';
 import '../../application/services/online_order_service.dart';
 import '../../../../app/di/getit_instance.dart';
 import '../layouts/sales_layout.dart';
+import '../../../platform/presentation/providers/sync_provider.dart';
 
 class OrdersListView extends ConsumerWidget {
   const OrdersListView({super.key});
@@ -233,6 +234,15 @@ class OrdersListView extends ConsumerWidget {
             actionState.statusFilter,
             isDark,
             badgeColor: AppColors.info,
+          ),
+          const SizedBox(width: 12),
+          IconButton(
+            tooltip: 'مزامنة وتحديث الطلبات',
+            icon: const Icon(Icons.sync_rounded),
+            color: AppColors.primary,
+            onPressed: () async {
+              await ref.read(syncNotifierProvider.notifier).syncNow();
+            },
           ),
         ],
       ),

@@ -11,7 +11,32 @@ class Business extends Model
 {
     use HasFactory, HasUuids, SoftDeletes;
 
-    protected $fillable = ['account_id', 'business_name', 'business_type', 'primary_phone', 'primary_email', 'logo_path', 'status', 'revision', 'storefront_slug'];
+    protected $fillable = [
+        'account_id',
+        'business_name',
+        'business_type',
+        'primary_phone',
+        'primary_email',
+        'logo_path',
+        'status',
+        'revision',
+        'storefront_slug',
+        'storefront_display_name',
+        'storefront_active',
+        'storefront_whatsapp',
+        'storefront_phone',
+        'storefront_address_text',
+        'storefront_lat',
+        'storefront_lng',
+        'storefront_theme_settings',
+    ];
+
+    protected $casts = [
+        'storefront_active' => 'boolean',
+        'storefront_lat' => 'decimal:7',
+        'storefront_lng' => 'decimal:7',
+        'storefront_theme_settings' => 'array',
+    ];
 
     public function account()
     {

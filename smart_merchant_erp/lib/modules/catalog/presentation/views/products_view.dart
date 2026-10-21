@@ -1,3 +1,4 @@
+import 'dart:async' show unawaited;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
@@ -12,6 +13,8 @@ import 'widgets/product_form_sheet.dart';
 import 'widgets/product_details_dialog.dart';
 import 'widgets/products_table.dart';
 import 'widgets/catalog_formatters.dart';
+import '../../../platform/presentation/providers/sync_provider.dart';
+import '../../../../kernel/sync/coordinator/sync_coordinator.dart' show SyncStatus;
 
 class ProductsView extends ConsumerStatefulWidget {
   const ProductsView({super.key});
@@ -68,6 +71,7 @@ class _ProductsViewState extends ConsumerState<ProductsView>
               : '');
     }
 
+    final syncState = ref.watch(syncNotifierProvider);
     final border = theme.brightness == Brightness.dark
         ? AppColors.borderDark
         : AppColors.borderLight;
@@ -160,10 +164,47 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                         ),
                       ),
                       const SizedBox(width: 8),
+                      Tooltip(
+                        message: 'مزامنة مع المتجر الإلكتروني',
+                        child: OutlinedButton.icon(
+                          onPressed: syncState.isSyncing
+                              ? null
+                              : () => _triggerStoreSync(context),
+                          icon: syncState.isSyncing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.sync_rounded, size: 19),
+                          label: Text(
+                            syncState.isSyncing
+                                ? 'جاري...'
+                                : (MediaQuery.sizeOf(context).width < 420
+                                    ? 'مزامنة'
+                                    : 'مزامنة المتجر'),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
                       FilledButton.icon(
                         onPressed: () => _openProductFormSheet(context),
                         icon: const Icon(Icons.add_rounded, size: 20),
-                        label: const Text('إضافة منتج'),
+                        label: Text(
+                          MediaQuery.sizeOf(context).width < 420
+                              ? 'إضافة'
+                              : 'إضافة منتج',
+                        ),
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 48),
                           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -532,6 +573,8 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                   if (id == null) {
                     throw StateError('Product save failed');
                   }
+                  // Automatically synchronize to online storefront in background
+                  unawaited(ref.read(syncNotifierProvider.notifier).syncNow());
                 }
               : null,
           product: item != null
@@ -564,10 +607,154 @@ class _ProductsViewState extends ConsumerState<ProductsView>
             if (ctx.mounted) {
               Navigator.pop(ctx);
             }
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'تم حفظ المنتج بنجاح. جاري المزامنة مع المتجر الإلكتروني...',
+                  ),
+                  action: SnackBarAction(
+                    label: 'مزامنة الآن',
+                    onPressed: () => _triggerStoreSync(context),
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+              // Trigger sync immediately in background
+              unawaited(ref.read(syncNotifierProvider.notifier).syncNow());
+            }
           },
         ),
       ),
     );
+  }
+
+  Future<void> _triggerStoreSync(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 12),
+            Text('جاري مزامنة المنتجات مع المتجر الإلكتروني...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+
+    try {
+      await ref.read(syncNotifierProvider.notifier).syncNow();
+      final syncState = ref.read(syncNotifierProvider);
+
+      if (!context.mounted) {
+        return;
+      }
+      messenger.hideCurrentSnackBar();
+
+      if (syncState.status == SyncStatus.success) {
+        final pushed = syncState.lastSyncResult?.pushedCount ?? 0;
+        messenger.showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF16A34A),
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    pushed > 0
+                        ? 'تمت مزامنة $pushed عنصر بنجاح مع المتجر الإلكتروني!'
+                        : 'المتجر الإلكتروني محدّث بالكامل وكل المنتجات متزامنة.',
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else if (syncState.isOffline) {
+        messenger.showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFFEAB308),
+            content: Row(
+              children: [
+                Icon(Icons.wifi_off_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'أنت في وضع عدم الاتصال. سيتم ترحيل المنتجات للمتجر عند توفر الإنترنت.',
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else if (syncState.needsAuth) {
+        messenger.showSnackBar(
+          const SnackBar(
+            backgroundColor: Color(0xFFDC2626),
+            content: Row(
+              children: [
+                Icon(Icons.lock_outline_rounded, color: Colors.white),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'يجب تسجيل الدخول لمزامنة المنتجات مع المتجر الإلكتروني.',
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        final err = syncState.lastSyncResult?.failures.firstOrNull?.message;
+        messenger.showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    err != null && err.isNotEmpty
+                        ? 'فشلت المزامنة: $err'
+                        : 'حدث خطأ أثناء المزامنة مع المتجر. تأكد من اتصال الخادم.',
+                  ),
+                ),
+              ],
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          backgroundColor: const Color(0xFFDC2626),
+          content: Text('خطأ غير متوقع: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _confirmDeleteProduct(BuildContext context, CatalogProductItem item) {

@@ -17,6 +17,7 @@ class BusinessFactory extends Factory
             'business_name' => $this->faker->company(),
             'business_type' => 'Retail',
             'status' => 'Active',
+            'storefront_active' => true,
             'revision' => 1,
         ];
     }

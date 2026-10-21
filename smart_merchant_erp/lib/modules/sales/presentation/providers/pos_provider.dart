@@ -426,7 +426,7 @@ class PosNotifier extends _$PosNotifier {
         // ONLY after CompleteSaleUseCase successfully committed.
         if (state.sourceOrderId != null) {
           final service = getIt<OnlineOrderService>();
-          await service.markOrderFulfilled(state.sourceOrderId!);
+          await service.markOrderFulfilled(state.sourceOrderId!, invoiceId: invoiceId);
         }
 
         // Refresh products catalog in POS to reflect updated inventory stock
