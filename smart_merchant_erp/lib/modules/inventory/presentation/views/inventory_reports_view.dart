@@ -40,8 +40,11 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
 
     final filter = ref.watch(inventoryReportFilterProvider);
     final filterNotifier = ref.read(inventoryReportFilterProvider.notifier);
-    final reportAsync = ref.watch(inventoryReportDataProvider);
+    final isMovement = filter.reportType == 'stockMovement';
+    final reportAsync = isMovement ? null : ref.watch(inventoryReportDataProvider);
+    final movementAsync = isMovement ? ref.watch(stockMovementReportDataProvider) : null;
     final warehousesAsync = ref.watch(activeWarehousesProvider);
+    final productsAsync = ref.watch(warehouseProductsProvider(filter.warehouseId));
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -75,11 +78,13 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'التقارير المخزنية وجرد الكميات',
+                          isMovement ? 'تقرير حركة المخزون (كشف الوارد والصادر)' : 'التقارير المخزنية وجرد الكميات',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimary),
                         ),
                         Text(
-                          'معاينة حية للكميات المتوفرة، تقييم التكلفة والبيع، وطباعة كشوفات الجرد الرسمية',
+                          isMovement
+                              ? 'سجل الحركات التفصيلية للأصناف والمخازن مع رصيد أول المدة، الوارد، الصادر، والرصيد التراكمي'
+                              : 'معاينة حية للكميات المتوفرة، تقييم التكلفة والبيع، وطباعة كشوفات الجرد الرسمية',
                           style: TextStyle(fontSize: 12, color: textSecondary),
                         ),
                       ],
@@ -87,56 +92,108 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
                   ),
 
                   // Actions: Print Preview & Direct Print
-                  reportAsync.maybeWhen(
-                    data: (summary) => Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E3A8A),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  if (isMovement)
+                    movementAsync?.maybeWhen(
+                      data: (movSummary) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.preview_rounded, size: 18),
+                            label: const Text('معاينة قبل الطباعة', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () => InventoryReportPdfService.showMovementPreviewDialog(
+                              context: context,
+                              summary: movSummary,
+                            ),
                           ),
-                          icon: const Icon(Icons.preview_rounded, size: 18),
-                          label: const Text('معاينة قبل الطباعة', style: TextStyle(fontWeight: FontWeight.bold)),
-                          onPressed: () => InventoryReportPdfService.showPreviewDialog(
-                            context: context,
-                            summary: summary,
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF1E3A8A),
+                              side: const BorderSide(color: Color(0xFF1E3A8A)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.print_rounded, size: 18),
+                            label: const Text('طباعة فورية', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () => InventoryReportPdfService.printMovementDirect(
+                              context: context,
+                              summary: movSummary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF1E3A8A),
-                            side: const BorderSide(color: Color(0xFF1E3A8A)),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            style: IconButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.all(12),
+                            ),
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            tooltip: 'مشاركة PDF',
+                            onPressed: () => InventoryReportPdfService.shareMovementDirect(
+                              context: context,
+                              summary: movSummary,
+                            ),
                           ),
-                          icon: const Icon(Icons.print_rounded, size: 18),
-                          label: const Text('طباعة فورية', style: TextStyle(fontWeight: FontWeight.bold)),
-                          onPressed: () => InventoryReportPdfService.printDirect(
-                            context: context,
-                            summary: summary,
+                        ],
+                      ),
+                      orElse: () => const SizedBox.shrink(),
+                    ) ?? const SizedBox.shrink()
+                  else
+                    reportAsync?.maybeWhen(
+                      data: (summary) => Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E3A8A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.preview_rounded, size: 18),
+                            label: const Text('معاينة قبل الطباعة', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () => InventoryReportPdfService.showPreviewDialog(
+                              context: context,
+                              summary: summary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filledTonal(
-                          style: IconButton.styleFrom(
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            padding: const EdgeInsets.all(12),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF1E3A8A),
+                              side: const BorderSide(color: Color(0xFF1E3A8A)),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.print_rounded, size: 18),
+                            label: const Text('طباعة فورية', style: TextStyle(fontWeight: FontWeight.bold)),
+                            onPressed: () => InventoryReportPdfService.printDirect(
+                              context: context,
+                              summary: summary,
+                            ),
                           ),
-                          icon: const Icon(Icons.share_rounded, size: 18),
-                          tooltip: 'مشاركة PDF',
-                          onPressed: () => InventoryReportPdfService.shareDirect(
-                            context: context,
-                            summary: summary,
+                          const SizedBox(width: 8),
+                          IconButton.filledTonal(
+                            style: IconButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.all(12),
+                            ),
+                            icon: const Icon(Icons.share_rounded, size: 18),
+                            tooltip: 'مشاركة PDF',
+                            onPressed: () => InventoryReportPdfService.shareDirect(
+                              context: context,
+                              summary: summary,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    orElse: () => const SizedBox.shrink(),
-                  ),
+                        ],
+                      ),
+                      orElse: () => const SizedBox.shrink(),
+                    ) ?? const SizedBox.shrink(),
                 ],
               ),
             ),
@@ -196,6 +253,35 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
                       ),
                       const SizedBox(width: 10),
 
+                      // Dynamic Product Selector Dropdown (Shown when reportType == 'stockMovement')
+                      if (isMovement) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: filter.productId,
+                              icon: const Icon(Icons.inventory_2_rounded, size: 18),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
+                              onChanged: (val) {
+                                if (val != null) filterNotifier.setProduct(val);
+                              },
+                              items: [
+                                const DropdownMenuItem(value: 'all', child: Text('جميع أصناف المخزن')),
+                                ...?productsAsync.value?.map(
+                                  (p) => DropdownMenuItem(value: p.id, child: Text('${p.name} (${p.code})')),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
+
                       // Report Type Dropdown
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -218,6 +304,7 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
                               DropdownMenuItem(value: 'lowStock', child: Text('3. تقرير النواقص وحد الطلب')),
                               DropdownMenuItem(value: 'allItems', child: Text('4. تقرير الجرد الشامل لكافة الأصناف')),
                               DropdownMenuItem(value: 'negativeStock', child: Text('5. تقرير الأصناف ذات الرصيد السالب')),
+                              DropdownMenuItem(value: 'stockMovement', child: Text('6. تقرير حركة المخزون / الصنف (وارد / صادر / رصيد)')),
                             ],
                           ),
                         ),
@@ -271,12 +358,27 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
 
             // ── Main Content Area ──
             Expanded(
-              child: reportAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(
-                  child: Text('خطأ في تحميل التقرير المخزني: $err', style: const TextStyle(color: Colors.red)),
-                ),
-                data: (summary) {
+              child: isMovement
+                  ? movementAsync!.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(
+                        child: Text('خطأ في تحميل كشف حركة المخزون: $err', style: const TextStyle(color: Colors.red)),
+                      ),
+                      data: (movSummary) => _buildMovementContent(
+                        movSummary,
+                        surface,
+                        borderColor,
+                        textPrimary,
+                        textSecondary,
+                        isDark,
+                      ),
+                    )
+                  : reportAsync!.when(
+                      loading: () => const Center(child: CircularProgressIndicator()),
+                      error: (err, stack) => Center(
+                        child: Text('خطأ في تحميل التقرير المخزني: $err', style: const TextStyle(color: Colors.red)),
+                      ),
+                      data: (summary) {
                   return Column(
                     children: [
                       // KPI Metrics Row
@@ -460,6 +562,300 @@ class _InventoryReportsViewState extends ConsumerState<InventoryReportsView> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMovementContent(
+    StockMovementReportSummary summary,
+    Color surface,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+    bool isDark,
+  ) {
+    return Column(
+      children: [
+        // Movement KPI Row (4 Cards)
+        _buildMovementKpiRow(summary, surface, borderColor, textPrimary, textSecondary),
+        const SizedBox(height: 14),
+
+        // Movement Data Table
+        Expanded(
+          child: Container(
+            decoration: BoxDecoration(
+              color: surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Table Header Bar
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                    border: Border(bottom: BorderSide(color: borderColor)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.swap_horiz_rounded, color: Color(0xFF1E3A8A), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        'كشف حركة المخزون: ${summary.selectedProductName} (${summary.selectedWarehouseName})',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimary),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'عدد الحركات: ${summary.movements.length}',
+                        style: TextStyle(fontSize: 12, color: textSecondary, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Table Rows
+                if (summary.movements.isEmpty)
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        'لا توجد حركات مخزنية مسجلة خلال الفترة المحددة',
+                        style: TextStyle(color: Colors.grey, fontSize: 14),
+                      ),
+                    ),
+                  )
+                else
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          headingRowHeight: 42,
+                          dataRowMinHeight: 44,
+                          dataRowMaxHeight: 44,
+                          headingRowColor: WidgetStateProperty.all(
+                            isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
+                          ),
+                          columns: const [
+                            DataColumn(label: Text('#', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('التاريخ والوقت', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('نوع الحركة', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('الصنف / الوحدة', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(label: Text('الجهة / البيان', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(numeric: true, label: Text('الوارد (+)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(numeric: true, label: Text('الصادر (-)', style: TextStyle(fontWeight: FontWeight.bold))),
+                            DataColumn(numeric: true, label: Text('الرصيد الحالي', style: TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                          rows: summary.movements.asMap().entries.map((entry) {
+                            final idx = entry.key + 1;
+                            final m = entry.value;
+                            return DataRow(
+                              cells: [
+                                DataCell(Text('$idx', style: const TextStyle(fontWeight: FontWeight.bold))),
+                                DataCell(Text(DateFormat('yyyy-MM-dd HH:mm').format(m.date), style: const TextStyle(fontFamily: 'monospace'))),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1E3A8A).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      m.movementType,
+                                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF1E3A8A)),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(m.productName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                                      Text('${m.productCode} • ${m.unitName}', style: TextStyle(color: textSecondary, fontSize: 10)),
+                                    ],
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    '${m.partyName} ${m.referenceNumber.isNotEmpty ? "[${m.referenceNumber}]" : ""}',
+                                    style: TextStyle(color: textPrimary, fontSize: 12),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    m.inQty > 0 ? '+${_qtyFormat.format(m.inQty)}' : '-',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: m.inQty > 0 ? const Color(0xFF16A34A) : textSecondary,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(
+                                    m.outQty > 0 ? '-${_qtyFormat.format(m.outQty)}' : '-',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: m.outQty > 0 ? const Color(0xFFDC2626) : textSecondary,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: borderColor),
+                                    ),
+                                    child: Text(
+                                      _qtyFormat.format(m.runningBalance),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: m.runningBalance < 0 ? Colors.red : textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Bottom Sticky Total Row for Movement
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(15)),
+                    border: Border(top: BorderSide(color: borderColor)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF1E3A8A)),
+                          const SizedBox(width: 6),
+                          Text(
+                            'ملخص الفترة (${summary.dateFilterTitle}):',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          Text(
+                            'رصيد أول المدة: ${_qtyFormat.format(summary.openingBalance)}',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: textSecondary),
+                          ),
+                          const SizedBox(width: 20),
+                          Text(
+                            'إجمالي الوارد: +${_qtyFormat.format(summary.totalIn)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF16A34A)),
+                          ),
+                          const SizedBox(width: 20),
+                          Text(
+                            'إجمالي الصادر: -${_qtyFormat.format(summary.totalOut)}',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFFDC2626)),
+                          ),
+                          const SizedBox(width: 20),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E3A8A),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'الرصيد الحالي (نهاية المدة): ${_qtyFormat.format(summary.closingBalance)}',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMovementKpiRow(
+    StockMovementReportSummary summary,
+    Color surface,
+    Color borderColor,
+    Color textPrimary,
+    Color textSecondary,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = (constraints.maxWidth - 30) / 4;
+        return Row(
+          children: [
+            _buildKpiCard(
+              title: 'رصيد أول المدة',
+              value: _qtyFormat.format(summary.openingBalance),
+              subtitle: 'الرصيد الافتتاحي السابق',
+              color: const Color(0xFF64748B),
+              icon: Icons.history_rounded,
+              width: cardWidth,
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+            ),
+            const SizedBox(width: 10),
+            _buildKpiCard(
+              title: 'إجمالي الوارد (+)',
+              value: '+${_qtyFormat.format(summary.totalIn)}',
+              subtitle: 'المشتريات والتحويلات الواردة',
+              color: const Color(0xFF16A34A),
+              icon: Icons.arrow_downward_rounded,
+              width: cardWidth,
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isHighlight: true,
+            ),
+            const SizedBox(width: 10),
+            _buildKpiCard(
+              title: 'إجمالي الصادر (-)',
+              value: '-${_qtyFormat.format(summary.totalOut)}',
+              subtitle: 'المبيعات والتحويلات الصادرة',
+              color: const Color(0xFFDC2626),
+              icon: Icons.arrow_upward_rounded,
+              width: cardWidth,
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+            ),
+            const SizedBox(width: 10),
+            _buildKpiCard(
+              title: 'الرصيد الحالي (الختامي)',
+              value: _qtyFormat.format(summary.closingBalance),
+              subtitle: 'رصيد الصنف نهاية الفترة',
+              color: const Color(0xFF1E3A8A),
+              icon: Icons.account_balance_wallet_rounded,
+              width: cardWidth,
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isHighlight: true,
+            ),
+          ],
+        );
+      },
     );
   }
 

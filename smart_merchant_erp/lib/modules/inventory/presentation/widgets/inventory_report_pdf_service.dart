@@ -51,10 +51,6 @@ class InventoryReportPdfService {
       _arabicRegular ??= await PdfGoogleFonts.cairoRegular();
       _arabicBold ??= await PdfGoogleFonts.cairoBold();
     } catch (_) {}
-
-    // Final fallback to default if all else fails
-    _arabicRegular ??= pw.Font.courier();
-    _arabicBold ??= pw.Font.courierBold();
   }
 
   static pw.TextStyle _ts({
@@ -104,12 +100,7 @@ class InventoryReportPdfService {
   }) async {
     await _loadFonts();
     final info = await _getBusinessInfo();
-    final pdf = pw.Document(
-      theme: pw.ThemeData.withFont(
-        base: _arabicRegular,
-        bold: _arabicBold,
-      ),
-    );
+    final pdf = pw.Document();
 
     final dateStr = _dateFormat.format(summary.generatedAt);
     final reportMainTitle =
@@ -285,7 +276,7 @@ class InventoryReportPdfService {
                 child: pw.Center(
                   child: pw.Text(
                     'ERP',
-                    style: _ts(size: 14, bold: true, color: PdfColors.white),
+                    style: pw.TextStyle(color: PdfColors.white, fontSize: 14, fontWeight: pw.FontWeight.bold),
                   ),
                 ),
               ),
@@ -472,6 +463,268 @@ class InventoryReportPdfService {
     await Printing.sharePdf(
       bytes: bytes,
       filename: 'تقرير_مخزني_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+    );
+  }
+
+  /// Generates Stock Movement Ledger PDF Document (Landscape A4)
+  static Future<pw.Document> generateMovementDocument({
+    required StockMovementReportSummary summary,
+  }) async {
+    await _loadFonts();
+    final info = await _getBusinessInfo();
+    final pdf = pw.Document(
+      theme: pw.ThemeData.withFont(
+        base: _arabicRegular,
+        bold: _arabicBold,
+      ),
+    );
+
+    final dateStr = _dateFormat.format(summary.generatedAt);
+    final reportMainTitle =
+        'كشف حركة المخزون (الوارد / الصادر / الرصيد) - $dateStr\nالمخزن: ${summary.selectedWarehouseName} | الصنف: ${summary.selectedProductName}';
+
+    pdf.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        orientation: pw.PageOrientation.landscape,
+        textDirection: pw.TextDirection.rtl,
+        margin: const pw.EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+        header: (ctx) => _buildHeader(info, reportMainTitle, ctx.pageNumber, ctx.pagesCount),
+        footer: (ctx) => _buildFooter(ctx.pageNumber, ctx.pagesCount),
+        build: (ctx) => [
+          // Movement Ledger Table
+          pw.TableHelper.fromTextArray(
+            border: pw.TableBorder.all(color: PdfColor.fromHex('#94A3B8'), width: 0.6),
+            headerStyle: _ts(size: 8.5, bold: true, color: PdfColors.black),
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#E2E8F0')),
+            cellStyle: _ts(size: 8),
+            cellAlignment: pw.Alignment.centerRight,
+            headerAlignment: pw.Alignment.center,
+            cellPadding: const pw.EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+            columnWidths: const {
+              0: pw.FlexColumnWidth(0.6), // #
+              1: pw.FlexColumnWidth(1.6), // التاريخ
+              2: pw.FlexColumnWidth(1.8), // نوع الحركة
+              3: pw.FlexColumnWidth(2.4), // الصنف والوحدة
+              4: pw.FlexColumnWidth(2.6), // الجهة / البيان
+              5: pw.FlexColumnWidth(1.2), // الوارد (+)
+              6: pw.FlexColumnWidth(1.2), // الصادر (-)
+              7: pw.FlexColumnWidth(1.4), // الرصيد الحالي
+            },
+            headers: [
+              '#',
+              'التاريخ والوقت',
+              'نوع الحركة',
+              'الصنف والوحدة',
+              'الجهة / البيان',
+              'الوارد (+)',
+              'الصادر (-)',
+              'الرصيد الحالي',
+            ],
+            data: summary.movements.asMap().entries.map((entry) {
+              final idx = entry.key + 1;
+              final item = entry.value;
+              return [
+                '$idx',
+                DateFormat('yyyy-MM-dd HH:mm').format(item.date),
+                item.movementType,
+                '${item.productName} (${item.unitName})',
+                '${item.partyName} ${item.referenceNumber.isNotEmpty ? "[${item.referenceNumber}]" : ""}',
+                item.inQty > 0 ? _qtyFormat.format(item.inQty) : '-',
+                item.outQty > 0 ? _qtyFormat.format(item.outQty) : '-',
+                _qtyFormat.format(item.runningBalance),
+              ];
+            }).toList(),
+          ),
+
+          // Period Totals Summary Row
+          pw.Container(
+            decoration: pw.BoxDecoration(
+              color: PdfColor.fromHex('#EFF6FF'),
+              border: pw.Border.all(color: PdfColor.fromHex('#94A3B8'), width: 0.8),
+            ),
+            padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: pw.Row(
+              children: [
+                pw.Expanded(
+                  flex: 3,
+                  child: pw.Text(
+                    'إجمالي حركة الفترة (${summary.movements.length} حركة)',
+                    style: _ts(size: 9, bold: true, color: PdfColor.fromHex('#0F172A')),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    'رصيد أول المدة: ${_qtyFormat.format(summary.openingBalance)}',
+                    style: _ts(size: 8.5, bold: true, color: PdfColor.fromHex('#475569')),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    'إجمالي الوارد: +${_qtyFormat.format(summary.totalIn)}',
+                    style: _ts(size: 8.5, bold: true, color: PdfColor.fromHex('#16A34A')),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    'إجمالي الصادر: -${_qtyFormat.format(summary.totalOut)}',
+                    style: _ts(size: 8.5, bold: true, color: PdfColor.fromHex('#DC2626')),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+                pw.Expanded(
+                  flex: 2,
+                  child: pw.Text(
+                    'الرصيد الختامي: ${_qtyFormat.format(summary.closingBalance)}',
+                    style: _ts(size: 9, bold: true, color: PdfColor.fromHex('#1E3A8A')),
+                    textAlign: pw.TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 14),
+
+          // KPI Summary Box
+          pw.Container(
+            padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: pw.BoxDecoration(
+              color: PdfColor.fromHex('#F8FAFC'),
+              borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6)),
+              border: pw.Border.all(color: PdfColor.fromHex('#CBD5E1')),
+            ),
+            child: pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceAround,
+              children: [
+                _buildSummaryItem('الفترة المحددة', summary.dateFilterTitle),
+                _buildSummaryItem('رصيد أول المدة', _qtyFormat.format(summary.openingBalance)),
+                _buildSummaryItem('إجمالي الوارد (+)', '+${_qtyFormat.format(summary.totalIn)}', isSuccess: true),
+                _buildSummaryItem('إجمالي الصادر (-)', '-${_qtyFormat.format(summary.totalOut)}', isDanger: true),
+                _buildSummaryItem('صافي حركة الفترة', _qtyFormat.format(summary.netMovement), isPrimary: true),
+                _buildSummaryItem('الرصيد الختامي', _qtyFormat.format(summary.closingBalance), isPrimary: true),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 20),
+
+          // Certified Signatures Block
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              _buildSignatureBlock('أمين المخزن المسؤول'),
+              _buildSignatureBlock('مراقب حركة المخزون'),
+              _buildSignatureBlock('المدير المالي / الاعتماد'),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    return pdf;
+  }
+
+  /// Displays interactive preview dialog for Stock Movement
+  static Future<void> showMovementPreviewDialog({
+    required BuildContext context,
+    required StockMovementReportSummary summary,
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogCtx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 30, vertical: 24),
+        child: Container(
+          width: 1000,
+          height: 750,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              // Dialog Header
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E3A8A),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.swap_horiz_rounded, color: Colors.white, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'معاينة طباعة: كشف حركة المخزون (${summary.selectedProductName})',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.white),
+                      onPressed: () => Navigator.of(dialogCtx).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Pdf Preview Body
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                  child: PdfPreview(
+                    build: (format) async {
+                      final doc = await generateMovementDocument(summary: summary);
+                      return doc.save();
+                    },
+                    canChangeOrientation: false,
+                    canChangePageFormat: false,
+                    canDebug: false,
+                    allowPrinting: true,
+                    allowSharing: true,
+                    pdfFileName: 'كشف_حركة_المخزون_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Direct print for Stock Movement
+  static Future<void> printMovementDirect({
+    required BuildContext context,
+    required StockMovementReportSummary summary,
+  }) async {
+    final doc = await generateMovementDocument(summary: summary);
+    await Printing.layoutPdf(
+      onLayout: (format) async => doc.save(),
+      name: 'كشف_حركة_المخزون_${DateFormat('yyyyMMdd').format(DateTime.now())}',
+    );
+  }
+
+  /// Direct share for Stock Movement
+  static Future<void> shareMovementDirect({
+    required BuildContext context,
+    required StockMovementReportSummary summary,
+  }) async {
+    final doc = await generateMovementDocument(summary: summary);
+    final bytes = await doc.save();
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: 'كشف_حركة_المخزون_${DateFormat('yyyyMMdd').format(DateTime.now())}.pdf',
     );
   }
 }
