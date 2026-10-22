@@ -48,7 +48,30 @@ extension SalesSyncQueries on SalesDao {
     final grandTotal = parseDouble(json['grand_total'], 0.0);
     final status = json['status']?.toString() ?? 'Pending';
     final customerId = json['customer_id']?.toString();
-    final notes = json['notes']?.toString();
+    final customerName = json['customer_name']?.toString();
+    final customerPhone = json['customer_phone']?.toString();
+    final shippingAddress = json['shipping_address']?.toString();
+    final customerNotes = json['customer_notes']?.toString();
+    final rawNotes = json['notes']?.toString();
+
+    final notesParts = <String>[];
+    if (customerName != null && customerName.isNotEmpty) {
+      notesParts.add('العميل: $customerName');
+    }
+    if (customerPhone != null && customerPhone.isNotEmpty) {
+      notesParts.add('الهاتف: $customerPhone');
+    }
+    if (shippingAddress != null && shippingAddress.isNotEmpty) {
+      notesParts.add('العنوان: $shippingAddress');
+    }
+    if (customerNotes != null && customerNotes.isNotEmpty) {
+      notesParts.add('ملاحظات العميل: $customerNotes');
+    }
+    if (rawNotes != null && rawNotes.isNotEmpty && !notesParts.contains(rawNotes)) {
+      notesParts.add(rawNotes);
+    }
+
+    final notes = notesParts.isNotEmpty ? notesParts.join(' | ') : null;
     final revision = parseInt(json['revision'], 1);
 
     // Resolve currencyId: must exist in local currencies table
@@ -67,34 +90,61 @@ extension SalesSyncQueries on SalesDao {
       }
     }
 
-    // Ensure the channel exists locally to satisfy FK (business_id, channel_id)
-    if (channelId.isNotEmpty) {
-      final existingChannel = await (select(channels)
-            ..where((c) => c.businessId.equals(businessId) & c.id.equals(channelId)))
+    // Resolve branchId: must exist in local branches table
+    String resolvedBranchId = branchId;
+    final existingBranch = await (attachedDatabase.select(attachedDatabase.branches)
+          ..where((b) => b.businessId.equals(businessId) & b.id.equals(resolvedBranchId)))
+        .getSingleOrNull();
+    if (existingBranch == null) {
+      final firstBranch = await (attachedDatabase.select(attachedDatabase.branches)
+            ..where((b) => b.businessId.equals(businessId))
+            ..limit(1))
           .getSingleOrNull();
-      if (existingChannel == null) {
-        await into(channels).insert(
-          ChannelsCompanion.insert(
-            id: channelId,
+      if (firstBranch != null) {
+        resolvedBranchId = firstBranch.id;
+      } else {
+        // Fallback: create branch locally if missing
+        await into(branches).insert(
+          BranchesCompanion.insert(
+            id: resolvedBranchId.isNotEmpty ? resolvedBranchId : _uuid.v4(),
             businessId: businessId,
-            channelName: 'Online Store',
-            channelCode: 'ONLINE-STORE-01',
-            channelType: 'Ecommerce',
+            branchName: 'الفرع الرئيسي',
+            branchCode: 'MAIN',
             isActive: const Value(true),
-            syncStatus: const Value('synced'),
-            version: const Value(1),
           ),
           mode: InsertMode.insertOrIgnore,
         );
+        resolvedBranchId = resolvedBranchId.isNotEmpty ? resolvedBranchId : firstBranch?.id ?? '';
       }
+    }
+
+    // Ensure the channel exists locally to satisfy FK (business_id, channel_id)
+    String resolvedChannelId = channelId.isNotEmpty ? channelId : 'online-channel';
+    final existingChannel = await (select(channels)
+          ..where((c) => c.businessId.equals(businessId) & c.id.equals(resolvedChannelId)))
+        .getSingleOrNull();
+    if (existingChannel == null) {
+      await into(channels).insert(
+        ChannelsCompanion.insert(
+          id: resolvedChannelId,
+          businessId: businessId,
+          channelName: 'Online Store',
+          channelCode: 'ONLINE-STORE-01',
+          channelType: 'Ecommerce',
+          isActive: const Value(true),
+          syncStatus: const Value('synced'),
+          version: const Value(1),
+        ),
+        mode: InsertMode.insertOrIgnore,
+      );
     }
 
     await into(orders).insert(
       OrdersCompanion.insert(
         id: orderId,
         businessId: businessId,
-        branchId: branchId,
-        channelId: channelId,
+        branchId: resolvedBranchId,
+        channelId: resolvedChannelId,
         orderNumber: orderNumber,
         orderDate: Value(orderDate),
         currencyId: resolvedCurrencyId,
@@ -109,7 +159,7 @@ extension SalesSyncQueries on SalesDao {
         syncStatus: const Value('synced'), // Came from server, already synced
         version: Value(revision),
       ),
-      mode: InsertMode.insertOrIgnore, // Duplicate protection
+      mode: InsertMode.insertOrReplace,
     );
 
     // Insert order items if present
@@ -117,32 +167,36 @@ extension SalesSyncQueries on SalesDao {
     if (items is List) {
       for (final item in items) {
         if (item is Map<String, dynamic>) {
-          final itemId = item['id']?.toString() ?? _uuid.v4();
-          final productUnitId = item['product_unit_id']?.toString() ?? '';
-          final quantity = parseDouble(item['quantity'], 0.0);
-          final unitPrice = parseDouble(item['unit_price'], 0.0);
-          final discount = parseDouble(item['discount'], 0.0);
-          final tax = parseDouble(item['tax'], 0.0);
-          final lineTotal = item['line_total'] != null
-              ? parseDouble(item['line_total'], quantity * unitPrice)
-              : (quantity * unitPrice);
+          try {
+            final itemId = item['id']?.toString() ?? _uuid.v4();
+            final productUnitId = item['product_unit_id']?.toString() ?? '';
+            final quantity = parseDouble(item['quantity'], 0.0);
+            final unitPrice = parseDouble(item['unit_price'], 0.0);
+            final discount = parseDouble(item['discount'], 0.0);
+            final tax = parseDouble(item['tax'], 0.0);
+            final lineTotal = item['line_total'] != null
+                ? parseDouble(item['line_total'], quantity * unitPrice)
+                : (quantity * unitPrice);
 
-          await into(orderItems).insert(
-            OrderItemsCompanion.insert(
-              id: itemId,
-              businessId: businessId,
-              orderId: orderId,
-              productUnitId: productUnitId,
-              quantity: quantity,
-              unitPrice: unitPrice,
-              discount: Value(discount),
-              tax: Value(tax),
-              lineTotal: lineTotal,
-              syncStatus: const Value('synced'),
-              version: Value(revision),
-            ),
-            mode: InsertMode.insertOrIgnore,
-          );
+            await into(orderItems).insert(
+              OrderItemsCompanion.insert(
+                id: itemId,
+                businessId: businessId,
+                orderId: orderId,
+                productUnitId: productUnitId,
+                quantity: quantity,
+                unitPrice: unitPrice,
+                discount: Value(discount),
+                tax: Value(tax),
+                lineTotal: lineTotal,
+                syncStatus: const Value('synced'),
+                version: Value(revision),
+              ),
+              mode: InsertMode.insertOrReplace,
+            );
+          } catch (e) {
+            // Log line item failure without dropping the entire order header
+          }
         }
       }
     }

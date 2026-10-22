@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:smart_merchant_erp/l10n/app_localizations.dart';
 
 import '../../../kernel/security/permissions_provider.dart';
+import '../../../kernel/sync/coordinator/sync_coordinator.dart';
+import '../../../modules/platform/presentation/providers/sync_provider.dart';
+import '../../../modules/authentication/presentation/providers/session_provider.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 
@@ -86,7 +89,7 @@ class MainLayout extends ConsumerWidget {
                 ),
               ),
 
-              // Center Brand Title ("Smart Merchant \n التاجر الذكي")
+              // Center Brand Title & Connectivity Status
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -99,35 +102,139 @@ class MainLayout extends ConsumerWidget {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  const SizedBox(height: 1),
-                  Text(
-                    'التاجر الذكي',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.textSecondaryDark : const Color(0xFF64748B),
-                    ),
+                  const SizedBox(height: 2),
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final session = ref.watch(sessionNotifierProvider);
+                      final syncState = ref.watch(syncNotifierProvider);
+                      final isOffline = (session.isOffline == true) || (syncState.status == SyncStatus.offline);
+
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: isOffline ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isOffline ? 'وضع محلي (بدون خادم)' : 'متصل بالسحابة',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isOffline ? const Color(0xFFD97706) : const Color(0xFF059669),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
 
-              // Notification Bell (Left on RTL)
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+              // Action icons (Sync + Notifications)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Sync Button
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final syncState = ref.watch(syncNotifierProvider);
+                      final isSyncing = syncState.status == SyncStatus.syncing;
+
+                      return Container(
+                        width: 42,
+                        height: 42,
+                        margin: const EdgeInsets.only(left: 8),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: isSyncing
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                                  ),
+                                )
+                              : const Icon(Icons.sync_rounded, size: 22),
+                          onPressed: isSyncing
+                              ? null
+                              : () async {
+                                  await ref.read(syncNotifierProvider.notifier).syncNow();
+                                  if (context.mounted) {
+                                    final currentSync = ref.read(syncNotifierProvider);
+                                    if (currentSync.status == SyncStatus.offline || currentSync.status == SyncStatus.failure) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.cloud_off_rounded, color: Colors.white, size: 20),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text('السيرفر غير متصل حالياً - النظام يعمل بكامل وظائفه محلياً وبياناتك محفوظة بأمان'),
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: Color(0xFF334155),
+                                          duration: Duration(seconds: 3),
+                                        ),
+                                      );
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Row(
+                                            children: [
+                                              Icon(Icons.cloud_done_rounded, color: Colors.white, size: 20),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text('تمت مزامنة البيانات والطلبات بنجاح مع السيرفر'),
+                                              ),
+                                            ],
+                                          ),
+                                          backgroundColor: Color(0xFF10B981),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                          color: AppColors.primary,
+                          tooltip: 'مزامنة السحابة والطلبات',
+                        ),
+                      );
+                    },
                   ),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.notifications_none_rounded, size: 22),
-                  onPressed: () {},
-                  color: isDark ? Colors.white : const Color(0xFF1E293B),
-                  tooltip: 'الإشعارات',
-                ),
+
+                  // Notification Bell (Left on RTL)
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? AppColors.borderDark : const Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.notifications_none_rounded, size: 22),
+                      onPressed: () {},
+                      color: isDark ? Colors.white : const Color(0xFF1E293B),
+                      tooltip: 'الإشعارات',
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -136,7 +243,44 @@ class MainLayout extends ConsumerWidget {
 
       // 2. Main Content & Floating Dock
       extendBody: false,
-      body: child,
+      body: Column(
+        children: [
+          Consumer(
+            builder: (context, ref, _) {
+              final session = ref.watch(sessionNotifierProvider);
+              final syncState = ref.watch(syncNotifierProvider);
+              final isOffline = (session.isOffline == true) || (syncState.status == SyncStatus.offline);
+              if (!isOffline) return const SizedBox.shrink();
+
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.cloud_off_rounded,
+                      size: 14,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'الوضع المحلي: التطبيق يعمل بكفاءة بدون خادم، وبياناتك ومبيعاتك محفوظة بأمان',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+          Expanded(child: child),
+        ],
+      ),
       bottomNavigationBar: SafeArea(
         bottom: true,
         child: Padding(

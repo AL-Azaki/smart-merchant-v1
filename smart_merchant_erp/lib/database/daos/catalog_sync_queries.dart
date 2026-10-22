@@ -95,4 +95,10 @@ extension CatalogSyncQueries on CatalogDao {
       const ProductImagesCompanion(syncStatus: Value('synced')),
     );
   }
+
+  Future<void> updateProductImagePath(String id, String imagePath) {
+    return (update(productImages)..where((t) => t.id.equals(id))).write(
+      ProductImagesCompanion(imagePath: Value(imagePath)),
+    );
+  }
 }

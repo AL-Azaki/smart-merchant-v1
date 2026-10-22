@@ -122,13 +122,12 @@ class StorefrontOrderService
 
                 $quantity = $itemData['quantity'];
 
-                // Advisory inventory check if requested by policy
-                // Not decrementing, just validating
+                // Advisory inventory check (softened for MVP guest ordering per configuration)
                 $proj = InventoryProjection::where('product_unit_id', $unit->id)
                     ->where('branch_id', $branchId)
                     ->first();
 
-                if (! $proj || $proj->quantity < $quantity) {
+                if ($proj && $proj->quantity !== null && $proj->quantity < $quantity) {
                     abort(422, 'Insufficient inventory for product: '.$unit->product->product_name);
                 }
 

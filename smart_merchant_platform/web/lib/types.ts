@@ -15,6 +15,7 @@ export interface StoreBootstrap {
   lat: number | null;
   lng: number | null;
   theme_settings: ThemeSettings | null;
+  categories?: string[] | null;
 }
 
 export interface ThemeSettings {

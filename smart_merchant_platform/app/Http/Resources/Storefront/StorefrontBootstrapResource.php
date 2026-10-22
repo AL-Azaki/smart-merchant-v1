@@ -20,6 +20,7 @@ class StorefrontBootstrapResource extends JsonResource
             'lat' => $this->storefront_lat,
             'lng' => $this->storefront_lng,
             'theme_settings' => $this->storefront_theme_settings,
+            'categories' => $this->storefront_categories,
         ];
     }
 }

@@ -12,6 +12,7 @@ class StorageKeys {
   static const lastSessionBusinessId = 'last_session_business_id';
   static const lastSessionBranchId = 'last_session_branch_id';
   static const lastSessionUserId = 'last_session_user_id';
+  static const isOfflineMode = 'is_offline_mode';
 }
 
 /// Centralized HTTP client for all Laravel API communication.

@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import '../../../app/config/api_client.dart';
 import '../dto/sync_dtos.dart';
 
@@ -7,6 +9,7 @@ import '../dto/sync_dtos.dart';
 /// - POST /sync/push
 /// - POST /sync/pull
 /// - POST /sync/ack
+/// - POST /media/product-image
 ///
 /// All requests require Bearer auth and X-Device-ID header (injected by [ApiClient]).
 class SyncRemoteApiClient {
@@ -14,11 +17,33 @@ class SyncRemoteApiClient {
 
   const SyncRemoteApiClient(this._apiClient);
 
+  /// POST /media/product-image — upload compressed product image and obtain public URL.
+  Future<Map<String, dynamic>> uploadProductImage(File imageFile) async {
+    final fileName = imageFile.path.split(Platform.pathSeparator).last;
+    final formData = FormData.fromMap({
+      'image': await MultipartFile.fromFile(
+        imageFile.path,
+        filename: fileName,
+      ),
+    });
+    final response = await _apiClient.post(
+      '/media/product-image',
+      data: formData,
+    );
+    return response.json;
+  }
+
   /// POST /sync/push — push Flutter-owned entity projections to Laravel.
-  Future<PushSyncResponseDto> push(PushSyncRequestDto request) async {
+  Future<PushSyncResponseDto> push(
+    PushSyncRequestDto request, {
+    bool isStorefrontSync = false,
+  }) async {
     final response = await _apiClient.post(
       '/sync/push',
-      data: request.toJson(),
+      data: {
+        ...request.toJson(),
+        if (isStorefrontSync) 'storefront_sync': true,
+      },
     );
     return PushSyncResponseDto.fromJson(response.json);
   }

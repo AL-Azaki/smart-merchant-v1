@@ -34,6 +34,7 @@ class StorefrontSettingsResource extends JsonResource
             'storefront_lat' => $this->storefront_lat !== null ? (float) $this->storefront_lat : null,
             'storefront_lng' => $this->storefront_lng !== null ? (float) $this->storefront_lng : null,
             'storefront_theme_settings' => $this->storefront_theme_settings ?: null,
+            'storefront_categories' => $this->storefront_categories ?: null,
         ];
     }
 

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BusinessSetupController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\Media\MediaController;
 use App\Http\Controllers\Api\Platform\StorefrontSettingsController;
 use App\Http\Controllers\Api\SessionBootstrapController;
 use App\Http\Controllers\Api\StorefrontController;
@@ -63,6 +64,10 @@ Route::prefix('platform')->middleware('auth:sanctum')->group(function () {
     Route::get('storefront/settings', [StorefrontSettingsController::class, 'show']);
     Route::put('storefront/settings', [StorefrontSettingsController::class, 'update']);
     Route::get('storefront/slug-availability', [StorefrontSettingsController::class, 'checkSlugAvailability']);
+});
+
+Route::prefix('media')->middleware('auth:sanctum')->group(function () {
+    Route::post('/product-image', [MediaController::class, 'uploadProductImage']);
 });
 
 /*

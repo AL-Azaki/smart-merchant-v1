@@ -168,40 +168,85 @@ class _LoginViewState extends ConsumerState<LoginView> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_errorMessage != null) ...[
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: Colors.red.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.error_outline,
-                                color: Colors.red,
-                                size: 20,
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  _errorMessage!,
-                                  style: const TextStyle(
-                                    color: Colors.red,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        Builder(
+                          builder: (context) {
+                            final isServerIssue = _errorMessage!.contains('الخادم') ||
+                                _errorMessage!.contains('السيرفر') ||
+                                _errorMessage!.contains('محلي') ||
+                                _errorMessage!.contains('اتصال');
+
+                            return Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isServerIssue
+                                    ? const Color(0xFFEFF6FF)
+                                    : Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: isServerIssue
+                                      ? const Color(0xFF93C5FD)
+                                      : Colors.red.withOpacity(0.3),
                                 ),
                               ),
-                            ],
-                          ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isServerIssue
+                                            ? Icons.cloud_off_rounded
+                                            : Icons.error_outline,
+                                        color: isServerIssue
+                                            ? const Color(0xFF2563EB)
+                                            : Colors.red,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          _errorMessage!,
+                                          style: TextStyle(
+                                            color: isServerIssue
+                                                ? const Color(0xFF1E40AF)
+                                                : Colors.red,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  if (isServerIssue) ...[
+                                    const SizedBox(height: 10),
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        ref
+                                            .read(authNotifierProvider.notifier)
+                                            .enterOfflineMode();
+                                      },
+                                      icon: const Icon(Icons.offline_pin_rounded, size: 18),
+                                      label: const Text('المتابعة في وضع العمل المحلي (Offline)'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF2563EB),
+                                        foregroundColor: Colors.white,
+                                        elevation: 0,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            );
+                          },
                         ),
                         const SizedBox(height: 16),
                       ],
                       const Text(
-                        'البريد الإلكتروني',
+                        'رقم الهاتف أو البريد الإلكتروني',
                         style: TextStyle(
                           color: AppColors.textSecondaryLight,
                           fontSize: 13,
@@ -212,14 +257,14 @@ class _LoginViewState extends ConsumerState<LoginView> {
                       TextField(
                         controller: _emailController,
                         textDirection: TextDirection.ltr,
-                        keyboardType: TextInputType.emailAddress,
+                        keyboardType: TextInputType.text,
                         enabled: !isLoading,
                         decoration: InputDecoration(
-                          hintText: 'admin@smartmerchant.com',
+                          hintText: '771234567 أو البريد الإلكتروني',
                           filled: true,
                           fillColor: AppColors.backgroundLight,
                           prefixIcon: const Icon(
-                            Icons.email_outlined,
+                            Icons.person_outline,
                             color: AppColors.textSecondaryLight,
                           ),
                           border: OutlineInputBorder(
@@ -368,7 +413,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             : () {
                                 ref
                                     .read(authNotifierProvider.notifier)
-                                    .loginAsDemo();
+                                    .enterOfflineMode();
                               },
                         style: OutlinedButton.styleFrom(
                           minimumSize: const Size(double.infinity, 52),
@@ -381,11 +426,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
                           ),
                         ),
                         icon: const Icon(
-                          Icons.flash_on_rounded,
+                          Icons.offline_pin_rounded,
                           color: Color(0xFF10B981),
                         ),
                         label: const Text(
-                          'دخول تجريبي فوري (وضع الديمو)',
+                          'المتابعة في وضع عدم الاتصال (محلياً بدون خادم)',
                           style: TextStyle(
                             color: Color(0xFF10B981),
                             fontWeight: FontWeight.bold,

@@ -47,7 +47,7 @@ class SyncNotifier extends _$SyncNotifier {
   }
 
   /// Trigger a full bidirectional sync cycle.
-  Future<void> syncNow() async {
+  Future<void> syncNow({bool isStorefrontSync = false}) async {
     if (_coordinator == null && getIt.isRegistered<SyncCoordinator>()) {
       initialize(getIt<SyncCoordinator>());
     }
@@ -57,7 +57,7 @@ class SyncNotifier extends _$SyncNotifier {
       return;
     }
 
-    final result = await coordinator.runFullSync();
+    final result = await coordinator.runFullSync(isStorefrontSync: isStorefrontSync);
     state = SyncState(
       status: result.status,
       lastSyncResult: result,

@@ -53,13 +53,14 @@ class AuthNotifier extends _$AuthNotifier {
     }
   }
 
-  Future<void> _bootstrapQaSession() async {
-    debugPrint('QA ACCESS MODE: BYPASSING AUTHENTICATION');
+  Future<void> _bootstrapQaSession({String? storeName}) async {
+    debugPrint('QA/OFFLINE ACCESS MODE: INITIALIZING LOCAL ENVIRONMENT');
     final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
     sessionNotifier.setSession(
       businessId: 'qa-business-id',
       branchId: 'qa-branch-id',
       userId: 'qa-user-id',
+      isOffline: true,
     );
     try {
       final db = getIt<AppDatabase>();
@@ -87,8 +88,8 @@ class AuthNotifier extends _$AuthNotifier {
             id: const drift.Value('qa-user-id'),
             email: 'admin@smartmerchant.com',
             passwordHash: '',
-            firstName: 'المدير',
-            lastName: 'العام',
+            firstName: storeName != null ? storeName.split(' ').first : 'المدير',
+            lastName: storeName != null && storeName.contains(' ') ? storeName.substring(storeName.indexOf(' ') + 1) : 'المحلي',
             isActive: const drift.Value(true),
           ),
         );
@@ -105,9 +106,18 @@ class AuthNotifier extends _$AuthNotifier {
     state = AuthStatus.authenticated;
   }
 
+  /// Enter full offline / local mode (no server or internet required)
+  Future<void> enterOfflineMode({String? storeName}) async {
+    await _bootstrapQaSession(storeName: storeName);
+    await _secureStorage.write(StorageKeys.isOfflineMode, 'true');
+    await _secureStorage.write(StorageKeys.lastSessionBusinessId, 'qa-business-id');
+    await _secureStorage.write(StorageKeys.lastSessionBranchId, 'qa-branch-id');
+    await _secureStorage.write(StorageKeys.lastSessionUserId, 'qa-user-id');
+  }
+
   /// Direct demo / offline bypass mode for instant trial without credentials.
   Future<void> loginAsDemo() async {
-    await _bootstrapQaSession();
+    await enterOfflineMode();
   }
 
   /// Full login flow: authenticate → store token → bootstrap → register device.
@@ -138,14 +148,40 @@ class AuthNotifier extends _$AuthNotifier {
       return LoginResult.failure(e.message);
     } catch (e) {
       state = AuthStatus.unauthenticated;
-      return LoginResult.failure(e.toString());
+      return LoginResult.failure('تعذر الاتصال بالخادم. يمكنك المتابعة في وضع العمل المحلي بدون سيرفر.');
     }
   }
 
-  /// Attempt to restore session from stored token on app startup.
+  /// Attempt to restore session from stored token or local offline cache on app startup.
   Future<bool> tryRestoreSession() async {
     final token = await _secureStorage.read(StorageKeys.authToken);
-    if (token == null || token.isEmpty) return false;
+    final isOffline = await _secureStorage.read(StorageKeys.isOfflineMode);
+
+    // If previously in offline mode or no token exists but local session is cached:
+    if (isOffline == 'true' || token == null || token.isEmpty) {
+      final cachedBusinessId = await _secureStorage.read(
+        StorageKeys.lastSessionBusinessId,
+      );
+      final cachedUserId = await _secureStorage.read(
+        StorageKeys.lastSessionUserId,
+      );
+
+      if (cachedBusinessId != null && cachedUserId != null) {
+        final cachedBranchId = await _secureStorage.read(
+          StorageKeys.lastSessionBranchId,
+        );
+        final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
+        sessionNotifier.setSession(
+          businessId: cachedBusinessId,
+          branchId: cachedBranchId,
+          userId: cachedUserId,
+          isOffline: true,
+        );
+        state = AuthStatus.authenticated;
+        return true;
+      }
+      if (token == null || token.isEmpty) return false;
+    }
 
     try {
       final deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
@@ -158,9 +194,11 @@ class AuthNotifier extends _$AuthNotifier {
         businessId: bootstrapResponse.activeBusiness.id,
         branchId: bootstrapResponse.activeBranch?.id,
         userId: bootstrapResponse.user.id,
+        isOffline: false,
       );
 
       await _hydrateLocalSessionData(bootstrapResponse);
+      await _secureStorage.write(StorageKeys.isOfflineMode, 'false');
 
       // Cache for offline support
       await _secureStorage.write(
@@ -200,38 +238,40 @@ class AuthNotifier extends _$AuthNotifier {
     } on ApiException catch (e) {
       if (e.type == ApiExceptionType.unauthorized) {
         await _secureStorage.delete(StorageKeys.authToken);
+        return false;
       } else if (e.type == ApiExceptionType.deviceRevoked) {
         state = AuthStatus.deviceRevoked;
         return false;
       }
-      if (e.type == ApiExceptionType.noNetwork ||
-          e.type == ApiExceptionType.timeout) {
-        // Offline mode: restore from secure storage cache
-        final cachedBusinessId = await _secureStorage.read(
-          StorageKeys.lastSessionBusinessId,
-        );
-        final cachedUserId = await _secureStorage.read(
-          StorageKeys.lastSessionUserId,
-        );
-
-        if (cachedBusinessId != null && cachedUserId != null) {
-          final cachedBranchId = await _secureStorage.read(
-            StorageKeys.lastSessionBranchId,
-          );
-          final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
-          sessionNotifier.setSession(
-            businessId: cachedBusinessId,
-            branchId: cachedBranchId,
-            userId: cachedUserId,
-          );
-          state = AuthStatus.authenticated;
-          return true;
-        }
-      }
-      return false;
+      return await _fallbackToCachedSession();
     } catch (_) {
-      return false;
+      return await _fallbackToCachedSession();
     }
+  }
+
+  Future<bool> _fallbackToCachedSession() async {
+    final cachedBusinessId = await _secureStorage.read(
+      StorageKeys.lastSessionBusinessId,
+    );
+    final cachedUserId = await _secureStorage.read(
+      StorageKeys.lastSessionUserId,
+    );
+
+    if (cachedBusinessId != null && cachedUserId != null) {
+      final cachedBranchId = await _secureStorage.read(
+        StorageKeys.lastSessionBranchId,
+      );
+      final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
+      sessionNotifier.setSession(
+        businessId: cachedBusinessId,
+        branchId: cachedBranchId,
+        userId: cachedUserId,
+        isOffline: true,
+      );
+      state = AuthStatus.authenticated;
+      return true;
+    }
+    return false;
   }
 
   /// Logout: clear token, clear session, preserve SQLite operational data.
@@ -243,6 +283,7 @@ class AuthNotifier extends _$AuthNotifier {
 
     // Clear secure credentials
     await _secureStorage.delete(StorageKeys.authToken);
+    await _secureStorage.delete(StorageKeys.isOfflineMode);
     await _secureStorage.delete(StorageKeys.lastSessionBusinessId);
     await _secureStorage.delete(StorageKeys.lastSessionBranchId);
     await _secureStorage.delete(StorageKeys.lastSessionUserId);
@@ -261,10 +302,11 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<LoginResult> register({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String email,
+    String? name,
+    String? firstName,
+    String? lastName,
+    String? username,
+    String? email,
     required String phone,
     required String password,
   }) async {
@@ -275,6 +317,7 @@ class AuthNotifier extends _$AuthNotifier {
       // 1. Authenticate with Laravel Sanctum via Register
       final registerResponse = await _authApi.register(
         RegisterRequestDto(
+          name: name,
           firstName: firstName,
           lastName: lastName,
           username: username,

@@ -6,6 +6,7 @@ use App\Http\Requests\Sync\AckSyncRequest;
 use App\Http\Requests\Sync\PullSyncRequest;
 use App\Http\Requests\Sync\PushSyncRequest;
 use App\Models\Brand;
+use App\Models\Business;
 use App\Models\Category;
 use App\Models\IdempotencyKey;
 use App\Models\Order;
@@ -30,6 +31,14 @@ class SyncEngine
 
         if (! $this->registry->canPush($entity)) {
             abort(403, "Entity {$entity} cannot be pushed");
+        }
+
+        $isStorefrontSync = $request->boolean('storefront_sync') || $request->header('X-Storefront-Sync');
+        if ($isStorefrontSync && in_array($entity, ['products', 'product_units', 'product_images'])) {
+            $business = Business::find($context['business_id']);
+            if (! $business || ! $business->storefront_active || empty($business->storefront_slug)) {
+                abort(403, 'لا يمكن مزامنة المنتجات مع المتجر الإلكتروني: المتجر غير مفعّل أو لم يتم تحديد رابط المتجر.');
+            }
         }
 
         $items = $request->input('items');
@@ -384,8 +393,8 @@ class SyncEngine
             abort(403, "Entity {$entity} cannot be pulled");
         }
 
-        $cursor = $request->input('cursor', 0);
-        $limit = $request->input('limit', 50);
+        $cursor = (int) ($request->input('cursor') ?? 0);
+        $limit = (int) ($request->input('limit') ?? 50);
 
         if ($entity === 'orders') {
             $items = Order::with('items')

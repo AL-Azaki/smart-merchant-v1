@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import '../../../app/config/api_client.dart';
 import '../../../app/config/app_environment.dart';
@@ -55,11 +57,11 @@ class SyncCycleResult {
 
   const SyncCycleResult({
     required this.status,
+    required this.timestamp,
     this.pushedCount = 0,
     this.pulledCount = 0,
     this.ackedCount = 0,
     this.failures = const [],
-    required this.timestamp,
   });
 }
 
@@ -119,7 +121,7 @@ class SyncCoordinator {
 
   /// Runs a complete sync cycle: Push all pending → Pull orders → ACK.
   /// Returns a structured result. Never throws — failures are classified.
-  Future<SyncCycleResult> runFullSync() async {
+  Future<SyncCycleResult> runFullSync({bool isStorefrontSync = false}) async {
     if (_currentStatus == SyncStatus.syncing) {
       return SyncCycleResult(
         status: SyncStatus.idle,
@@ -155,10 +157,15 @@ class SyncCoordinator {
       // ─── PUSH ───
       for (final entity in SyncEntityMap.pushOrder) {
         try {
-          final count = await _pushEntity(entity);
+          final count = await _pushEntity(
+            entity,
+            isStorefrontSync: isStorefrontSync,
+          );
           totalPushed += count;
         } on ApiException catch (e) {
-          if (_handleAuthOrDeviceError(e)) return _buildResult(e, failures);
+          if (_handleAuthOrDeviceError(e)) {
+            return _buildResult(e, failures);
+          }
           failures.add(
             SyncFailureInfo(
               type: e.type,
@@ -176,7 +183,9 @@ class SyncCoordinator {
         totalPulled = pullResult.$1;
         totalAcked = pullResult.$2;
       } on ApiException catch (e) {
-        if (_handleAuthOrDeviceError(e)) return _buildResult(e, failures);
+        if (_handleAuthOrDeviceError(e)) {
+          return _buildResult(e, failures);
+        }
         failures.add(
           SyncFailureInfo(
             type: e.type,
@@ -233,7 +242,9 @@ class SyncCoordinator {
       _setStatus(SyncStatus.deviceRevoked);
       return true;
     }
-    if (e.type == ApiExceptionType.noNetwork) {
+    if (e.type == ApiExceptionType.noNetwork ||
+        e.type == ApiExceptionType.timeout ||
+        e.type == ApiExceptionType.unknown) {
       _setStatus(SyncStatus.offline);
       return true;
     }
@@ -245,7 +256,9 @@ class SyncCoordinator {
         ? SyncStatus.authenticationRequired
         : e.type == ApiExceptionType.deviceRevoked
         ? SyncStatus.deviceRevoked
-        : e.type == ApiExceptionType.noNetwork
+        : (e.type == ApiExceptionType.noNetwork ||
+           e.type == ApiExceptionType.timeout ||
+           e.type == ApiExceptionType.unknown)
         ? SyncStatus.offline
         : SyncStatus.failure;
     _setStatus(status);
@@ -268,16 +281,24 @@ class SyncCoordinator {
   // ══════════════════════════════════════════════════════════
 
   /// Pushes pending records for a single entity type. Returns count of successfully pushed items.
-  Future<int> _pushEntity(String entity) async {
+  Future<int> _pushEntity(
+    String entity, {
+    bool isStorefrontSync = false,
+  }) async {
     final items = await _getPendingPushItems(entity);
-    if (items.isEmpty) return 0;
+    if (items.isEmpty) {
+      return 0;
+    }
 
     // Batch in chunks of 50 to avoid overwhelming the API
     int totalApplied = 0;
     for (var i = 0; i < items.length; i += 50) {
       final batch = items.sublist(i, (i + 50).clamp(0, items.length));
       final request = PushSyncRequestDto(entity: entity, items: batch);
-      final response = await _apiClient.push(request);
+      final response = await _apiClient.push(
+        request,
+        isStorefrontSync: isStorefrontSync,
+      );
 
       for (final result in response.results) {
         if (result.isApplied || result.isIdempotent) {
@@ -422,17 +443,40 @@ class SyncCoordinator {
 
   Future<List<Map<String, dynamic>>> _queryPendingProductImages() async {
     final rows = await _catalogDao.listPendingSyncProductImages(_activeBusinessId);
-    return rows
-        .map(
-          (pi) => {
-            'id': pi.id,
-            'product_id': pi.productId,
-            'image_url': pi.imagePath,
-            'is_primary': pi.isPrimary,
-            'revision': RevisionMapper.toServerRevision(pi.version),
-          },
-        )
-        .toList();
+    final items = <Map<String, dynamic>>[];
+
+    for (final pi in rows) {
+      String resolvedUrl = pi.imagePath;
+
+      // Check if imagePath is a local file that must be uploaded to server
+      final isRemote = resolvedUrl.startsWith('http://') || resolvedUrl.startsWith('https://');
+      if (!isRemote) {
+        final localFile = File(resolvedUrl);
+        if (localFile.existsSync()) {
+          try {
+            final uploadResult = await _apiClient.uploadProductImage(localFile);
+            final serverUrl = uploadResult['url'] as String?;
+            if (serverUrl != null && serverUrl.isNotEmpty) {
+              resolvedUrl = serverUrl;
+              // Persist permanent public URL to local SQLite database
+              await _catalogDao.updateProductImagePath(pi.id, serverUrl);
+            }
+          } catch (_) {
+            // If upload fails, keep local path and proceed without halting sync
+          }
+        }
+      }
+
+      items.add({
+        'id': pi.id,
+        'product_id': pi.productId,
+        'image_url': resolvedUrl,
+        'is_primary': pi.isPrimary,
+        'revision': RevisionMapper.toServerRevision(pi.version),
+      });
+    }
+
+    return items;
   }
 
   /// Derives inventory availability projections from the authoritative SQLite inventory state.
@@ -491,7 +535,6 @@ class SyncCoordinator {
       final request = PullSyncRequestDto(
         entity: 'orders',
         cursor: cursor,
-        limit: 50,
       );
       final response = await _apiClient.pull(request);
 
@@ -506,23 +549,22 @@ class SyncCoordinator {
       await _db.transaction(() async {
         for (final orderJson in response.items) {
           final orderId = orderJson['id']?.toString();
-          if (orderId == null) continue;
+          if (orderId == null) {
+            continue;
+          }
 
           final businessId = orderJson['business_id']?.toString() ?? '';
           final revision = orderJson['revision'] as int? ?? 1;
 
-          // Duplicate protection: check if order already exists
-          final existing = await _salesDao.getOrderById(orderId, businessId);
-          if (existing != null) {
-            // Already persisted — still ACK to prevent re-delivery
+          try {
+            // Persist the Online Order locally (WITHOUT creating SalesInvoice/Inventory/Accounting)
+            await _salesDao.insertOnlineOrder(orderJson);
             persistedItems.add(AckItemDto(id: orderId, revision: revision));
-            continue;
+            totalPulled++;
+            debugPrint('PULL_ORDER_SUCCESS: $orderId (#${orderJson['order_number']})');
+          } catch (err, stack) {
+            debugPrint('PULL_ORDER_ERROR: $orderId - $err\n$stack');
           }
-
-          // Persist the Online Order locally (WITHOUT creating SalesInvoice/Inventory/Accounting)
-          await _salesDao.insertOnlineOrder(orderJson);
-          persistedItems.add(AckItemDto(id: orderId, revision: revision));
-          totalPulled++;
         }
       });
 

@@ -8,8 +8,6 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/daos/sales_dao.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
-import '../../application/services/online_order_service.dart';
-import '../../../../app/di/getit_instance.dart';
 import '../layouts/sales_layout.dart';
 import '../../../platform/presentation/providers/sync_provider.dart';
 
@@ -460,46 +458,52 @@ class OrdersListView extends ConsumerWidget {
     final session = ref.read(sessionNotifierProvider);
     if (!session.isActive) return;
 
-    showModalBottomSheet(
+    showDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
-        return _OrderDetailsSheet(
-          order: order,
-          isDark: isDark,
-          businessId: session.businessId!,
-          onAccept: () {
-            Navigator.of(sheetContext).pop();
-            ref
-                .read(onlineOrdersActionNotifierProvider.notifier)
-                .acceptOrder(order.id);
-          },
-          onReject: () {
-            Navigator.of(sheetContext).pop();
-            ref
-                .read(onlineOrdersActionNotifierProvider.notifier)
-                .rejectOrder(order.id);
-          },
-          onOpenInPos: () async {
-            Navigator.of(sheetContext).pop();
-            // Load order into POS cart
-            final repo = ref.read(salesRepositoryProvider);
-            final orderWithItems = await repo.getOrderWithItemsById(
-              order.id,
-              session.businessId!,
-            );
-            if (orderWithItems != null) {
-              ref
-                  .read(posNotifierProvider.notifier)
-                  .loadFromOnlineOrder(orderWithItems);
-              // Switch to POS tab (index 0) using SalesTabScope
-              if (context.mounted) {
-                final scope = SalesTabScope.of(context);
-                scope?.tabController.animateTo(0);
-              }
-            }
-          },
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: _OrderDetailsSheet(
+              order: order,
+              isDark: isDark,
+              businessId: session.businessId!,
+              onAccept: () {
+                Navigator.of(dialogContext).pop();
+                ref
+                    .read(onlineOrdersActionNotifierProvider.notifier)
+                    .acceptOrder(order.id);
+              },
+              onReject: () {
+                Navigator.of(dialogContext).pop();
+                ref
+                    .read(onlineOrdersActionNotifierProvider.notifier)
+                    .rejectOrder(order.id);
+              },
+              onOpenInPos: () async {
+                Navigator.of(dialogContext).pop();
+                // Load order into POS cart
+                final repo = ref.read(salesRepositoryProvider);
+                final orderWithItems = await repo.getOrderWithItemsById(
+                  order.id,
+                  session.businessId!,
+                );
+                if (orderWithItems != null) {
+                  ref
+                      .read(posNotifierProvider.notifier)
+                      .loadFromOnlineOrder(orderWithItems);
+                  // Switch to POS tab (index 0) using SalesTabScope
+                  if (context.mounted) {
+                    final scope = SalesTabScope.of(context);
+                    scope?.tabController.animateTo(0);
+                  }
+                }
+              },
+            ),
+          ),
         );
       },
     );
@@ -752,46 +756,51 @@ class _OrderDetailsSheet extends StatelessWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.85,
+        maxHeight: MediaQuery.of(context).size.height * 0.82,
       ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Handle
-          Container(
-            margin: const EdgeInsets.only(top: 12),
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: borderColor,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-
           // Header
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             child: Row(
               children: [
-                Icon(
-                  Icons.receipt_long_rounded,
-                  color: AppColors.primary,
-                  size: 24,
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.receipt_long_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'تفاصيل الطلب',
+                        'تفاصيل الطلب الإلكتروني',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
                           color: textColor,
                           fontFamily: 'Cairo',
                         ),
@@ -812,6 +821,13 @@ class _OrderDetailsSheet extends StatelessWidget {
                   isDark: isDark,
                   onTap: () {},
                 )._buildStatusChip(order.status, isDark),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 22),
+                  color: textSecondary,
+                  onPressed: () => Navigator.of(context).pop(),
+                  tooltip: 'إغلاق',
+                ),
               ],
             ),
           ),
@@ -821,43 +837,49 @@ class _OrderDetailsSheet extends StatelessWidget {
           // Content
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Order Info Grid
-                  _buildInfoRow(
-                    'رقم الطلب',
-                    order.orderNumber,
-                    textColor,
-                    textSecondary,
-                  ),
-                  _buildInfoRow(
-                    'التاريخ',
-                    _formatDate(order.orderDate),
-                    textColor,
-                    textSecondary,
-                  ),
-                  _buildInfoRow(
-                    'الحالة',
-                    _statusLabel(order.status),
-                    textColor,
-                    textSecondary,
-                  ),
-                  if (order.customerId != null)
-                    _buildInfoRow(
-                      'العميل',
-                      order.customerId!,
-                      textColor,
-                      textSecondary,
+                  // Order Info Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: surfaceColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor),
                     ),
-                  if (order.notes != null && order.notes!.isNotEmpty)
-                    _buildInfoRow(
-                      'ملاحظات',
-                      order.notes!,
-                      textColor,
-                      textSecondary,
+                    child: Column(
+                      children: [
+                        _buildInfoRow(
+                          'رقم الطلب',
+                          order.orderNumber,
+                          textColor,
+                          textSecondary,
+                        ),
+                        _buildInfoRow(
+                          'وقت الطلب',
+                          _formatDate(order.orderDate),
+                          textColor,
+                          textSecondary,
+                        ),
+                        _buildInfoRow(
+                          'حالة الطلب',
+                          _statusLabel(order.status),
+                          textColor,
+                          textSecondary,
+                        ),
+                        if (order.notes != null && order.notes!.isNotEmpty)
+                          _buildInfoRow(
+                            'بيانات العميل',
+                            order.notes!,
+                            textColor,
+                            textSecondary,
+                          ),
+                      ],
                     ),
+                  ),
 
                   const SizedBox(height: 16),
 
@@ -1155,7 +1177,7 @@ class _OrderDetailsSheet extends StatelessWidget {
   }
 }
 
-/// Loads and displays order items from the repository.
+/// Loads and displays order items from the repository with resolved product names.
 class _OrderItemsList extends ConsumerWidget {
   final String orderId;
   final String businessId;
@@ -1169,7 +1191,8 @@ class _OrderItemsList extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final repo = ref.watch(salesRepositoryProvider);
+    final salesRepo = ref.watch(salesRepositoryProvider);
+    final catalogRepo = ref.watch(catalogRepositoryProvider);
     final textColor = isDark ? Colors.white : AppColors.textPrimaryLight;
     final textSecondary = isDark
         ? AppColors.textSecondaryDark
@@ -1177,7 +1200,7 @@ class _OrderItemsList extends ConsumerWidget {
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
     return FutureBuilder<OrderWithItems?>(
-      future: repo.getOrderWithItemsById(orderId, businessId),
+      future: salesRepo.getOrderWithItemsById(orderId, businessId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -1194,72 +1217,129 @@ class _OrderItemsList extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Text(
               'لا توجد منتجات في هذا الطلب',
-              style: TextStyle(color: textSecondary),
+              style: TextStyle(color: textSecondary, fontFamily: 'Cairo'),
             ),
           );
         }
 
         return Column(
           children: items.map((item) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 6),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? AppColors.backgroundDark
-                    : AppColors.backgroundLight,
-                borderRadius: AppSpacing.borderSm,
-                border: Border.all(color: borderColor),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: AppSpacing.borderSm,
-                    ),
-                    child: const Icon(
-                      Icons.inventory_2_rounded,
-                      color: AppColors.primary,
-                      size: 18,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.productUnitId,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                            color: textColor,
+            return FutureBuilder<ProductUnit?>(
+              future: catalogRepo.getProductUnitById(item.productUnitId, businessId),
+              builder: (context, unitSnapshot) {
+                final unit = unitSnapshot.data;
+                final productId = unit?.productId;
+
+                return FutureBuilder<Product?>(
+                  future: productId != null
+                      ? catalogRepo.getProductById(productId, businessId)
+                      : Future.value(null),
+                  builder: (context, prodSnapshot) {
+                    final product = prodSnapshot.data;
+                    final productName = product?.productName ??
+                        (item.productUnitId.length > 8
+                            ? 'منتج (${item.productUnitId.substring(0, 8)}...)'
+                            : item.productUnitId);
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? AppColors.surfaceDark
+                            : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.shopping_bag_outlined,
+                              color: AppColors.primary,
+                              size: 22,
+                            ),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          '${item.quantity} × ${item.unitPrice.toStringAsFixed(2)}',
-                          style: TextStyle(fontSize: 12, color: textSecondary),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    item.lineTotal.toStringAsFixed(2),
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
-                      color: isDark
-                          ? AppColors.primaryLight
-                          : AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  productName,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    color: textColor,
+                                    fontFamily: 'Cairo',
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 1.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'الكمية: ${item.quantity.toInt() == item.quantity ? item.quantity.toInt() : item.quantity}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                          fontFamily: 'Cairo',
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '× ${item.unitPrice.toStringAsFixed(2)} ر.ي',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: textSecondary,
+                                        fontFamily: 'Cairo',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text(
+                                '${item.lineTotal.toStringAsFixed(2)} ر.ي',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  color: isDark
+                                      ? AppColors.primaryLight
+                                      : AppColors.primary,
+                                  fontFamily: 'Cairo',
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
             );
           }).toList(),
         );

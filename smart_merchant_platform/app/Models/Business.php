@@ -29,6 +29,7 @@ class Business extends Model
         'storefront_lat',
         'storefront_lng',
         'storefront_theme_settings',
+        'storefront_categories',
     ];
 
     protected $casts = [
@@ -36,6 +37,7 @@ class Business extends Model
         'storefront_lat' => 'decimal:7',
         'storefront_lng' => 'decimal:7',
         'storefront_theme_settings' => 'array',
+        'storefront_categories' => 'array',
     ];
 
     public function account()

@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCategories, getProducts, getStoreBootstrap, isApiError } from '@/lib/api';
+import type { StoreCategory } from '@/lib/types';
 import { ProductCard } from '@/components/ProductCard';
 import { StoreFilters } from '@/components/StoreFilters';
 import { buildWhatsAppUrl } from '@/lib/utils';
@@ -50,6 +51,16 @@ export default async function StoreHomePage({
   const categories = categoriesRes.data;
   const products = productsRes.data;
   const meta = productsRes.meta;
+
+  const displayCategories: StoreCategory[] = categories.length > 0
+    ? categories
+    : (store?.categories?.map((cat) => ({
+        id: cat,
+        category_name: cat,
+        category_code: null,
+        description: null,
+        parent_id: null,
+      })) || []);
 
   const storeTitle = store?.display_name || store?.business_name || 'المتجر الإلكتروني';
   const whatsappUrl = store ? buildWhatsAppUrl(store.whatsapp || store.phone, storeTitle) : null;
@@ -150,7 +161,7 @@ export default async function StoreHomePage({
       {/* Filter and Search Bar */}
       <StoreFilters
         slug={slug}
-        categories={categories}
+        categories={displayCategories}
         currentCategoryId={category_id}
         currentSearch={search}
       />

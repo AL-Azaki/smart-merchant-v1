@@ -293,29 +293,32 @@ class RegisterDeviceResponseDto {
 // -- Registration --------------------------------------------
 
 class RegisterRequestDto {
-  final String firstName;
-  final String lastName;
-  final String username;
-  final String email;
+  final String? name;
+  final String? firstName;
+  final String? lastName;
+  final String? username;
+  final String? email;
   final String phone;
   final String password;
   final String? deviceName;
 
   const RegisterRequestDto({
-    required this.firstName,
-    required this.lastName,
-    required this.username,
-    required this.email,
+    this.name,
+    this.firstName,
+    this.lastName,
+    this.username,
+    this.email,
     required this.phone,
     required this.password,
     this.deviceName,
   });
 
   Map<String, dynamic> toJson() => {
-    'first_name': firstName,
-    'last_name': lastName,
-    'username': username,
-    'email': email,
+    if (name != null) 'name': name,
+    if (firstName != null) 'first_name': firstName,
+    if (lastName != null) 'last_name': lastName,
+    if (username != null && username!.isNotEmpty) 'username': username,
+    if (email != null && email!.isNotEmpty) 'email': email,
     'phone': phone,
     'password': password,
     if (deviceName != null) 'device_name': deviceName,

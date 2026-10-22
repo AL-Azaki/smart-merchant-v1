@@ -286,18 +286,18 @@ class AuthGateView extends ConsumerWidget {
 
                           const SizedBox(height: 16),
 
-                          // Demo / Quick Trial CTA
+                          // Offline / Quick Trial CTA
                           TextButton.icon(
                             onPressed: () {
-                              ref.read(authNotifierProvider.notifier).loginAsDemo();
+                              ref.read(authNotifierProvider.notifier).enterOfflineMode();
                             },
                             icon: const Icon(
-                              Icons.play_circle_fill_rounded,
+                              Icons.offline_pin_rounded,
                               color: Color(0xFF10B981),
                               size: 22,
                             ),
                             label: Text(
-                              'تجربة النظام مباشرة (حساب تجريبي / Demo)',
+                              'العمل في وضع عدم الاتصال (محلياً بدون خادم)',
                               style: TextStyle(
                                 color: isDark
                                     ? const Color(0xFF34D399)

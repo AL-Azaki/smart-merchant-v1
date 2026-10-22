@@ -66,6 +66,7 @@ class StorefrontDevSeeder extends Seeder
                 'storefront_phone' => '967770000111',
                 'storefront_whatsapp' => '967770000111',
                 'storefront_address_text' => 'صنعاء - شارع الستين',
+                'storefront_categories' => ['إلكترونيات', 'هواتف ذكية', 'إكسسوارات', 'أجهزة منزلية'],
                 'status' => 'Active',
             ]);
         } else {
@@ -79,6 +80,7 @@ class StorefrontDevSeeder extends Seeder
                 'storefront_phone' => '967770000111',
                 'storefront_whatsapp' => '967770000111',
                 'storefront_address_text' => 'صنعاء - شارع الستين',
+                'storefront_categories' => ['إلكترونيات', 'هواتف ذكية', 'إكسسوارات', 'أجهزة منزلية'],
                 'status' => 'Active',
             ]);
         }
@@ -115,6 +117,19 @@ class StorefrontDevSeeder extends Seeder
             ['is_active' => true, 'assigned_at' => now()]
         );
         $user->update(['default_branch_id' => $branch->id]);
+
+        // 4c. Registered ERP Device
+        \App\Models\Device::firstOrCreate(
+            ['device_uuid' => 'test-device-001'],
+            [
+                'id' => (string) Str::uuid(),
+                'business_id' => $business->id,
+                'user_id' => $user->id,
+                'device_name' => 'جهاز ERP المحمول للاختبار',
+                'platform' => 'android',
+                'app_version' => '1.0.0',
+            ]
+        );
 
         // 5. Channel
         $channel = Channel::firstOrCreate(

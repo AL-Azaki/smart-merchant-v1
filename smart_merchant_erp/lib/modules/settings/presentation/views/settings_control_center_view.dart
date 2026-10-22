@@ -20,6 +20,7 @@ import 'taxes_and_fees_view.dart';
 import 'units_of_measure_view.dart';
 import 'users_management_view.dart';
 import 'warehouses_and_branches_view.dart';
+import 'demo_data_management_view.dart';
 
 class SettingsControlCenterView extends ConsumerWidget {
   const SettingsControlCenterView({super.key});
@@ -156,6 +157,15 @@ class SettingsControlCenterView extends ConsumerWidget {
             color: Color(0xFFF59E0B),
             stats: ['1,240 عملية اليوم'],
             destinationView: ActivityLogView(),
+          ),
+          SettingsCardItemModel(
+            id: 'demo_data',
+            title: 'البيانات التجريبية والتصفير',
+            description: 'توليد منتجات وعملاء وموردين بأسماء واقعية أو تصفيرهم للاختبار',
+            icon: Icons.auto_awesome_rounded,
+            color: Color(0xFF6366F1),
+            stats: ['منتجات وهمية', 'عملاء', 'موردين'],
+            destinationView: DemoDataManagementView(),
           ),
           SettingsCardItemModel(
             id: 'logout',

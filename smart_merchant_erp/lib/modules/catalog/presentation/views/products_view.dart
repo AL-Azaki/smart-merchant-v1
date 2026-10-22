@@ -15,6 +15,8 @@ import 'widgets/products_table.dart';
 import 'widgets/catalog_formatters.dart';
 import '../../../platform/presentation/providers/sync_provider.dart';
 import '../../../../kernel/sync/coordinator/sync_coordinator.dart' show SyncStatus;
+import '../../../settings/presentation/providers/storefront_settings_provider.dart';
+import '../../../settings/presentation/views/storefront_settings_view.dart';
 
 class ProductsView extends ConsumerStatefulWidget {
   const ProductsView({super.key});
@@ -630,7 +632,71 @@ class _ProductsViewState extends ConsumerState<ProductsView>
     );
   }
 
+  void _showGatedSyncDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.storefront_rounded, color: AppColors.primary, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'المتجر الإلكتروني غير مفعّل',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'متجرك الإلكتروني غير مفعل بعد! يُرجى إكمال إعدادات المتجر وتحديد رابط المتجر لتتمكن من نشر منتجاتك للعملاء ومزامنتها بنجاح.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogCtx).pop(),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () {
+              Navigator.of(dialogCtx).pop();
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const StorefrontSettingsView(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.settings_rounded, size: 18),
+            label: const Text('الانتقال لإعدادات المتجر'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _triggerStoreSync(BuildContext context) async {
+    final storefrontState = ref.read(storefrontSettingsProvider);
+    final settings = storefrontState.settings;
+    final isStoreActive = settings != null &&
+        settings.storefrontActive &&
+        settings.storefrontSlug != null &&
+        settings.storefrontSlug!.isNotEmpty;
+
+    if (!isStoreActive) {
+      _showGatedSyncDialog(context);
+      return;
+    }
+
     final messenger = ScaffoldMessenger.of(context);
     messenger.hideCurrentSnackBar();
     messenger.showSnackBar(
@@ -655,7 +721,7 @@ class _ProductsViewState extends ConsumerState<ProductsView>
     );
 
     try {
-      await ref.read(syncNotifierProvider.notifier).syncNow();
+      await ref.read(syncNotifierProvider.notifier).syncNow(isStorefrontSync: true);
       final syncState = ref.read(syncNotifierProvider);
 
       if (!context.mounted) {

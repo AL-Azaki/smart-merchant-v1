@@ -21,12 +21,15 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $request->validate([
-            'email' => 'required|email',
+            'email' => 'required_without:phone|string',
+            'phone' => 'nullable|string',
             'password' => 'required',
         ]);
 
+        $loginIdentifier = $request->input('email') ?: $request->input('phone');
+
         $result = $this->authService->login(
-            $request->input('email'),
+            $loginIdentifier,
             $request->input('password'),
             $request->input('device_name')
         );
@@ -41,16 +44,18 @@ class AuthController extends Controller
     public function register(Request $request): JsonResponse
     {
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'username' => 'required|string|max:255|unique:users,username',
-            'email' => 'required|string|email|max:255|unique:users,email',
-            'phone' => 'nullable|string|max:20',
+            'name' => 'nullable|string|max:255',
+            'first_name' => 'nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'phone' => 'required|string|max:30',
             'password' => 'required|string|min:6',
+            'username' => 'nullable|string|max:255',
+            'email' => 'nullable|string|max:255',
+            'business_name' => 'nullable|string|max:255',
         ]);
 
         $result = $this->authService->register(
-            $request->only(['first_name', 'last_name', 'username', 'email', 'phone', 'password']),
+            $request->all(),
             $request->input('device_name')
         );
 

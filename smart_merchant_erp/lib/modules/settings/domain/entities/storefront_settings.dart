@@ -14,6 +14,7 @@ class StorefrontSettings extends Equatable {
   final double? storefrontLat;
   final double? storefrontLng;
   final Map<String, dynamic>? storefrontThemeSettings;
+  final List<String>? storefrontCategories;
 
   const StorefrontSettings({
     required this.storefrontActive,
@@ -28,6 +29,7 @@ class StorefrontSettings extends Equatable {
     this.storefrontLat,
     this.storefrontLng,
     this.storefrontThemeSettings,
+    this.storefrontCategories,
   });
 
   /// Factory creating an empty draft state for an inactive storefront.
@@ -50,6 +52,7 @@ class StorefrontSettings extends Equatable {
     double? storefrontLat,
     double? storefrontLng,
     Map<String, dynamic>? storefrontThemeSettings,
+    List<String>? storefrontCategories,
   }) {
     return StorefrontSettings(
       storefrontActive: storefrontActive ?? this.storefrontActive,
@@ -68,6 +71,8 @@ class StorefrontSettings extends Equatable {
       storefrontLng: storefrontLng ?? this.storefrontLng,
       storefrontThemeSettings:
           storefrontThemeSettings ?? this.storefrontThemeSettings,
+      storefrontCategories:
+          storefrontCategories ?? this.storefrontCategories,
     );
   }
 
@@ -85,5 +90,6 @@ class StorefrontSettings extends Equatable {
         storefrontLat,
         storefrontLng,
         storefrontThemeSettings,
+        storefrontCategories,
       ];
 }

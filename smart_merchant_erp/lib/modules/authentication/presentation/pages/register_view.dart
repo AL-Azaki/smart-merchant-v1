@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/widgets/app_text_field.dart';
-import '../../../../shared/forms/app_input_formatters.dart';
 import '../providers/auth_provider.dart';
 
 class RegisterView extends ConsumerStatefulWidget {
@@ -16,23 +15,17 @@ class RegisterView extends ConsumerStatefulWidget {
 class _RegisterViewState extends ConsumerState<RegisterView> {
   final _formKey = GlobalKey<FormState>();
 
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _usernameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
 
-  bool _acceptTerms = false;
+  bool _acceptTerms = true;
   bool _showPassword = false;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _firstNameController.dispose();
-    _lastNameController.dispose();
-    _usernameController.dispose();
-    _emailController.dispose();
+    _nameController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -44,13 +37,17 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
 
     setState(() => _isLoading = true);
 
+    final fullName = _nameController.text.trim();
+    final nameParts = fullName.split(' ');
+    final firstName = nameParts.first;
+    final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : firstName;
+
     final result = await ref
         .read(authNotifierProvider.notifier)
         .register(
-          firstName: _firstNameController.text.trim(),
-          lastName: _lastNameController.text.trim(),
-          username: _usernameController.text.trim(),
-          email: _emailController.text.trim(),
+          firstName: firstName,
+          lastName: lastName,
+          name: fullName,
           phone: _phoneController.text.trim(),
           password: _passwordController.text,
         );
@@ -60,10 +57,26 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
     setState(() => _isLoading = false);
 
     if (!result.isSuccess) {
+      final isServerIssue = (result.errorMessage ?? '').contains('الخادم') ||
+          (result.errorMessage ?? '').contains('السيرفر') ||
+          (result.errorMessage ?? '').contains('اتصال');
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(result.errorMessage ?? 'حدث خطأ أثناء التسجيل'),
-          backgroundColor: AppColors.error,
+          backgroundColor: isServerIssue ? const Color(0xFF334155) : AppColors.error,
+          duration: const Duration(seconds: 4),
+          action: isServerIssue
+              ? SnackBarAction(
+                  label: 'المتابعة محلياً',
+                  textColor: const Color(0xFF38BDF8),
+                  onPressed: () {
+                    ref.read(authNotifierProvider.notifier).enterOfflineMode(
+                      storeName: fullName.isNotEmpty ? fullName : null,
+                    );
+                  },
+                )
+              : null,
         ),
       );
     }
@@ -172,55 +185,21 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppTextField(
-                                label: 'الاسم الأول *',
-                                controller: _firstNameController,
-                                hint: 'أحمد',
-                                prefixIcon: const Icon(Icons.person_outline, size: 20),
-                                validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: AppTextField(
-                                label: 'اسم العائلة *',
-                                controller: _lastNameController,
-                                hint: 'محمد',
-                                prefixIcon: const Icon(Icons.person_outline, size: 20),
-                                validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
                         AppTextField(
-                          label: 'اسم المستخدم *',
-                          controller: _usernameController,
-                          hint: '@username',
-                          inputFormatters: [AppInputFormatters.englishOnly],
-                          prefixIcon: const Icon(Icons.alternate_email_outlined, size: 20),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
-                        ),
-                        const SizedBox(height: 16),
-                        AppTextField(
-                          label: 'البريد الإلكتروني *',
-                          controller: _emailController,
-                          hint: 'email@example.com',
-                          keyboardType: TextInputType.emailAddress,
-                          prefixIcon: const Icon(Icons.email_outlined, size: 20),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                          label: 'الاسم الكامل أو اسم المتجر *',
+                          controller: _nameController,
+                          hint: 'مثال: متجر الأناقة أو محمد علي',
+                          prefixIcon: const Icon(Icons.person_outline, size: 20),
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'الاسم مطلوب' : null,
                         ),
                         const SizedBox(height: 16),
                         AppTextField(
                           label: 'رقم الهاتف *',
                           controller: _phoneController,
-                          hint: '+967 77...',
+                          hint: '771234567 أو +967...',
                           keyboardType: TextInputType.phone,
                           prefixIcon: const Icon(Icons.phone_outlined, size: 20),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                          validator: (v) => (v == null || v.trim().isEmpty) ? 'رقم الهاتف مطلوب' : null,
                         ),
                         const SizedBox(height: 16),
                         AppTextField(
@@ -229,7 +208,11 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                           hint: '••••••••',
                           obscureText: !_showPassword,
                           prefixIcon: const Icon(Icons.lock_outline, size: 20),
-                          validator: (v) => (v == null || v.trim().isEmpty) ? 'مطلوب' : null,
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) return 'كلمة المرور مطلوبة';
+                            if (v.length < 6) return 'يجب أن لا تقل عن 6 أحرف';
+                            return null;
+                          },
                           suffixIcon: IconButton(
                             icon: Icon(
                               _showPassword
@@ -320,6 +303,42 @@ class _RegisterViewState extends ConsumerState<RegisterView> {
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
+                        ),
+
+                        const SizedBox(height: 16),
+                        OutlinedButton.icon(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  final fullName = _nameController.text.trim();
+                                  ref
+                                      .read(authNotifierProvider.notifier)
+                                      .enterOfflineMode(
+                                        storeName: fullName.isNotEmpty ? fullName : null,
+                                      );
+                                },
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(double.infinity, 52),
+                            side: const BorderSide(
+                              color: Color(0xFF10B981),
+                              width: 1.5,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          icon: const Icon(
+                            Icons.offline_pin_rounded,
+                            color: Color(0xFF10B981),
+                          ),
+                          label: const Text(
+                            'المتابعة في وضع عدم الاتصال (بدون خادم)',
+                            style: TextStyle(
+                              color: Color(0xFF10B981),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 24),

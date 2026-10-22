@@ -95,6 +95,8 @@ class UpdateStorefrontSettingsRequest extends FormRequest
                 'string',
                 'regex:/^#([a-fA-F0-9]{3}|[a-fA-F0-9]{6})$/',
             ],
+            'storefront_categories' => ['nullable', 'array'],
+            'storefront_categories.*' => ['string', 'max:50'],
         ];
     }
 

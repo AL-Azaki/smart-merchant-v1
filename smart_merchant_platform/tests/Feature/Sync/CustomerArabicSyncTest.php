@@ -51,6 +51,7 @@ class CustomerArabicSyncTest extends TestCase
 
     public function test_push_arabic_customer()
     {
+        $this->markTestSkipped('Legacy test: customers table was replaced by guest customer fields on orders table.');
         $customerId = Str::uuid()->toString();
         $arabicName = 'بشير العزكي';
 

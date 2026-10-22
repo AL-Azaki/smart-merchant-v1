@@ -14,6 +14,7 @@ class StorefrontSettingsDto {
   final double? storefrontLat;
   final double? storefrontLng;
   final Map<String, dynamic>? storefrontThemeSettings;
+  final List<String>? storefrontCategories;
 
   const StorefrontSettingsDto({
     required this.storefrontActive,
@@ -28,6 +29,7 @@ class StorefrontSettingsDto {
     this.storefrontLat,
     this.storefrontLng,
     this.storefrontThemeSettings,
+    this.storefrontCategories,
   });
 
   /// Safely parses JSON response from Laravel envelope (`data` or root map).
@@ -51,6 +53,9 @@ class StorefrontSettingsDto {
       storefrontThemeSettings: data['storefront_theme_settings'] is Map
           ? Map<String, dynamic>.from(data['storefront_theme_settings'] as Map)
           : null,
+      storefrontCategories: (data['storefront_categories'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
     );
   }
 
@@ -67,6 +72,7 @@ class StorefrontSettingsDto {
       'storefront_lat': storefrontLat,
       'storefront_lng': storefrontLng,
       'storefront_theme_settings': storefrontThemeSettings,
+      'storefront_categories': storefrontCategories,
     };
   }
 
@@ -85,6 +91,7 @@ class StorefrontSettingsDto {
       storefrontLat: storefrontLat,
       storefrontLng: storefrontLng,
       storefrontThemeSettings: storefrontThemeSettings,
+      storefrontCategories: storefrontCategories,
     );
   }
 
@@ -103,6 +110,7 @@ class StorefrontSettingsDto {
       storefrontLat: entity.storefrontLat,
       storefrontLng: entity.storefrontLng,
       storefrontThemeSettings: entity.storefrontThemeSettings,
+      storefrontCategories: entity.storefrontCategories,
     );
   }
 
