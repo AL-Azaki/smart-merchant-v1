@@ -183,8 +183,9 @@ export const adminTranslations = {
     loginSubmitting: 'جاري التحقق من بيانات الدخول...',
     loginErrorMissing: 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
     loginErrorGeneral: 'فشل تسجيل الدخول. يرجى التحقق من بيانات الدخول.',
-    loginSecureNotice: 'منصة آمنة ومحمية &bull; الدخول مصرح به للمسؤولين فقط',
-    loginFooter: 'Smart Merchant ERP &bull; Platform Management &bull; 2026',
+    loginSecureNotice: 'منصة آمنة ومحمية • الدخول مصرح به للمسؤولين فقط',
+    loginFooter: 'Smart Merchant ERP • Platform Management • 2026',
+    backToMarketplace: '← العودة إلى سوق تاجركم (Tajer)',
   },
 
   en: {
@@ -369,7 +370,8 @@ export const adminTranslations = {
     loginSubmitting: 'Authenticating credentials...',
     loginErrorMissing: 'Please enter your email and password',
     loginErrorGeneral: 'Sign in failed. Please verify your credentials.',
-    loginSecureNotice: 'Protected Enterprise Portal &bull; Authorized Personnel Only',
-    loginFooter: 'Smart Merchant ERP &bull; Platform Management &bull; 2026',
+    loginSecureNotice: 'Protected Enterprise Portal • Authorized Personnel Only',
+    loginFooter: 'Smart Merchant ERP • Platform Management • 2026',
+    backToMarketplace: '← Back to Tajer Marketplace',
   },
 };

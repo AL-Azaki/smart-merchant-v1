@@ -10,8 +10,8 @@ const ibmPlexArabic = IBM_Plex_Sans_Arabic({
 });
 
 export const metadata: Metadata = {
-  title: 'المتجر الإلكتروني | التاجر الذكي',
-  description: 'تسوق من أفضل المنتجات بأفضل الأسعار عبر منظومة التاجر الذكي',
+  title: 'تاجركم (Tajer) | السوق الإلكتروني الموحد والتجارة المحلية في اليمن',
+  description: 'منصة تاجركم (Tajer) - تسوق مباشرة من نخبة المتاجر والتجار المستقلين بدون وسيط وبعمولة 0% وبأسعار التاجر الحقيقية ودفع عند الاستلام.',
 };
 
 export default function RootLayout({
@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ar" dir="rtl" className={`h-full ${ibmPlexArabic.variable}`}>
-      <body className="min-h-full flex flex-col bg-[#F8FAFC] text-slate-900 antialiased font-sans">
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={`h-full ${ibmPlexArabic.variable}`}>
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#F8FAFC] dark:bg-slate-950 text-slate-900 dark:text-slate-100 antialiased font-sans transition-colors duration-200">
         {children}
       </body>
     </html>

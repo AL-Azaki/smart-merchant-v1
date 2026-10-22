@@ -1,7 +1,8 @@
-import { STOREFRONT_API_PREFIX } from './config';
+import { MARKETPLACE_API_PREFIX, STOREFRONT_API_PREFIX } from './config';
 import type {
   ApiError,
   CreateOrderPayload,
+  MarketplaceExploreData,
   OrderSuccessResponse,
   PaginatedResponse,
   StoreBootstrap,
@@ -146,6 +147,29 @@ export async function createOrder(
       cache: 'no-store',
     },
   );
+}
+
+export async function getMarketplaceExplore(params?: {
+  q?: string;
+  category_id?: string;
+}): Promise<{ status: string; data: MarketplaceExploreData }> {
+  const query = new URLSearchParams();
+  if (params?.q) query.set('q', params.q);
+  if (params?.category_id) query.set('category_id', params.category_id);
+
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  const url = `${MARKETPLACE_API_PREFIX}/explore${qs}`;
+
+  const res = await fetch(url, {
+    headers: { Accept: 'application/json' },
+    next: { revalidate: 30 },
+  });
+
+  if (!res.ok) {
+    throw createApiError('فشل تحميل بيانات السوق المركزي', res.status, false);
+  }
+
+  return (await res.json()) as { status: string; data: MarketplaceExploreData };
 }
 
 /* ──────────────────────────────────────────────

@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\AdminUserController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BusinessSetupController;
 use App\Http\Controllers\Api\DeviceController;
+use App\Http\Controllers\Api\MarketplaceController;
 use App\Http\Controllers\Api\Media\MediaController;
 use App\Http\Controllers\Api\Platform\StorefrontSettingsController;
 use App\Http\Controllers\Api\SessionBootstrapController;
@@ -89,6 +90,15 @@ Route::prefix('session')->middleware('auth:sanctum')->group(function () {
 
 Route::prefix('devices')->middleware('auth:sanctum')->group(function () {
     Route::post('/register', [DeviceController::class, 'register']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| Central Marketplace Public API (Home Exploration & Omnisearch)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('marketplace/v1')->group(function () {
+    Route::get('explore', [MarketplaceController::class, 'explore']);
 });
 
 /*

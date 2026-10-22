@@ -184,3 +184,52 @@ export interface CartItem {
   quantity: number;
   image: string | null;
 }
+
+// ─── Marketplace Central Hub ────────────────
+export interface MarketplaceMerchant {
+  id: string;
+  name: string;
+  slug: string;
+  logo: string | null;
+  business_type: string | null;
+  address: string | null;
+  phone: string | null;
+  whatsapp: string | null;
+  active_products_count: number;
+  theme_settings: ThemeSettings | null;
+}
+
+export interface MarketplaceProductItem extends StoreProductListItem {
+  merchant?: {
+    id: string;
+    name: string;
+    slug: string;
+    logo: string | null;
+  };
+}
+
+export interface MarketplaceCategory {
+  id: string;
+  name: string;
+  products_count: number;
+}
+
+export interface MarketingBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  cta_text: string;
+  cta_link: string;
+  gradient: string;
+}
+
+export interface MarketplaceExploreData {
+  merchants: MarketplaceMerchant[];
+  products: MarketplaceProductItem[];
+  categories: MarketplaceCategory[];
+  banners: MarketingBanner[];
+  total_merchants: number;
+  total_products: number;
+}
+

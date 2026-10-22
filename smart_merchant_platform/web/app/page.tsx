@@ -1,73 +1,154 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useEffect, useState, useTransition } from 'react';
+import { MarketplaceNavbar } from '@/components/MarketplaceNavbar';
+import { MarketplaceFooter } from '@/components/MarketplaceFooter';
+import { StoreStoriesBar } from '@/components/StoreStoriesBar';
+import { MarketplaceHero } from '@/components/MarketplaceHero';
+import { FeaturedMerchantsGrid } from '@/components/FeaturedMerchantsGrid';
+import { CrossStoreProductGrid } from '@/components/CrossStoreProductGrid';
+import { MerchantOnboardingBanner } from '@/components/MerchantOnboardingBanner';
+import { getMarketplaceExplore } from '@/lib/api';
+import type { MarketplaceExploreData } from '@/lib/types';
+import { MarketplaceProvider, useMarketplace } from '@/lib/marketplace-context';
 
-export default function HomePage() {
-  const [slug, setSlug] = useState('integration-test-store');
-  const router = useRouter();
+function MarketplaceHomeContent() {
+  const { t } = useMarketplace();
+  const [data, setData] = useState<MarketplaceExploreData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleOpenStore = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanSlug = slug.trim();
-    if (cleanSlug) {
-      router.push(`/store/${cleanSlug}`);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const loadData = async (q?: string, catId?: string | null) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await getMarketplaceExplore({
+        q: q || undefined,
+        category_id: catId || undefined,
+      });
+      setData(res.data);
+    } catch {
+      setError(t('error_loading'));
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // Smoothly scroll to target section when arriving with a hash (e.g., #explore-products)
+  useEffect(() => {
+    if (!loading && data && typeof window !== 'undefined') {
+      const handleHashScroll = () => {
+        const hash = window.location.hash;
+        if (hash) {
+          const targetId = hash.replace('#', '');
+          const element = document.getElementById(targetId);
+          if (element) {
+            setTimeout(() => {
+              element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 120);
+          }
+        }
+      };
+
+      handleHashScroll();
+      window.addEventListener('hashchange', handleHashScroll);
+      return () => window.removeEventListener('hashchange', handleHashScroll);
+    }
+  }, [loading, data]);
+
+  const handleSearch = (q: string) => {
+    setSearchQuery(q);
+    startTransition(() => {
+      loadData(q, selectedCategory);
+    });
+  };
+
+  const handleSelectCategory = (catId: string | null) => {
+    setSelectedCategory(catId);
+    startTransition(() => {
+      loadData(searchQuery, catId);
+    });
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center p-6 text-center min-h-[80vh]">
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-gray-100 shadow-xl shadow-gray-200/50">
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-700 to-blue-500 text-white flex items-center justify-center mx-auto mb-4 text-2xl font-bold shadow-md shadow-blue-500/20">
-          🏪
-        </div>
-        
-        <h1 className="text-2xl font-extrabold text-gray-900 mb-1">منصة التاجر الذكي</h1>
-        <h2 className="text-base font-semibold text-blue-600 mb-3">بوابة المتاجر الإلكترونية</h2>
-        
-        <p className="text-gray-500 text-sm mb-6 leading-relaxed">
-          منظومة متكاملة لربط نقاط البيع والمخازن بمتاجر العملاء الرقمية ومزامنة الطلبات لحظياً.
-        </p>
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
+      {/* 1. Global Navigation Bar */}
+      <MarketplaceNavbar />
 
-        <form onSubmit={handleOpenStore} className="space-y-4 mb-6">
-          <div className="text-right">
-            <label htmlFor="store-slug" className="block text-xs font-medium text-gray-700 mb-1.5">
-              معرّف المتجر (Slug):
-            </label>
-            <input
-              id="store-slug"
-              type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="مثال: integration-test-store"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              dir="ltr"
-            />
+      {/* 2. Interactive Stories Reel (9:16 Visuals) */}
+      {data && data.merchants && data.merchants.length > 0 && (
+        <StoreStoriesBar merchants={data.merchants} />
+      )}
+
+      {/* 3. Hero Search & Omnisearch Section */}
+      <MarketplaceHero
+        categories={data?.categories || []}
+        merchants={data?.merchants || []}
+        onSearch={handleSearch}
+        onSelectCategory={handleSelectCategory}
+        activeCategory={selectedCategory}
+        totalMerchants={data?.total_merchants || 0}
+        totalProducts={data?.total_products || 0}
+      />
+
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="max-w-7xl mx-auto px-4 py-16 w-full space-y-8 animate-pulse">
+          <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded-xl w-64"></div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
+            <div className="h-44 bg-slate-200 dark:bg-slate-800 rounded-2xl"></div>
           </div>
+        </div>
+      )}
 
+      {/* Error Message */}
+      {error && !loading && (
+        <div className="max-w-xl mx-auto my-12 p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-3xl text-center space-y-3">
+          <span className="text-3xl">⚠️</span>
+          <p className="text-rose-700 dark:text-rose-300 text-sm font-bold">{error}</p>
           <button
-            type="submit"
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm rounded-xl shadow-md shadow-blue-600/20 hover:shadow-lg transition-all active:scale-[0.99]"
+            onClick={() => loadData(searchQuery, selectedCategory)}
+            className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition"
           >
-            فتح المتجر
+            {t('retry')}
           </button>
-        </form>
-
-        <div className="bg-gray-50 border border-gray-100 rounded-2xl p-3 text-xs text-gray-500 mb-4">
-          <span className="block text-gray-400 mb-1">مثال للرابط المباشر:</span>
-          <span className="font-mono text-blue-600 font-medium" dir="ltr">/store/{slug || 'store-name'}</span>
         </div>
+      )}
 
-        <div className="pt-2 border-t border-gray-100 flex items-center justify-center gap-3 text-xs">
-          <a
-            href="/admin/login"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium transition"
-          >
-            <span>🔐</span>
-            <span>لوحة تحكم المسؤول (Admin Dashboard)</span>
-          </a>
-        </div>
-      </div>
+      {/* Main Content Area */}
+      {!loading && data && (
+        <main className={`flex-1 transition-opacity ${isPending ? 'opacity-60' : 'opacity-100'}`}>
+          {/* 4. Verified Featured Merchants */}
+          <FeaturedMerchantsGrid merchants={data.merchants} />
+
+          {/* 5. Cross-Store Products Grid */}
+          <CrossStoreProductGrid products={data.products} searchTerm={searchQuery} />
+
+          {/* 6. Merchant Conversion & Acquisition Banner */}
+          <MerchantOnboardingBanner />
+        </main>
+      )}
+
+      {/* 7. Central Marketplace Footer */}
+      <MarketplaceFooter />
     </div>
+  );
+}
+
+export default function MarketplaceHomePage() {
+  return (
+    <MarketplaceProvider>
+      <MarketplaceHomeContent />
+    </MarketplaceProvider>
   );
 }

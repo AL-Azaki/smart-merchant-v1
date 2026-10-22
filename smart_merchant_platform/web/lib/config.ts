@@ -11,3 +11,7 @@ export const STOREFRONT_URL = rawStorefrontUrl.replace(/\/+$/, '');
 
 /** Storefront API prefix */
 export const STOREFRONT_API_PREFIX = `${API_BASE_URL}/api/storefront/v1`;
+
+/** Central Marketplace API prefix */
+export const MARKETPLACE_API_PREFIX = `${API_BASE_URL}/api/marketplace/v1`;
+
