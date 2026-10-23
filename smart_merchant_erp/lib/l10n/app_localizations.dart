@@ -101,25 +101,25 @@ abstract class AppLocalizations {
   /// No description provided for @appTitle.
   ///
   /// In ar, this message translates to:
-  /// **'التاجر الذكي'**
+  /// **'تاجركم'**
   String get appTitle;
 
   /// No description provided for @authGateWelcome.
   ///
   /// In ar, this message translates to:
-  /// **'مرحباً بك في عالم الإدارة الذكية'**
+  /// **'مرحباً بك في تاجركم'**
   String get authGateWelcome;
 
   /// No description provided for @authGateSubtitle.
   ///
   /// In ar, this message translates to:
-  /// **'اكتشف أسهل طريقة لإدارة مبيعاتك ومخزونك وحساباتك من مكان واحد بكل أمان واحترافية.'**
+  /// **'المنظومة المتكاملة لإدارة تجارتك، مبيعاتك، ومخزونك بكل هدوء وسلاسة واحترافية.'**
   String get authGateSubtitle;
 
   /// No description provided for @startFreeTrial.
   ///
   /// In ar, this message translates to:
-  /// **'ابدأ تجربتك المجانية'**
+  /// **'إنشاء حساب تاجر جديد'**
   String get startFreeTrial;
 
   /// No description provided for @login.
@@ -127,6 +127,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تسجيل الدخول'**
   String get login;
+
+  /// No description provided for @offlineModeFriendly.
+  ///
+  /// In ar, this message translates to:
+  /// **'العمل بدون إنترنت (محلياً على جهازك)'**
+  String get offlineModeFriendly;
 
   /// No description provided for @home.
   ///

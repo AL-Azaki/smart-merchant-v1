@@ -221,15 +221,12 @@ class AuthNotifier extends _$AuthNotifier {
       // Update setup/subscription state
       if (bootstrapResponse.activeBusiness.businessType == null) {
         state = AuthStatus.setupRequired;
-      } else if (bootstrapResponse.subscription != null) {
-        final subStatus = bootstrapResponse.subscription!.status;
-        if (subStatus == 'Active') {
-          state = AuthStatus.authenticated;
-        } else if (subStatus == 'Expired') {
-          state = AuthStatus.subscriptionExpired;
-        } else {
-          state = AuthStatus.subscriptionPending;
-        }
+      } else if (bootstrapResponse.accountStatus == 'Pending' ||
+          bootstrapResponse.subscription == null ||
+          bootstrapResponse.subscription!.status != 'Active') {
+        state = AuthStatus.subscriptionPending;
+      } else if (bootstrapResponse.subscription!.status == 'Expired') {
+        state = AuthStatus.subscriptionExpired;
       } else {
         state = AuthStatus.authenticated;
       }
@@ -413,15 +410,12 @@ class AuthNotifier extends _$AuthNotifier {
       // 7. Determine setup/subscription state
       if (bootstrapResponse.activeBusiness.businessType == null) {
         state = AuthStatus.setupRequired;
-      } else if (bootstrapResponse.subscription != null) {
-        final subStatus = bootstrapResponse.subscription!.status;
-        if (subStatus == 'Active') {
-          state = AuthStatus.authenticated;
-        } else if (subStatus == 'Expired') {
-          state = AuthStatus.subscriptionExpired;
-        } else {
-          state = AuthStatus.subscriptionPending;
-        }
+      } else if (bootstrapResponse.accountStatus == 'Pending' ||
+          bootstrapResponse.subscription == null ||
+          bootstrapResponse.subscription!.status != 'Active') {
+        state = AuthStatus.subscriptionPending;
+      } else if (bootstrapResponse.subscription!.status == 'Expired') {
+        state = AuthStatus.subscriptionExpired;
       } else {
         state = AuthStatus.authenticated;
       }
@@ -456,22 +450,47 @@ class AuthNotifier extends _$AuthNotifier {
 
       await _hydrateLocalSessionData(bootstrapResponse);
 
-      // Update state
-      if (bootstrapResponse.subscription != null) {
-        final subStatus = bootstrapResponse.subscription!.status;
-        if (subStatus == 'Active') {
-          state = AuthStatus.authenticated;
-        } else if (subStatus == 'Expired') {
-          state = AuthStatus.subscriptionExpired;
-        } else {
-          state = AuthStatus.subscriptionPending;
-        }
+      // Update state - if still Pending approval from Admin, hold in subscriptionPending
+      if (bootstrapResponse.accountStatus == 'Pending' ||
+          bootstrapResponse.subscription == null ||
+          bootstrapResponse.subscription!.status != 'Active') {
+        state = AuthStatus.subscriptionPending;
+      } else if (bootstrapResponse.subscription!.status == 'Expired') {
+        state = AuthStatus.subscriptionExpired;
       } else {
         state = AuthStatus.authenticated;
       }
     } catch (e) {
       debugPrint('SETUP_EXCEPTION: $e');
       state = AuthStatus.setupRequired; // Revert if failed
+    }
+  }
+
+  /// Check if the account has been approved and activated by the administrator
+  Future<bool> checkApprovalStatus() async {
+    try {
+      final deviceUuid = await _secureStorage.read(StorageKeys.deviceUuid);
+      final bootstrapResponse = await _authApi.bootstrap(
+        BootstrapRequestDto(deviceUuid: deviceUuid),
+      );
+
+      if (bootstrapResponse.accountStatus == 'Active' &&
+          bootstrapResponse.subscription?.status == 'Active') {
+        final sessionNotifier = ref.read(sessionNotifierProvider.notifier);
+        sessionNotifier.setSession(
+          businessId: bootstrapResponse.activeBusiness.id,
+          branchId: bootstrapResponse.activeBranch?.id,
+          userId: bootstrapResponse.user.id,
+          isOffline: false,
+        );
+        await _hydrateLocalSessionData(bootstrapResponse);
+        state = AuthStatus.authenticated;
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Check approval error: $e');
+      return false;
     }
   }
 

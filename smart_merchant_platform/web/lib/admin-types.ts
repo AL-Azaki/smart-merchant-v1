@@ -4,7 +4,7 @@ export interface AdminAccount {
   owner_name: string;
   email: string;
   phone?: string | null;
-  status: 'Active' | 'Suspended' | 'Closed';
+  status: 'Pending' | 'Active' | 'Suspended' | 'Closed';
   created_at: string;
   businesses_count?: number;
   users_count?: number;

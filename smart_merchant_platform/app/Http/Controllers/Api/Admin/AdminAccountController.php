@@ -178,7 +178,7 @@ class AdminAccountController extends Controller
             'name' => 'sometimes|string|max:200',
             'owner_name' => 'sometimes|string|max:150',
             'phone' => 'nullable|string|max:30',
-            'status' => ['sometimes', 'string', Rule::in(['Active', 'Suspended', 'Closed'])],
+            'status' => ['sometimes', 'string', Rule::in(['Pending', 'Active', 'Suspended', 'Closed'])],
             'reason' => 'nullable|string|max:500',
         ]);
 
@@ -195,9 +195,33 @@ class AdminAccountController extends Controller
         $account = Account::findOrFail($id);
         $account->update(['status' => 'Active']);
 
+        // Create an Active 1-Year Subscription for the merchant upon approval
+        if ($account->subscriptions()->where('status', 'Active')->doesntExist()) {
+            $plan = Plan::where('is_active', true)->first();
+            if ($plan) {
+                Subscription::create([
+                    'account_id' => $account->id,
+                    'plan_id' => $plan->id,
+                    'start_date' => now(),
+                    'end_date' => now()->addYear(),
+                    'amount_paid' => 0.00,
+                    'status' => 'Active',
+                ]);
+            }
+        }
+
+        // Send luxury branded approval notification email to merchant
+        try {
+            if ($account->email && filter_var($account->email, FILTER_VALIDATE_EMAIL)) {
+                \Illuminate\Support\Facades\Mail::to($account->email)->send(new \App\Mail\AccountApprovedMail($account));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Failed to send approval email to {$account->email}: " . $e->getMessage());
+        }
+
         return response()->json([
             'data' => $account->fresh()->loadCount(['businesses', 'users']),
-            'message' => 'تم تفعيل الحساب بنجاح',
+            'message' => 'تم تفعيل الحساب وإرسال بريد التأكيد بنجاح',
         ]);
     }
 

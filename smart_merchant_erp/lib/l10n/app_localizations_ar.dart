@@ -9,20 +9,23 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appTitle => 'التاجر الذكي';
+  String get appTitle => 'تاجركم';
 
   @override
-  String get authGateWelcome => 'مرحباً بك في عالم الإدارة الذكية';
+  String get authGateWelcome => 'مرحباً بك في تاجركم';
 
   @override
   String get authGateSubtitle =>
-      'اكتشف أسهل طريقة لإدارة مبيعاتك ومخزونك وحساباتك من مكان واحد بكل أمان واحترافية.';
+      'المنظومة المتكاملة لإدارة تجارتك، مبيعاتك، ومخزونك بكل هدوء وسلاسة واحترافية.';
 
   @override
-  String get startFreeTrial => 'ابدأ تجربتك المجانية';
+  String get startFreeTrial => 'إنشاء حساب تاجر جديد';
 
   @override
   String get login => 'تسجيل الدخول';
+
+  @override
+  String get offlineModeFriendly => 'العمل بدون إنترنت (محلياً على جهازك)';
 
   @override
   String get home => 'الرئيسية';

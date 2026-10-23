@@ -95,6 +95,9 @@ class BootstrapResponseDto {
   final List<String> permissions;
   final SubscriptionDto? subscription;
   final DeviceDto? device;
+  final String? accountStatus;
+  final String? accountEmail;
+  final String? accountPhone;
 
   const BootstrapResponseDto({
     required this.user,
@@ -106,6 +109,9 @@ class BootstrapResponseDto {
     required this.permissions,
     this.subscription,
     this.device,
+    this.accountStatus,
+    this.accountEmail,
+    this.accountPhone,
   });
 
   factory BootstrapResponseDto.fromJson(Map<String, dynamic> json) {
@@ -138,6 +144,9 @@ class BootstrapResponseDto {
       device: json['device'] != null
           ? DeviceDto.fromJson(json['device'] as Map<String, dynamic>)
           : null,
+      accountStatus: json['account_status'] as String?,
+      accountEmail: json['account_email'] as String?,
+      accountPhone: json['account_phone'] as String?,
     );
   }
 }

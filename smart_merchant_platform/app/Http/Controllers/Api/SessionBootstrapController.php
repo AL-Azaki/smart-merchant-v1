@@ -37,6 +37,9 @@ class SessionBootstrapController extends Controller
             'allowed_branches' => BranchResource::collection($context['allowed_branches']),
             'roles' => $context['roles'],
             'permissions' => $context['permissions'],
+            'account_status' => $context['active_business']->account ? $context['active_business']->account->status : 'Active',
+            'account_email' => $context['active_business']->account ? $context['active_business']->account->email : null,
+            'account_phone' => $context['active_business']->account ? $context['active_business']->account->phone : null,
             'subscription' => $context['subscription'] ? [
                 'id' => $context['subscription']->id,
                 'status' => $context['subscription']->status,

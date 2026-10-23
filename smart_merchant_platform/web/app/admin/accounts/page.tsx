@@ -13,7 +13,7 @@ export default function AdminAccountsPage() {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Suspended' | 'Closed'>('All');
+  const [statusFilter, setStatusFilter] = useState<'All' | 'Pending' | 'Active' | 'Suspended' | 'Closed'>('All');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [lastPage, setLastPage] = useState(1);
@@ -229,6 +229,13 @@ export default function AdminAccountsPage() {
 
   const getStatusBadge = (status: AdminAccount['status']) => {
     switch (status) {
+      case 'Pending':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-700">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+            <span>{t.statusPending}</span>
+          </span>
+        );
       case 'Active':
         return (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -254,6 +261,7 @@ export default function AdminAccountsPage() {
 
   const filterTabs = [
     { key: 'All', label: t.statusAll },
+    { key: 'Pending', label: t.statusPending },
     { key: 'Active', label: t.statusActive },
     { key: 'Suspended', label: t.statusSuspended },
     { key: 'Closed', label: t.statusClosed },
@@ -402,7 +410,15 @@ export default function AdminAccountsPage() {
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="inline-flex items-center gap-1.5">
-                          {acc.status !== 'Active' ? (
+                          {acc.status === 'Pending' ? (
+                            <button
+                              onClick={() => openAction(acc, 'approve')}
+                              className="px-3 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition flex items-center gap-1"
+                            >
+                              <span>✓</span>
+                              <span>{t.btnApproveAndActivate}</span>
+                            </button>
+                          ) : acc.status !== 'Active' ? (
                             <button
                               onClick={() => openAction(acc, 'approve')}
                               className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 transition"

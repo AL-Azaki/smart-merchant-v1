@@ -3,7 +3,7 @@ export type AdminLocale = 'ar' | 'en';
 export const adminTranslations = {
   ar: {
     // Brand
-    brandName: 'التاجر الذكي ERP',
+    brandName: 'تاجركم ERP',
     brandPlatformAdmin: 'إدارة المنصة المركزية',
     systemTitle: 'التاجر الذكي | منصة الإدارة',
 
@@ -18,11 +18,13 @@ export const adminTranslations = {
     defaultAdminRole: 'مدير المنصة',
 
     // Common Status
+    statusPending: 'قيد المراجعة',
     statusActive: 'نشط',
     statusSuspended: 'معلق',
     statusClosed: 'مغلق',
     statusInactive: 'معطل',
     statusAll: 'الكل',
+    btnApproveAndActivate: 'موافقة وتفعيل',
 
     // Common Actions & Labels
     search: 'بحث',
@@ -171,7 +173,7 @@ export const adminTranslations = {
     auditEngineDesc: 'يتم تسجيل كافة الإجراءات الإدارية وتغييرات حالة الحسابات (اعتماد، تعليق، تنشيط) عبر سجلات Laravel المركزية وسجلات المعاملات.',
 
     // Login Page
-    loginBrandTitle: 'التاجر الذكي ERP',
+    loginBrandTitle: 'تاجركم ERP',
     loginBrandSubtitle: 'بوابة إدارة المنصة والتحكم المركزي',
     loginEmailLabel: 'البريد الإلكتروني',
     loginEmailPlaceholder: 'admin@smartmerchant.com',
@@ -205,11 +207,13 @@ export const adminTranslations = {
     defaultAdminRole: 'Platform Administrator',
 
     // Common Status
+    statusPending: 'Pending Review',
     statusActive: 'Active',
     statusSuspended: 'Suspended',
     statusClosed: 'Closed',
     statusInactive: 'Disabled',
     statusAll: 'All',
+    btnApproveAndActivate: 'Approve & Activate',
 
     // Common Actions & Labels
     search: 'Search',

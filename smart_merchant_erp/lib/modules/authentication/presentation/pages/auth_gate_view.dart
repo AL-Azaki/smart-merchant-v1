@@ -3,82 +3,137 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:smart_merchant_erp/l10n/app_localizations.dart';
 
-import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../kernel/locale/locale_provider.dart';
 import '../../../../shared/design_system/theme/theme_provider.dart';
-import '../providers/auth_provider.dart';
 
 class AuthGateView extends ConsumerWidget {
   const AuthGateView({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final loc = AppLocalizations.of(context)!;
+    final loc = AppLocalizations.of(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Background gradient that adapts slightly based on theme
+    // Soothing, luxurious color palette (Royal Sapphire to Midnight Slate)
     final bgColors = isDark
-        ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
-        : [const Color(0xFF4F46E5), const Color(0xFF0EA5E9)];
+        ? [const Color(0xFF090D16), const Color(0xFF0F1A2E), const Color(0xFF14233B)]
+        : [const Color(0xFF0F2A6E), const Color(0xFF1D4ED8), const Color(0xFF2563EB)];
 
     return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.backgroundDark
-          : AppColors.backgroundLight,
+      backgroundColor: isDark ? const Color(0xFF090D16) : const Color(0xFFF8FAFC),
       body: Stack(
         children: [
-          // Background Gradient Hero
+          // Background Gradient Hero with Ambient Glow
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            height: MediaQuery.of(context).size.height * 0.45,
+            height: MediaQuery.of(context).size.height * 0.46,
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: bgColors,
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
                 ),
+              ),
+              child: Stack(
+                children: [
+                  // Decorative Ambient Glow Circles
+                  Positioned(
+                    top: -60,
+                    right: -40,
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFB3945B).withValues(alpha: 0.15),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 20,
+                    left: -50,
+                    child: Container(
+                      width: 180,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFF38BDF8).withValues(alpha: 0.12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
 
-          // Content
+          // Main Scrollable Content
           SafeArea(
             child: Column(
               children: [
-                // Top Bar (Toggles)
+                // Top Navigation Bar (Language & Theme Quick Switchers)
                 Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Empty space to balance
-                      const SizedBox(width: 48),
+                      // Subtitle Tag / Identity Pill
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF10B981),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'منظومة تاجركم الرسمية',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       // Toggles
                       Row(
                         children: [
-                          IconButton(
-                            onPressed: () {
-                              ref
-                                  .read(localeNotifierProvider.notifier)
-                                  .toggleLocale();
+                          InkWell(
+                            onTap: () {
+                              ref.read(localeNotifierProvider.notifier).toggleLocale();
                             },
-                            icon: Container(
-                              padding: const EdgeInsets.all(6),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                ),
                               ),
                               child: Text(
-                                ref.read(localeNotifierProvider).languageCode ==
-                                        'ar'
-                                    ? 'EN'
-                                    : 'عربي',
+                                ref.read(localeNotifierProvider).languageCode == 'ar'
+                                    ? 'English'
+                                    : 'العربية',
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -87,24 +142,25 @@ class AuthGateView extends ConsumerWidget {
                               ),
                             ),
                           ),
-                          IconButton(
-                            onPressed: () {
-                              ref
-                                  .read(themeNotifierProvider.notifier)
-                                  .toggleTheme();
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () {
+                              ref.read(themeNotifierProvider.notifier).toggleTheme();
                             },
-                            icon: Container(
-                              padding: const EdgeInsets.all(6),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.all(7),
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.25),
+                                ),
                               ),
                               child: Icon(
-                                isDark
-                                    ? Icons.light_mode_rounded
-                                    : Icons.dark_mode_rounded,
+                                isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                                 color: Colors.white,
-                                size: 18,
+                                size: 17,
                               ),
                             ),
                           ),
@@ -114,35 +170,56 @@ class AuthGateView extends ConsumerWidget {
                   ),
                 ),
 
-                // Hero Texts
+                // Hero Branding Section (Tajer Emblem & Title)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   child: Column(
                     children: [
+                      // Luxury Monogram Icon
                       Container(
-                        width: 72,
-                        height: 72,
+                        width: 76,
+                        height: 76,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.4),
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFFFFFFF), Color(0xFFF1F5F9)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
+                          borderRadius: BorderRadius.circular(22),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
-                              blurRadius: 24,
-                              offset: const Offset(0, 8),
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 28,
+                              offset: const Offset(0, 10),
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFFB3945B).withValues(alpha: 0.35),
+                              blurRadius: 18,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.storefront_rounded,
-                          color: Colors.white,
-                          size: 40,
+                        child: Center(
+                          child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF0F2A6E), Color(0xFF1D4ED8)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(
+                              Icons.storefront_rounded,
+                              color: Color(0xFFE2BA65),
+                              size: 34,
+                            ),
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
                       Text(
                         loc.appTitle,
                         style: const TextStyle(
@@ -152,14 +229,16 @@ class AuthGateView extends ConsumerWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 6),
                       Text(
                         loc.authGateSubtitle,
                         textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.9),
-                          fontSize: 15,
-                          height: 1.6,
+                          fontSize: 13.5,
+                          height: 1.5,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -167,74 +246,98 @@ class AuthGateView extends ConsumerWidget {
                   ),
                 ),
 
-                const SizedBox(height: 48),
+                const SizedBox(height: 20),
 
-                // Interactive Card
+                // Bottom Soothing Interactive Surface Card
                 Expanded(
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 40,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(28, 28, 28, 20),
                     decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.surfaceDark
-                          : AppColors.surfaceLight,
+                      color: isDark ? const Color(0xFF111C2F) : Colors.white,
                       borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(40),
-                        topRight: Radius.circular(40),
+                        topLeft: Radius.circular(36),
+                        topRight: Radius.circular(36),
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 40,
+                          color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+                          blurRadius: 36,
                           offset: const Offset(0, -10),
                         ),
                       ],
                     ),
                     child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            loc.authGateWelcome,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimaryLight,
+                          Center(
+                            child: Container(
+                              width: 44,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.15)
+                                    : const Color(0xFFE2E8F0),
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 20),
 
-                          // Primary CTA
+                          Text(
+                            loc.authGateWelcome,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? Colors.white : const Color(0xFF14233B),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'ابدأ إدارة نقاط البيع والمخزون وحساباتك بكل راحة',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: isDark
+                                  ? const Color(0xFF94A3B8)
+                                  : const Color(0xFF64748B),
+                            ),
+                          ),
+
+                          const SizedBox(height: 28),
+
+                          // PRIMARY ACTION: Login (تسجيل الدخول)
                           ElevatedButton(
                             onPressed: () {
-                              context.push('/register');
+                              context.push('/login');
                             },
                             style: ElevatedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 60),
-                              backgroundColor: AppColors.primary,
+                              minimumSize: const Size(double.infinity, 56),
+                              backgroundColor: const Color(0xFF1D4ED8),
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              elevation: 0,
+                              elevation: 4,
+                              shadowColor: const Color(0xFF1D4ED8).withValues(alpha: 0.4),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 const Icon(
-                                  Icons.rocket_launch_rounded,
+                                  Icons.login_rounded,
                                   color: Colors.white,
                                   size: 22,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Text(
-                                  loc.startFreeTrial,
+                                  loc.login,
                                   style: const TextStyle(
                                     color: Colors.white,
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.w800,
                                   ),
                                 ),
@@ -242,94 +345,69 @@ class AuthGateView extends ConsumerWidget {
                             ),
                           ),
 
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 14),
 
-                          // Secondary CTA
+                          // SECONDARY ACTION: Create Merchant Account (إنشاء حساب تاجر جديد)
                           OutlinedButton(
                             onPressed: () {
-                              context.push('/login');
+                              context.push('/register');
                             },
                             style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(double.infinity, 60),
+                              minimumSize: const Size(double.infinity, 54),
                               side: BorderSide(
-                                color: AppColors.borderLight,
-                                width: 2,
+                                color: isDark
+                                    ? const Color(0xFF334155)
+                                    : const Color(0xFFCBD5E1),
+                                width: 1.5,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
+                              backgroundColor: isDark
+                                  ? Colors.white.withValues(alpha: 0.03)
+                                  : const Color(0xFFF8FAFC),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(
-                                  Icons.login_rounded,
-                                  color: isDark
-                                      ? Colors.white
-                                      : AppColors.textPrimaryLight,
-                                  size: 22,
+                                  Icons.person_add_alt_1_rounded,
+                                  color: isDark ? Colors.white : const Color(0xFF14233B),
+                                  size: 20,
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: 10),
                                 Text(
-                                  loc.login,
+                                  loc.startFreeTrial, // displays "إنشاء حساب تاجر جديد"
                                   style: TextStyle(
-                                    color: isDark
-                                        ? Colors.white
-                                        : AppColors.textPrimaryLight,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w800,
+                                    color: isDark ? Colors.white : const Color(0xFF14233B),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 28),
 
-                          // Offline / Quick Trial CTA
-                          TextButton.icon(
-                            onPressed: () {
-                              ref.read(authNotifierProvider.notifier).enterOfflineMode();
-                            },
-                            icon: const Icon(
-                              Icons.offline_pin_rounded,
-                              color: Color(0xFF10B981),
-                              size: 22,
-                            ),
-                            label: Text(
-                              'العمل في وضع عدم الاتصال (محلياً بدون خادم)',
-                              style: TextStyle(
-                                color: isDark
-                                    ? const Color(0xFF34D399)
-                                    : const Color(0xFF059669),
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Trust Indicators
+                          // Trust & Peace-of-Mind Badges
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
                             children: [
                               _buildTrustBadge(
-                                Icons.security_rounded,
-                                'آمن ومشفر',
-                                isDark,
+                                icon: Icons.shield_outlined,
+                                label: 'بيانات مشفرة',
+                                isDark: isDark,
                               ),
-                              const SizedBox(width: 24),
                               _buildTrustBadge(
-                                Icons.cloud_sync_rounded,
-                                'مزامنة سحابية',
-                                isDark,
+                                icon: Icons.wifi_off_rounded,
+                                label: 'يعمل بلا إنترنت',
+                                isDark: isDark,
                               ),
-                              const SizedBox(width: 24),
                               _buildTrustBadge(
-                                Icons.support_agent_rounded,
-                                'دعم فني',
-                                isDark,
+                                icon: Icons.support_agent_rounded,
+                                label: 'دعم دائم',
+                                isDark: isDark,
                               ),
                             ],
                           ),
@@ -346,32 +424,34 @@ class AuthGateView extends ConsumerWidget {
     );
   }
 
-  Widget _buildTrustBadge(IconData icon, String label, bool isDark) {
+  Widget _buildTrustBadge({
+    required IconData icon,
+    required String label,
+    required bool isDark,
+  }) {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.05)
-                : AppColors.primary.withValues(alpha: 0.05),
+                : const Color(0xFFF1F5F9),
             shape: BoxShape.circle,
           ),
           child: Icon(
             icon,
-            color: isDark ? AppColors.primaryLight : AppColors.primary,
-            size: 24,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+            size: 20,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 11,
             fontWeight: FontWeight.w600,
-            color: isDark
-                ? AppColors.textSecondaryDark
-                : AppColors.textSecondaryLight,
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
           ),
         ),
       ],

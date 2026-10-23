@@ -9,20 +9,23 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
-  String get appTitle => 'Smart Merchant';
+  String get appTitle => 'Tajer';
 
   @override
-  String get authGateWelcome => 'Welcome to Smart Management';
+  String get authGateWelcome => 'Welcome to Tajer';
 
   @override
   String get authGateSubtitle =>
-      'Discover the easiest way to manage your sales, inventory, and accounts securely and professionally.';
+      'The integrated platform to manage your business, sales, and inventory with comfort and ease.';
 
   @override
-  String get startFreeTrial => 'Start Free Trial';
+  String get startFreeTrial => 'Create Merchant Account';
 
   @override
   String get login => 'Login';
+
+  @override
+  String get offlineModeFriendly => 'Work Offline (Locally on Device)';
 
   @override
   String get home => 'Home';

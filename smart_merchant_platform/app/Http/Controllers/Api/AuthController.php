@@ -50,8 +50,14 @@ class AuthController extends Controller
             'phone' => 'required|string|max:30',
             'password' => 'required|string|min:6',
             'username' => 'nullable|string|max:255',
-            'email' => 'nullable|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email|unique:accounts,email',
             'business_name' => 'nullable|string|max:255',
+        ], [
+            'email.required' => 'البريد الإلكتروني مطلوب لاستلام إشعار تفعيل الحساب.',
+            'email.email' => 'يرجى إدخال بريد إلكتروني صحيح.',
+            'email.unique' => 'هذا البريد الإلكتروني مسجل مسبقاً، يرجى استخدام بريد آخر أو تسجيل الدخول.',
+            'phone.required' => 'يرجى إدخال رقم الهاتف.',
+            'password.min' => 'كلمة المرور يجب ألا تقل عن 6 خانات.',
         ]);
 
         $result = $this->authService->register(

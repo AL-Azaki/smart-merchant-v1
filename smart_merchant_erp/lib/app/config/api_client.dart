@@ -80,7 +80,7 @@ class ApiClient {
   int _fallbackIndex = 0;
   static const List<String> _localCandidateHosts = [
     'http://127.0.0.1:8000/api', // Physical Android via adb reverse, Desktop, Web
-    'http://192.168.8.139:8000/api', // Local PC Wi-Fi (Actual host IP)
+    'http://192.168.8.109:8000/api', // Local PC Wi-Fi (Actual host IP)
     'http://10.0.2.2:8000/api',   // Android Emulator
   ];
 
@@ -109,39 +109,30 @@ class ApiClient {
   Future<ApiResponse> _execute(
     Future<Response<dynamic>> Function() request,
   ) async {
-    try {
-      final response = await request();
-      return ApiResponse(
-        statusCode: response.statusCode ?? 200,
-        data: response.data,
-      );
-    } on DioException catch (e) {
-      if ((e.type == DioExceptionType.connectionError ||
-              e.type == DioExceptionType.connectionTimeout) &&
-          _tryNextFallbackUrl()) {
-        try {
-          final fallbackResponse = await request();
-          return ApiResponse(
-            statusCode: fallbackResponse.statusCode ?? 200,
-            data: fallbackResponse.data,
-          );
-        } catch (_) {
-          // ignore fallback error
+    int attempts = 0;
+    while (attempts < _localCandidateHosts.length) {
+      attempts++;
+      try {
+        final response = await request();
+        return ApiResponse(
+          statusCode: response.statusCode ?? 200,
+          data: response.data,
+        );
+      } on DioException catch (e) {
+        if ((e.type == DioExceptionType.connectionError ||
+                e.type == DioExceptionType.connectionTimeout) &&
+            _tryNextFallbackUrl()) {
+          continue;
         }
+        throw _mapDioException(e);
+      } on SocketException {
+        if (_tryNextFallbackUrl()) {
+          continue;
+        }
+        throw const ApiException.noNetwork();
       }
-      throw _mapDioException(e);
-    } on SocketException {
-      if (_tryNextFallbackUrl()) {
-        try {
-          final fallbackResponse = await request();
-          return ApiResponse(
-            statusCode: fallbackResponse.statusCode ?? 200,
-            data: fallbackResponse.data,
-          );
-        } catch (_) {}
-      }
-      throw const ApiException.noNetwork();
     }
+    throw const ApiException.noNetwork();
   }
 
   static String _translateError(String? raw, {String fallback = 'حدث خطأ غير متوقع'}) {
@@ -224,7 +215,7 @@ class ApiClient {
       default:
         if (statusCode != null && statusCode >= 500) {
           return ApiException.server(
-            'حدث خطأ في الخادم ($statusCode)، يرجى مراجعة الخادم والمحاولة مجدداً',
+            'حدث خطأ أثناء معالجة الطلب، يرجى المحاولة مرة أخرى لاحقاً',
             statusCode: statusCode,
           );
         }
@@ -332,7 +323,7 @@ class ApiException implements Exception {
 
   const ApiException.noNetwork()
     : type = ApiExceptionType.noNetwork,
-      message = 'تعذر الاتصال بالخادم، يرجى التأكد من تشغيل السيرفر أو الاتصال بالشبكة',
+      message = 'تعذر الاتصال بالشبكة، يرجى التحقق من اتصال الإنترنت والمحاولة مجدداً',
       statusCode = null,
       validationErrors = null,
       retryAfterSeconds = null,
@@ -340,7 +331,7 @@ class ApiException implements Exception {
 
   const ApiException.timeout()
     : type = ApiExceptionType.timeout,
-      message = 'انتهت مهلة انتظار الخادم، يرجى التحقق من اتصال الشبكة والمحاولة مجدداً',
+      message = 'استغرقت الاستجابة وقتاً أطول من المتوقع، يرجى التحقق من اتصال الإنترنت والمحاولة ثانية',
       statusCode = null,
       validationErrors = null,
       retryAfterSeconds = null,

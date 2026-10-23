@@ -72,12 +72,12 @@ class AuthService
             }
 
             // Generate clean unique fallback email if not provided
-            $email = $data['email'] ?? null;
-            if (!$email) {
+            $email = trim($data['email'] ?? '');
+            if (empty($email)) {
                 $baseEmail = 'u' . $cleanPhone . '@smartmerchant.local';
                 $email = $baseEmail;
                 $counter = 1;
-                while (User::where('email', $email)->exists()) {
+                while (User::where('email', $email)->exists() || \App\Models\Account::where('email', $email)->exists()) {
                     $email = 'u' . $cleanPhone . '_' . $counter++ . '@smartmerchant.local';
                 }
             }
@@ -90,7 +90,7 @@ class AuthService
                 'owner_name' => $fullName,
                 'email' => $email,
                 'phone' => $phone,
-                'status' => 'Active',
+                'status' => 'Pending',
             ]);
 
             // 2. Create Business
@@ -121,6 +121,22 @@ class AuthService
 
             $user->branches()->attach($branch->id);
             $user->update(['default_branch_id' => $branch->id]);
+
+            // 5. Create Admin Role & assign permissions
+            $role = \App\Models\Role::firstOrCreate([
+                'business_id' => $business->id,
+                'role_name' => 'Admin',
+            ], [
+                'description' => 'مدير النظام (Business Administrator)',
+                'is_system_role' => true,
+                'is_active' => true,
+            ]);
+
+            $permissions = \App\Models\Permission::all();
+            if ($permissions->isNotEmpty()) {
+                $role->permissions()->syncWithoutDetaching($permissions->pluck('id'));
+            }
+            $user->roles()->syncWithoutDetaching([$role->id]);
 
             $tokenName = $deviceName ?? 'default-device';
             $token = $user->createToken($tokenName)->plainTextToken;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/auth_provider.dart';
 
 class LoginView extends ConsumerStatefulWidget {
@@ -30,7 +29,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
     if (email.isEmpty || password.isEmpty) {
       setState(
-        () => _errorMessage = 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
+        () => _errorMessage = 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني وكلمة المرور',
       );
       return;
     }
@@ -49,20 +48,20 @@ class _LoginViewState extends ConsumerState<LoginView> {
         );
       }
     }
-    // Success is handled by the router redirecting automatically based on auth state
   }
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
     final isLoading = authState == AuthStatus.authenticating;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF1D4ED8),
+      backgroundColor: const Color(0xFF0F2A6E),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF0F2A6E), Color(0xFF1D4ED8), Color(0xFF2563EB)],
+            colors: [Color(0xFF091738), Color(0xFF0F2A6E), Color(0xFF1D4ED8)],
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -73,13 +72,11 @@ class _LoginViewState extends ConsumerState<LoginView> {
             SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 child: Column(
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         InkWell(
                           onTap: () => context.pop(),
@@ -88,10 +85,10 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.25),
+                                color: Colors.white.withValues(alpha: 0.25),
                               ),
                             ),
                             child: const Icon(
@@ -101,91 +98,135 @@ class _LoginViewState extends ConsumerState<LoginView> {
                             ),
                           ),
                         ),
+                        // App Brand Pill
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: const Text(
+                            'تاجركم • Tajer',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 40),
                       ],
                     ),
-                    const SizedBox(height: 48),
-                    // App Logo or Icon
+                    const SizedBox(height: 24),
+
+                    // Icon
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 68,
+                      height: 68,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFFFFFF), Color(0xFFF1F5F9)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
+                        borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
-                            blurRadius: 32,
-                            offset: const Offset(0, 12),
+                            color: Colors.black.withValues(alpha: 0.2),
+                            blurRadius: 24,
+                            offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Icon(
-                        Icons.lock_person_rounded,
-                        color: Colors.white,
-                        size: 40,
+                      child: Center(
+                        child: Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1D4ED8),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.storefront_rounded,
+                            color: Color(0xFFE2BA65),
+                            size: 28,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     const Text(
                       'تسجيل الدخول',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      'مرحباً بعودتك إلى التاجر الذكي',
+                      'مرحباً بعودتك إلى منصة تاجركم',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 18),
                   ],
                 ),
               ),
             ),
 
-            // Form Area
+            // Form Area (Clean Soothing Card)
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: AppColors.surfaceLight,
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF111C2F) : Colors.white,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(32),
                     topRight: Radius.circular(32),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.06),
+                      blurRadius: 30,
+                      offset: const Offset(0, -8),
+                    ),
+                  ],
                 ),
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(32),
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 26),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
+                      // Error Message Banner (Peace of mind friendly wording)
                       if (_errorMessage != null) ...[
                         Builder(
                           builder: (context) {
-                            final isServerIssue = _errorMessage!.contains('الخادم') ||
-                                _errorMessage!.contains('السيرفر') ||
-                                _errorMessage!.contains('محلي') ||
-                                _errorMessage!.contains('اتصال');
+                            final isConnIssue = _errorMessage!.contains('اتصال') ||
+                                _errorMessage!.contains('إنترنت') ||
+                                _errorMessage!.contains('شبكة') ||
+                                _errorMessage!.contains('سيرفر') ||
+                                _errorMessage!.contains('خادم');
 
                             return Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: isServerIssue
-                                    ? const Color(0xFFEFF6FF)
-                                    : Colors.red.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
+                                color: isConnIssue
+                                    ? (isDark ? const Color(0xFF0F233D) : const Color(0xFFEFF6FF))
+                                    : (isDark ? const Color(0xFF3B1515) : const Color(0xFFFEF2F2)),
+                                borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                  color: isServerIssue
-                                      ? const Color(0xFF93C5FD)
-                                      : Colors.red.withOpacity(0.3),
+                                  color: isConnIssue
+                                      ? (isDark ? const Color(0xFF1D4ED8) : const Color(0xFF93C5FD))
+                                      : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFCA5A5)),
                                 ),
                               ),
                               child: Column(
@@ -194,62 +235,45 @@ class _LoginViewState extends ConsumerState<LoginView> {
                                   Row(
                                     children: [
                                       Icon(
-                                        isServerIssue
-                                            ? Icons.cloud_off_rounded
-                                            : Icons.error_outline,
-                                        color: isServerIssue
+                                        isConnIssue
+                                            ? Icons.wifi_off_rounded
+                                            : Icons.error_outline_rounded,
+                                        color: isConnIssue
                                             ? const Color(0xFF2563EB)
-                                            : Colors.red,
+                                            : const Color(0xFFDC2626),
                                         size: 20,
                                       ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          _errorMessage!,
+                                          isConnIssue
+                                              ? 'تعذر الاتصال حالياً. يمكنك المتابعة بدون إنترنت بكل سلاسة.'
+                                              : _errorMessage!,
                                           style: TextStyle(
-                                            color: isServerIssue
-                                                ? const Color(0xFF1E40AF)
-                                                : Colors.red,
-                                            fontSize: 13,
+                                            color: isConnIssue
+                                                ? (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E40AF))
+                                                : (isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C)),
+                                            fontSize: 12.5,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
-                                  if (isServerIssue) ...[
-                                    const SizedBox(height: 10),
-                                    ElevatedButton.icon(
-                                      onPressed: () {
-                                        ref
-                                            .read(authNotifierProvider.notifier)
-                                            .enterOfflineMode();
-                                      },
-                                      icon: const Icon(Icons.offline_pin_rounded, size: 18),
-                                      label: const Text('المتابعة في وضع العمل المحلي (Offline)'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF2563EB),
-                                        foregroundColor: Colors.white,
-                                        elevation: 0,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
-                                        ),
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
-                                      ),
-                                    ),
-                                  ],
                                 ],
                               ),
                             );
                           },
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 18),
                       ],
-                      const Text(
+
+                      // Field: Identifier (Phone or Email)
+                      Text(
                         'رقم الهاتف أو البريد الإلكتروني',
                         style: TextStyle(
-                          color: AppColors.textSecondaryLight,
-                          fontSize: 13,
+                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                          fontSize: 12.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -259,43 +283,52 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         textDirection: TextDirection.ltr,
                         keyboardType: TextInputType.text,
                         enabled: !isLoading,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontSize: 14,
+                        ),
                         decoration: InputDecoration(
                           hintText: '771234567 أو البريد الإلكتروني',
+                          hintStyle: TextStyle(
+                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                            fontSize: 13,
+                          ),
                           filled: true,
-                          fillColor: AppColors.backgroundLight,
+                          fillColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF8FAFC),
                           prefixIcon: const Icon(
-                            Icons.person_outline,
-                            color: AppColors.textSecondaryLight,
+                            Icons.person_outline_rounded,
+                            color: Color(0xFF64748B),
+                            size: 20,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderLight,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderLight,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             borderSide: const BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
+                              color: Color(0xFF1D4ED8),
+                              width: 1.8,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
 
-                      // Password
-                      const Text(
+                      // Field: Password
+                      Text(
                         'كلمة المرور',
                         style: TextStyle(
-                          color: AppColors.textSecondaryLight,
-                          fontSize: 13,
+                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+                          fontSize: 12.5,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -304,31 +337,40 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         controller: _passwordController,
                         obscureText: !_showPassword,
                         enabled: !isLoading,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                          fontSize: 14,
+                        ),
                         decoration: InputDecoration(
                           hintText: '••••••••',
+                          hintStyle: TextStyle(
+                            color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                            fontSize: 14,
+                          ),
                           filled: true,
-                          fillColor: AppColors.backgroundLight,
+                          fillColor: isDark ? const Color(0xFF0B1220) : const Color(0xFFF8FAFC),
                           prefixIcon: const Icon(
                             Icons.lock_outline_rounded,
-                            color: AppColors.textSecondaryLight,
+                            color: Color(0xFF64748B),
+                            size: 20,
                           ),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderLight,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            borderSide: const BorderSide(
-                              color: AppColors.borderLight,
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide(
+                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(14),
                             borderSide: const BorderSide(
-                              color: AppColors.primary,
-                              width: 2,
+                              color: Color(0xFF1D4ED8),
+                              width: 1.8,
                             ),
                           ),
                           suffixIcon: IconButton(
@@ -336,7 +378,8 @@ class _LoginViewState extends ConsumerState<LoginView> {
                               _showPassword
                                   ? Icons.visibility_off_rounded
                                   : Icons.visibility_rounded,
-                              color: AppColors.textSecondaryLight,
+                              color: const Color(0xFF64748B),
+                              size: 20,
                             ),
                             onPressed: () =>
                                 setState(() => _showPassword = !_showPassword),
@@ -345,42 +388,48 @@ class _LoginViewState extends ConsumerState<LoginView> {
                         onSubmitted: (_) => _handleLogin(),
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
 
-                      // Forgot Password Link
+                      // Forgot password placeholder
                       Align(
-                        alignment: Alignment
-                            .centerLeft, // Left because Arabic puts it visually at the end of the line
+                        alignment: Alignment.centerLeft,
                         child: TextButton(
                           onPressed: isLoading ? null : () {},
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
                           child: const Text(
                             'نسيت كلمة المرور؟',
                             style: TextStyle(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2563EB),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 26),
 
                       // Submit Button
                       ElevatedButton(
                         onPressed: isLoading ? null : _handleLogin,
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 56),
-                          backgroundColor: AppColors.primary,
+                          minimumSize: const Size(double.infinity, 54),
+                          backgroundColor: const Color(0xFF1D4ED8),
+                          foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          elevation: 8,
-                          shadowColor: AppColors.primary.withOpacity(0.3),
+                          elevation: 3,
+                          shadowColor: const Color(0xFF1D4ED8).withValues(alpha: 0.3),
                         ),
                         child: isLoading
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
                                   color: Colors.white,
                                   strokeWidth: 2,
@@ -390,66 +439,48 @@ class _LoginViewState extends ConsumerState<LoginView> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'دخول النظام',
+                                    'تسجيل الدخول',
                                     style: TextStyle(
                                       color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w800,
                                     ),
                                   ),
                                   SizedBox(width: 8),
                                   Icon(
-                                    Icons.login_rounded,
+                                    Icons.arrow_forward_rounded,
                                     color: Colors.white,
+                                    size: 19,
                                   ),
                                 ],
                               ),
                       ),
 
-                      const SizedBox(height: 16),
-                      OutlinedButton.icon(
-                        onPressed: isLoading
-                            ? null
-                            : () {
-                                ref
-                                    .read(authNotifierProvider.notifier)
-                                    .enterOfflineMode();
-                              },
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 52),
-                          side: const BorderSide(
-                            color: Color(0xFF10B981),
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        icon: const Icon(
-                          Icons.offline_pin_rounded,
-                          color: Color(0xFF10B981),
-                        ),
-                        label: const Text(
-                          'المتابعة في وضع عدم الاتصال (محلياً بدون خادم)',
-                          style: TextStyle(
-                            color: Color(0xFF10B981),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-
                       const SizedBox(height: 24),
+
                       Center(
                         child: TextButton(
                           onPressed: isLoading
                               ? null
                               : () => context.push('/register'),
-                          child: const Text(
-                            'ليس لديك حساب؟ إنشاء حساب جديد',
-                            style: TextStyle(
-                              color: AppColors.textSecondaryLight,
-                              fontWeight: FontWeight.bold,
+                          child: RichText(
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark
+                                    ? const Color(0xFF94A3B8)
+                                    : const Color(0xFF64748B),
+                              ),
+                              children: const [
+                                TextSpan(text: 'ليس لديك حساب بعد؟ '),
+                                TextSpan(
+                                  text: 'إنشاء حساب تاجر جديد',
+                                  style: TextStyle(
+                                    color: Color(0xFF1D4ED8),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
