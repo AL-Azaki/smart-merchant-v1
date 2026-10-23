@@ -13,6 +13,10 @@ class StorageKeys {
   static const lastSessionBranchId = 'last_session_branch_id';
   static const lastSessionUserId = 'last_session_user_id';
   static const isOfflineMode = 'is_offline_mode';
+  static const lastTrustedTimestamp = 'last_trusted_timestamp';
+  static const lastServerTime = 'last_server_time';
+  static const subscriptionLease = 'subscription_lease';
+  static const subscriptionLeaseToken = 'subscription_lease_token';
 }
 
 /// Centralized HTTP client for all Laravel API communication.

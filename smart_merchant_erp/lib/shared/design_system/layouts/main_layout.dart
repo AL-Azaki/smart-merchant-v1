@@ -10,6 +10,7 @@ import '../../../modules/platform/presentation/providers/sync_provider.dart';
 import '../../../modules/authentication/presentation/providers/session_provider.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
+import '../widgets/subscription_warning_banner.dart';
 
 class MainLayout extends ConsumerWidget {
   final Widget child;
@@ -245,6 +246,7 @@ class MainLayout extends ConsumerWidget {
       extendBody: false,
       body: Column(
         children: [
+          const SubscriptionWarningBanner(),
           Consumer(
             builder: (context, ref, _) {
               final session = ref.watch(sessionNotifierProvider);

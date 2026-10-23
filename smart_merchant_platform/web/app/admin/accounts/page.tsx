@@ -5,6 +5,8 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { useAdminAuth } from '@/lib/admin-context';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminAccount, CreateAccountPayload, CreatedAccountResponse } from '@/lib/admin-types';
+import { ApproveSubscriptionModal } from '@/components/admin/ApproveSubscriptionModal';
+import { AccountStatementModal } from '@/components/admin/AccountStatementModal';
 
 export default function AdminAccountsPage() {
   const { lang, t } = useAdminAuth();
@@ -33,6 +35,8 @@ export default function AdminAccountsPage() {
   });
 
   const [actionLoading, setActionLoading] = useState(false);
+  const [approveModalAccount, setApproveModalAccount] = useState<AdminAccount | null>(null);
+  const [statementAccountId, setStatementAccountId] = useState<string | null>(null);
 
   // Create Account State
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -115,6 +119,10 @@ export default function AdminAccountsPage() {
   };
 
   const openAction = (account: AdminAccount, type: 'approve' | 'suspend' | 'reactivate') => {
+    if (type === 'approve') {
+      setApproveModalAccount(account);
+      return;
+    }
     setConfirmDialog({
       open: true,
       type,
@@ -426,12 +434,23 @@ export default function AdminAccountsPage() {
                               {acc.status === 'Suspended' ? t.btnReactivate : t.btnActivate}
                             </button>
                           ) : (
-                            <button
-                              onClick={() => openAction(acc, 'suspend')}
-                              className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 transition"
-                            >
-                              {t.btnSuspend}
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setStatementAccountId(acc.id)}
+                                title={isAr ? 'كشف حساب الأقساط والاشتراك' : 'Account Statement'}
+                                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-[#B3945B]/20 hover:text-[#B3945B] border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+                              >
+                                <span>📋</span>
+                                <span>{isAr ? 'كشف الحساب' : 'Statement'}</span>
+                              </button>
+                              <button
+                                onClick={() => openAction(acc, 'suspend')}
+                                className="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800 transition"
+                              >
+                                {t.btnSuspend}
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>
@@ -949,6 +968,29 @@ export default function AdminAccountsPage() {
             </div>
           </div>
         )}
+
+        {/* Approve & Setup Installments Modal */}
+        <ApproveSubscriptionModal
+          isOpen={!!approveModalAccount}
+          account={approveModalAccount}
+          onClose={() => setApproveModalAccount(null)}
+          onSuccess={(updated) => {
+            setSuccessMsg(
+              isAr
+                ? `تم تفعيل حساب ${updated.name} واعتماد عقد الأقساط وإرسال بريد التأكيد بنجاح!`
+                : `Account ${updated.name} approved with installment contract!`
+            );
+            setAccounts((prev) => prev.map((a) => (a.id === updated.id ? { ...a, ...updated } : a)));
+          }}
+        />
+
+        {/* Account Statement & Payments Modal */}
+        <AccountStatementModal
+          isOpen={!!statementAccountId}
+          accountId={statementAccountId}
+          onClose={() => setStatementAccountId(null)}
+          onPaymentSuccess={() => fetchAccounts(currentPage)}
+        />
       </div>
     </AdminLayout>
   );

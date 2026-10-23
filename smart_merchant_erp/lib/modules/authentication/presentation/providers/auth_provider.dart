@@ -12,6 +12,8 @@ import 'session_provider.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/seeders/default_coa_seeder.dart';
 import 'package:drift/drift.dart' as drift;
+import '../../../../kernel/security/subscription_lease_guard.dart';
+import '../../../../kernel/security/time_integrity_guard.dart';
 
 part 'auth_provider.g.dart';
 
@@ -247,6 +249,20 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   Future<bool> _fallbackToCachedSession() async {
+    // 1. Enforce Offline Subscription Lease & Anti-Clock Tampering
+    final timeGuard = TimeIntegrityGuard(storage: _secureStorage);
+    final leaseGuard = SubscriptionLeaseGuard(
+      storage: _secureStorage,
+      timeGuard: timeGuard,
+    );
+    final leaseCheck = await leaseGuard.validateLease();
+
+    if (leaseCheck.isBlocked) {
+      debugPrint('[AuthProvider] 🚫 Offline session blocked by lease guard: ${leaseCheck.status} - ${leaseCheck.message}');
+      state = AuthStatus.subscriptionExpired;
+      return false;
+    }
+
     final cachedBusinessId = await _secureStorage.read(
       StorageKeys.lastSessionBusinessId,
     );
@@ -506,6 +522,16 @@ class AuthNotifier extends _$AuthNotifier {
 
   Future<void> _hydrateLocalSessionData(BootstrapResponseDto bootstrap) async {
     try {
+      // Persist Signed Offline Subscription Lease if present
+      if (bootstrap.subscriptionLease != null) {
+        final timeGuard = TimeIntegrityGuard(storage: _secureStorage);
+        final leaseGuard = SubscriptionLeaseGuard(
+          storage: _secureStorage,
+          timeGuard: timeGuard,
+        );
+        await leaseGuard.saveLease(bootstrap.subscriptionLease!);
+      }
+
       final db = getIt<AppDatabase>();
       await db.transaction(() async {
         // Upsert User

@@ -125,6 +125,13 @@ Route::prefix('admin/v1')->middleware(['auth:sanctum', 'throttle:120,1'])->group
     Route::post('accounts/{account}/approve', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'approve']);
     Route::post('accounts/{account}/suspend', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'suspend']);
     Route::post('accounts/{account}/reactivate', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'reactivate']);
+    Route::get('accounts/{account}/statement', [\App\Http\Controllers\Api\Admin\AdminAccountController::class, 'statement']);
+
+    // Global Subscriptions & Installments management
+    Route::get('plans', [AdminSubscriptionController::class, 'plans']);
+    Route::get('subscriptions', [AdminSubscriptionController::class, 'allSubscriptions']);
+    Route::get('subscriptions/{subscription}', [AdminSubscriptionController::class, 'showSubscription']);
+    Route::post('subscriptions/{subscription}/installments/{installment}/pay', [AdminSubscriptionController::class, 'payInstallment']);
 
     // Platform users
     Route::get('users', [AdminUserController::class, 'index']);

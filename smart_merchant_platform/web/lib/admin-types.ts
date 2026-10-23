@@ -112,4 +112,105 @@ export interface CreatedAccountResponse {
   };
 }
 
+export interface SubscriptionPlan {
+  id: string;
+  plan_name: string;
+  billing_cycle: string;
+  duration_months: number;
+  price: string | number;
+  currency_id?: string;
+  currency?: {
+    id: string;
+    currency_code: string;
+    currency_symbol: string;
+  };
+}
+
+export interface SubscriptionInstallment {
+  id: string;
+  subscription_id: string;
+  account_id: string;
+  installment_number: number;
+  due_date: string;
+  amount: string | number;
+  paid_amount: string | number;
+  status: 'Pending' | 'Paid' | 'PartiallyPaid' | 'Overdue' | 'Cancelled';
+  paid_at?: string | null;
+  payment_method?: string | null;
+  transaction_reference?: string | null;
+  notes?: string | null;
+}
+
+export interface SubscriptionPayment {
+  id: string;
+  subscription_id: string;
+  account_id: string;
+  receipt_number: string;
+  payment_date: string;
+  amount: string | number;
+  payment_method?: string | null;
+  reference_number?: string | null;
+  status: string;
+  notes?: string | null;
+}
+
+export interface AdminSubscription {
+  id: string;
+  account_id: string;
+  plan_id?: string | null;
+  start_date: string;
+  end_date: string;
+  total_amount: string | number;
+  amount_paid: string | number;
+  installments_count: number;
+  installment_frequency: string;
+  status: 'Active' | 'Expired' | 'Suspended' | 'Cancelled';
+  offline_lease_valid_until?: string | null;
+  max_offline_days: number;
+  grace_period_days: number;
+  notes?: string | null;
+  created_at: string;
+  account?: AdminAccount;
+  plan?: SubscriptionPlan;
+  installments?: SubscriptionInstallment[];
+  payments?: SubscriptionPayment[];
+}
+
+export interface SubscriptionMetrics {
+  total_subscriptions: number;
+  active_subscriptions: number;
+  expired_subscriptions: number;
+  total_revenue: number;
+  total_contracted: number;
+  pending_installments_count: number;
+  overdue_installments_count: number;
+}
+
+export interface ApproveAccountPayload {
+  plan_id?: string;
+  total_amount?: number;
+  down_payment?: number;
+  installment_frequency?: string;
+  installments_count?: number;
+  start_date?: string;
+  max_offline_days?: number;
+  grace_period_days?: number;
+  notes?: string;
+  custom_installments?: Array<{
+    installment_number: number;
+    due_date: string;
+    amount: number;
+    paid_amount?: number;
+    status?: string;
+    notes?: string;
+  }>;
+}
+
+export interface AccountStatementResponse {
+  account: AdminAccount;
+  active_subscription?: AdminSubscription | null;
+  all_subscriptions: AdminSubscription[];
+  installments: SubscriptionInstallment[];
+}
+
 

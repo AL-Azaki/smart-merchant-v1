@@ -1,5 +1,17 @@
 import { API_BASE_URL } from './config';
-import type { AdminAccount, AdminBusiness, CreateAccountPayload, CreatedAccountResponse, DashboardMetrics, PlatformUser } from './admin-types';
+import type { 
+  AdminAccount, 
+  AdminBusiness, 
+  CreateAccountPayload, 
+  CreatedAccountResponse, 
+  DashboardMetrics, 
+  PlatformUser,
+  SubscriptionPlan,
+  AdminSubscription,
+  SubscriptionMetrics,
+  ApproveAccountPayload,
+  AccountStatementResponse
+} from './admin-types';
 
 const ADMIN_API_BASE = `${API_BASE_URL}/api/admin/v1`;
 const AUTH_API_BASE = `${API_BASE_URL}/api/auth`;
@@ -145,9 +157,10 @@ export const adminApi = {
     });
   },
 
-  async approveAccount(id: string): Promise<AdminAccount> {
+  async approveAccount(id: string, payload?: ApproveAccountPayload): Promise<AdminAccount> {
     const res = await adminFetch<{ data: AdminAccount; message: string }>(`${ADMIN_API_BASE}/accounts/${id}/approve`, {
       method: 'POST',
+      body: payload ? JSON.stringify(payload) : undefined,
     });
     return res.data;
   },
@@ -204,5 +217,51 @@ export const adminApi = {
       body: JSON.stringify({ is_active: isActive }),
     });
     return res.data;
+  },
+
+  async getPlans(): Promise<SubscriptionPlan[]> {
+    const res = await adminFetch<{ data: SubscriptionPlan[] }>(`${ADMIN_API_BASE}/plans`);
+    return res.data;
+  },
+
+  async getAccountStatement(accountId: string): Promise<AccountStatementResponse> {
+    return adminFetch<AccountStatementResponse>(`${ADMIN_API_BASE}/accounts/${accountId}/statement`);
+  },
+
+  async getSubscriptions(params?: { search?: string; status?: string; page?: number }): Promise<{
+    metrics: SubscriptionMetrics;
+    subscriptions: {
+      data: AdminSubscription[];
+      current_page: number;
+      last_page: number;
+      total: number;
+    };
+  }> {
+    const query = new URLSearchParams();
+    if (params?.search) query.set('search', params.search);
+    if (params?.status && params.status !== 'All') query.set('status', params.status);
+    if (params?.page) query.set('page', String(params.page));
+
+    return adminFetch(`${ADMIN_API_BASE}/subscriptions?${query.toString()}`);
+  },
+
+  async getSubscriptionDetail(id: string): Promise<{ subscription: AdminSubscription; lease: any }> {
+    return adminFetch<{ subscription: AdminSubscription; lease: any }>(`${ADMIN_API_BASE}/subscriptions/${id}`);
+  },
+
+  async paySubscriptionInstallment(
+    subscriptionId: string,
+    installmentId: string,
+    payload: {
+      amount?: number;
+      payment_method?: string;
+      reference_number?: string;
+      notes?: string;
+    }
+  ): Promise<{ message: string; installment: any; subscription: AdminSubscription }> {
+    return adminFetch(`${ADMIN_API_BASE}/subscriptions/${subscriptionId}/installments/${installmentId}/pay`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   },
 };

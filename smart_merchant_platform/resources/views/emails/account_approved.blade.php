@@ -233,6 +233,77 @@
           </div>
         </div>
 
+        @if(isset($subscription))
+        <!-- Subscription & Installments Statement -->
+        <div style="background-color: #f8fafc; border: 1px solid #cbd5e1; border-radius: 16px; padding: 20px; margin-bottom: 28px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px;">
+            <h3 style="margin: 0; font-size: 16px; color: #0f172a; font-weight: 800;">📋 كشف حساب عقد الاشتراك والأقساط</h3>
+            <span style="font-size: 12px; background-color: #dbeafe; color: #1e40af; padding: 4px 10px; border-radius: 12px; font-weight: bold;">
+              {{ $subscription->plan->plan_name ?? 'الخطة المؤسسية' }}
+            </span>
+          </div>
+
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px;">
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">إجمالي قيمة الاشتراك:</td>
+              <td style="padding: 6px 0; font-weight: bold; text-align: left; color: #0f172a;">{{ number_format($subscription->total_amount, 2) }}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">المبلغ المسدد (الدفعة الأولى):</td>
+              <td style="padding: 6px 0; font-weight: bold; text-align: left; color: #059669;">{{ number_format($subscription->amount_paid, 2) }}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">المبلغ المتبقي:</td>
+              <td style="padding: 6px 0; font-weight: bold; text-align: left; color: #dc2626;">{{ number_format($subscription->remaining_amount, 2) }}</td>
+            </tr>
+            <tr>
+              <td style="padding: 6px 0; color: #64748b;">وتيرة السداد:</td>
+              <td style="padding: 6px 0; font-weight: bold; text-align: left; color: #0284c7;">
+                @switch($subscription->installment_frequency)
+                  @case('Monthly') شهرياً @break
+                  @case('Every2Months') كل شهرين @break
+                  @case('Every3Months') كل 3 أشهر (ربع سنوي) @break
+                  @case('Every4Months') كل 4 أشهر @break
+                  @case('SemiAnnual') نصف سنوي (كل 6 أشهر) @break
+                  @case('Yearly') سنوياً @break
+                  @default دفعة واحدة
+                @endswitch
+              </td>
+            </tr>
+          </table>
+
+          @if(isset($installments) && $installments->isNotEmpty())
+          <div style="font-size: 13px; font-weight: bold; color: #334155; margin-bottom: 8px;">جدول استحقاقات الأقساط:</div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0;">
+            <thead>
+              <tr style="background-color: #f1f5f9; color: #475569; text-align: right;">
+                <th style="padding: 8px 10px; border-bottom: 1px solid #cbd5e1;">#</th>
+                <th style="padding: 8px 10px; border-bottom: 1px solid #cbd5e1;">تاريخ الاستحقاق</th>
+                <th style="padding: 8px 10px; border-bottom: 1px solid #cbd5e1;">المبلغ</th>
+                <th style="padding: 8px 10px; border-bottom: 1px solid #cbd5e1; text-align: center;">الحالة</th>
+              </tr>
+            </thead>
+            <tbody>
+              @foreach($installments as $inst)
+              <tr style="border-bottom: 1px solid #f1f5f9;">
+                <td style="padding: 8px 10px; font-weight: bold;">قسط {{ $inst->installment_number }}</td>
+                <td style="padding: 8px 10px; color: #475569;">{{ \Carbon\Carbon::parse($inst->due_date)->format('Y-m-d') }}</td>
+                <td style="padding: 8px 10px; font-weight: bold; color: #0f172a;">{{ number_format($inst->amount, 2) }}</td>
+                <td style="padding: 8px 10px; text-align: center;">
+                  @if($inst->status === 'Paid')
+                    <span style="background-color: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;">مسدد ✓</span>
+                  @else
+                    <span style="background-color: #fef3c7; color: #b45309; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: bold;">قيد الانتظار ⏳</span>
+                  @endif
+                </td>
+              </tr>
+              @endforeach
+            </tbody>
+          </table>
+          @endif
+        </div>
+        @endif
+
         <!-- Features Activated -->
         <div class="features-grid">
           <div class="feature-item">

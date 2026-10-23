@@ -6,11 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\Currency;
 use App\Models\Permission;
 use App\Models\Plan;
 use App\Models\Role;
 use App\Models\Subscription;
+use App\Models\SubscriptionInstallment;
+use App\Models\SubscriptionPayment;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -193,35 +197,190 @@ class AdminAccountController extends Controller
     public function approve(Request $request, string $id)
     {
         $account = Account::findOrFail($id);
-        $account->update(['status' => 'Active']);
 
-        // Create an Active 1-Year Subscription for the merchant upon approval
-        if ($account->subscriptions()->where('status', 'Active')->doesntExist()) {
-            $plan = Plan::where('is_active', true)->first();
-            if ($plan) {
-                Subscription::create([
-                    'account_id' => $account->id,
-                    'plan_id' => $plan->id,
-                    'start_date' => now(),
-                    'end_date' => now()->addYear(),
-                    'amount_paid' => 0.00,
-                    'status' => 'Active',
+        $validated = $request->validate([
+            'plan_id' => 'nullable|uuid|exists:plans,id',
+            'total_amount' => 'nullable|numeric|min:0',
+            'down_payment' => 'nullable|numeric|min:0',
+            'installment_frequency' => 'nullable|string|in:Monthly,Every2Months,Every3Months,Every4Months,SemiAnnual,Yearly,SinglePayment,Custom',
+            'installments_count' => 'nullable|integer|min:1|max:60',
+            'start_date' => 'nullable|date',
+            'max_offline_days' => 'nullable|integer|min:1|max:90',
+            'grace_period_days' => 'nullable|integer|min:0|max:30',
+            'notes' => 'nullable|string|max:500',
+            'custom_installments' => 'nullable|array',
+            'custom_installments.*.installment_number' => 'required_with:custom_installments|integer',
+            'custom_installments.*.due_date' => 'required_with:custom_installments|date',
+            'custom_installments.*.amount' => 'required_with:custom_installments|numeric|min:0',
+            'custom_installments.*.paid_amount' => 'nullable|numeric|min:0',
+            'custom_installments.*.status' => 'nullable|string|in:Pending,Paid,PartiallyPaid',
+            'custom_installments.*.notes' => 'nullable|string|max:255',
+        ]);
+
+        return DB::transaction(function () use ($account, $validated) {
+            $account->update(['status' => 'Active']);
+
+            // Find or default Plan
+            $plan = null;
+            if (!empty($validated['plan_id'])) {
+                $plan = Plan::find($validated['plan_id']);
+            }
+            if (!$plan) {
+                $plan = Plan::where('is_active', true)->first();
+            }
+            if (!$plan) {
+                $currency = Currency::where('is_base_currency', true)->first() ?? Currency::first();
+                if (!$currency) {
+                    $currency = Currency::create([
+                        'currency_code' => 'YER',
+                        'currency_name_ar' => 'ريال يمني',
+                        'currency_name_en' => 'Yemeni Rial',
+                        'currency_symbol' => '﷼',
+                        'decimal_places' => 2,
+                        'exchange_rate' => 1.0,
+                        'is_base_currency' => true,
+                        'is_active' => true,
+                    ]);
+                }
+                $plan = Plan::create([
+                    'plan_name' => 'الخطة القياسية (Standard)',
+                    'currency_id' => $currency->id,
+                    'billing_cycle' => 'Yearly',
+                    'duration_months' => 12,
+                    'price' => 0.00,
+                    'is_active' => true,
                 ]);
             }
-        }
 
-        // Send luxury branded approval notification email to merchant
-        try {
-            if ($account->email && filter_var($account->email, FILTER_VALIDATE_EMAIL)) {
-                \Illuminate\Support\Facades\Mail::to($account->email)->send(new \App\Mail\AccountApprovedMail($account));
+            $totalAmount = isset($validated['total_amount']) ? (float)$validated['total_amount'] : ($plan ? (float)$plan->price : 0.00);
+            $downPayment = isset($validated['down_payment']) ? (float)$validated['down_payment'] : 0.00;
+            $frequency = $validated['installment_frequency'] ?? 'Every3Months';
+            $installmentsCount = isset($validated['installments_count']) ? (int)$validated['installments_count'] : 4;
+            $startDate = !empty($validated['start_date']) ? Carbon::parse($validated['start_date']) : Carbon::now();
+            $maxOfflineDays = isset($validated['max_offline_days']) ? (int)$validated['max_offline_days'] : 7;
+            $gracePeriodDays = isset($validated['grace_period_days']) ? (int)$validated['grace_period_days'] : 3;
+
+            // Generate or use custom installments schedule
+            $leaseService = app(\App\Services\SubscriptionLeaseService::class);
+            if (!empty($validated['custom_installments'])) {
+                $schedule = $validated['custom_installments'];
+            } else {
+                $schedule = $leaseService->calculateInstallments(
+                    $totalAmount,
+                    $downPayment,
+                    $frequency,
+                    $installmentsCount,
+                    $startDate
+                );
             }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning("Failed to send approval email to {$account->email}: " . $e->getMessage());
-        }
+
+            // Determine subscription end date (last installment due date or +1 month/year)
+            $lastInstallment = end($schedule);
+            $endDate = !empty($lastInstallment['due_date'])
+                ? Carbon::parse($lastInstallment['due_date'])->addMonths(1)
+                : $startDate->copy()->addYear();
+
+            $initialPaid = 0.00;
+            foreach ($schedule as $inst) {
+                if (($inst['status'] ?? '') === 'Paid') {
+                    $initialPaid += (float)($inst['paid_amount'] ?? $inst['amount']);
+                }
+            }
+
+            // Cancel any old active subscriptions
+            $account->subscriptions()->where('status', 'Active')->update(['status' => 'Expired']);
+
+            // Create subscription
+            $subscription = Subscription::create([
+                'account_id' => $account->id,
+                'plan_id' => $plan ? $plan->id : null,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'total_amount' => $totalAmount,
+                'amount_paid' => $initialPaid,
+                'installments_count' => count($schedule),
+                'installment_frequency' => $frequency,
+                'status' => 'Active',
+                'max_offline_days' => $maxOfflineDays,
+                'grace_period_days' => $gracePeriodDays,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            // Save installments
+            $currency = Currency::where('is_base_currency', true)->first() ?? Currency::first();
+            foreach ($schedule as $inst) {
+                $installment = SubscriptionInstallment::create([
+                    'subscription_id' => $subscription->id,
+                    'account_id' => $account->id,
+                    'installment_number' => $inst['installment_number'],
+                    'due_date' => $inst['due_date'],
+                    'amount' => $inst['amount'],
+                    'paid_amount' => $inst['paid_amount'] ?? 0.00,
+                    'status' => $inst['status'] ?? 'Pending',
+                    'paid_at' => ($inst['status'] ?? '') === 'Paid' ? ($inst['paid_at'] ?? now()) : null,
+                    'notes' => $inst['notes'] ?? null,
+                ]);
+
+                // If paid, record payment
+                if (($inst['status'] ?? '') === 'Paid' && ($inst['paid_amount'] ?? $inst['amount']) > 0) {
+                    SubscriptionPayment::create([
+                        'subscription_id' => $subscription->id,
+                        'account_id' => $account->id,
+                        'currency_id' => $currency ? $currency->id : ($plan ? $plan->currency_id : null),
+                        'receipt_number' => 'REC-' . strtoupper(uniqid()),
+                        'payment_date' => now(),
+                        'amount' => $inst['paid_amount'] ?? $inst['amount'],
+                        'payment_method' => 'Cash',
+                        'reference_number' => 'INIT-INSTALLMENT-' . $inst['installment_number'],
+                        'status' => 'Paid',
+                        'notes' => 'سداد الدفعة أو القسط رقم ' . $inst['installment_number'],
+                    ]);
+                }
+            }
+
+            // Send luxury branded approval notification email to merchant with installment schedule
+            try {
+                if ($account->email && filter_var($account->email, FILTER_VALIDATE_EMAIL)) {
+                    \Illuminate\Support\Facades\Mail::to($account->email)->send(
+                        new \App\Mail\AccountApprovedMail($account, $subscription)
+                    );
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning("Failed to send approval email to {$account->email}: " . $e->getMessage());
+            }
+
+            return response()->json([
+                'data' => $account->fresh()->loadCount(['businesses', 'users']),
+                'subscription' => $subscription->fresh()->load(['installments', 'plan']),
+                'message' => 'تم تفعيل الحساب وإنشاء خطة الأقساط وإرسال بريد التأكيد بنجاح',
+            ]);
+        });
+    }
+
+    public function statement(Request $request, string $id)
+    {
+        $account = Account::with(['businesses'])->findOrFail($id);
+
+        $activeSubscription = $account->subscriptions()
+            ->where('status', 'Active')
+            ->with(['plan', 'installments', 'payments'])
+            ->latest()
+            ->first();
+
+        $allSubscriptions = $account->subscriptions()
+            ->with(['plan', 'installments', 'payments'])
+            ->latest()
+            ->get();
+
+        $installments = $account->subscriptionInstallments()
+            ->orderBy('due_date')
+            ->get();
 
         return response()->json([
-            'data' => $account->fresh()->loadCount(['businesses', 'users']),
-            'message' => 'تم تفعيل الحساب وإرسال بريد التأكيد بنجاح',
+            'account' => $account,
+            'active_subscription' => $activeSubscription,
+            'all_subscriptions' => $allSubscriptions,
+            'installments' => $installments,
         ]);
     }
 

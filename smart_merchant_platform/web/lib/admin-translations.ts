@@ -10,6 +10,7 @@ export const adminTranslations = {
     // Navigation
     navDashboard: 'الرئيسية',
     navAccounts: 'طلبات الحسابات',
+    navSubscriptions: 'الاشتراكات والأقساط',
     navBusinesses: 'المنشآت',
     navUsers: 'المستخدمين',
     navAudit: 'سجل التدقيق',
@@ -199,6 +200,7 @@ export const adminTranslations = {
     // Navigation
     navDashboard: 'Dashboard',
     navAccounts: 'Account Applications',
+    navSubscriptions: 'Subscriptions & Installments',
     navBusinesses: 'Businesses',
     navUsers: 'Users',
     navAudit: 'Audit Logs',

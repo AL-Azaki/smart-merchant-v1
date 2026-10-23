@@ -58,8 +58,17 @@ class SessionBootstrapService
             }
         }
 
-        // Resolve Subscription
-        $subscription = $activeBusiness->account->subscriptions()->where('status', 'Active')->with('plan')->first();
+        // Resolve Subscription & Offline Signed Lease
+        $subscription = $activeBusiness->account->subscriptions()
+            ->where('status', 'Active')
+            ->with(['plan', 'installments'])
+            ->first();
+
+        $subscriptionLease = null;
+        if ($subscription) {
+            $leaseService = app(\App\Services\SubscriptionLeaseService::class);
+            $subscriptionLease = $leaseService->generateLeasePayload($subscription, $deviceUuid);
+        }
 
         // Resolve Device
         $device = null;
@@ -82,6 +91,7 @@ class SessionBootstrapService
             'roles' => $roles->pluck('role_name'),
             'permissions' => $permissions->unique()->values(),
             'subscription' => $subscription,
+            'subscription_lease' => $subscriptionLease,
             'device' => $device,
         ];
     }

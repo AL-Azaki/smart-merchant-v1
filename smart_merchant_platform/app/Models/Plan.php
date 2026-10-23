@@ -10,7 +10,21 @@ class Plan extends Model
 {
     use HasFactory, HasUuids;
 
-    protected $fillable = ['plan_name', 'description', 'price_monthly', 'price_yearly', 'currency_id', 'features_json', 'is_active'];
+    protected $fillable = [
+        'plan_name',
+        'currency_id',
+        'billing_cycle',
+        'duration_months',
+        'price',
+        'max_businesses',
+        'max_branches',
+        'max_users',
+        'description',
+        'price_monthly',
+        'price_yearly',
+        'features_json',
+        'is_active',
+    ];
 
     public function currency()
     {

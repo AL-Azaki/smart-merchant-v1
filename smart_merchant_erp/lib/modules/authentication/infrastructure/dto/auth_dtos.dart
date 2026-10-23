@@ -98,6 +98,7 @@ class BootstrapResponseDto {
   final String? accountStatus;
   final String? accountEmail;
   final String? accountPhone;
+  final Map<String, dynamic>? subscriptionLease;
 
   const BootstrapResponseDto({
     required this.user,
@@ -112,6 +113,7 @@ class BootstrapResponseDto {
     this.accountStatus,
     this.accountEmail,
     this.accountPhone,
+    this.subscriptionLease,
   });
 
   factory BootstrapResponseDto.fromJson(Map<String, dynamic> json) {
@@ -147,6 +149,7 @@ class BootstrapResponseDto {
       accountStatus: json['account_status'] as String?,
       accountEmail: json['account_email'] as String?,
       accountPhone: json['account_phone'] as String?,
+      subscriptionLease: json['subscription_lease'] as Map<String, dynamic>?,
     );
   }
 }
