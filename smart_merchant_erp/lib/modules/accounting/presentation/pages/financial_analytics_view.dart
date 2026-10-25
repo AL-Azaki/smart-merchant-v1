@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/financial_analytics_provider.dart';
 import '../widgets/custom_line_chart.dart';
+import 'cash_flow_analysis_view.dart';
 import 'customer_debts_analysis_view.dart';
+import 'liquidity_analysis_view.dart';
+import 'net_profit_analysis_view.dart';
+import 'sales_analysis_view.dart';
 import 'supplier_payables_analysis_view.dart';
 
 class FinancialAnalyticsView extends ConsumerStatefulWidget {
@@ -27,11 +31,100 @@ class _FinancialAnalyticsViewState
     return '$s ر.ي';
   }
 
+  String _formatArabicMonth(int month) {
+    const months = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    if (month >= 1 && month <= 12) {
+      return months[month - 1];
+    }
+    return '';
+  }
+
+  String _formatPeriodRange(
+    AnalyticsPeriod period,
+    DateTimeRange? customRange,
+  ) {
+    final now = DateTime.now();
+    switch (period) {
+      case AnalyticsPeriod.today:
+        return '${now.day} ${_formatArabicMonth(now.month)} ${now.year}';
+      case AnalyticsPeriod.thisWeek:
+        final start = now.subtract(Duration(days: now.weekday % 7));
+        if (start.month == now.month) {
+          return '${start.day} – ${now.day} ${_formatArabicMonth(now.month)} ${now.year}';
+        } else {
+          return '${start.day} ${_formatArabicMonth(start.month)} – ${now.day} ${_formatArabicMonth(now.month)} ${now.year}';
+        }
+      case AnalyticsPeriod.thisMonth:
+        return '1 – ${now.day} ${_formatArabicMonth(now.month)} ${now.year}';
+      case AnalyticsPeriod.thisYear:
+        return '1 يناير – ${now.day} ${_formatArabicMonth(now.month)} ${now.year}';
+      case AnalyticsPeriod.custom:
+        if (customRange != null) {
+          final s = customRange.start;
+          final e = customRange.end;
+          if (s.year == e.year && s.month == e.month) {
+            return '${s.day} – ${e.day} ${_formatArabicMonth(e.month)} ${e.year}';
+          } else if (s.year == e.year) {
+            return '${s.day} ${_formatArabicMonth(s.month)} – ${e.day} ${_formatArabicMonth(e.month)} ${e.year}';
+          } else {
+            return '${s.day}/${s.month}/${s.year} – ${e.day}/${e.month}/${e.year}';
+          }
+        }
+        return 'حدد نطاق مخصص';
+    }
+  }
+
+  Future<void> _pickCustomDateRange(
+    BuildContext context,
+    DateTimeRange? currentRange,
+  ) async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange:
+          currentRange ??
+          DateTimeRange(start: DateTime(now.year, now.month), end: now),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: const Color(0xFF5B4DF5),
+              onPrimary: Colors.white,
+            ),
+          ),
+          child: child ?? const SizedBox(),
+        );
+      },
+    );
+
+    if (picked != null) {
+      ref.read(analyticsCustomDateRangeProvider.notifier).state = picked;
+      ref.read(analyticsPeriodProvider.notifier).state = AnalyticsPeriod.custom;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.surfaceDark : Colors.white;
-    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+    final surface = isDark ? const Color(0xFF101115) : Colors.white;
+    final borderColor = isDark
+        ? const Color(0xFF22242D)
+        : const Color(0xFFE2E8F0);
     final textPrimary = isDark
         ? AppColors.textPrimaryDark
         : AppColors.textPrimaryLight;
@@ -39,7 +132,11 @@ class _FinancialAnalyticsViewState
         ? AppColors.textSecondaryDark
         : AppColors.textSecondaryLight;
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 600;
+
     final period = ref.watch(analyticsPeriodProvider);
+    final customRange = ref.watch(analyticsCustomDateRangeProvider);
     final analyticsAsync = ref.watch(financialAnalyticsProvider);
 
     return Scaffold(
@@ -51,140 +148,184 @@ class _FinancialAnalyticsViewState
           ref.invalidate(financialAnalyticsProvider);
         },
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 12 : 20,
+            vertical: isCompact ? 12 : 20,
+          ),
           children: [
-            // ── 1. Top Controls Bar: Periods & Refresh ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFF6366F1,
-                          ).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.insights_rounded,
-                          color: Color(0xFF6366F1),
-                          size: 24,
-                        ),
+            // ── 1. Top Filter Card (Matching Exact Reference Design) ──
+            Directionality(
+              textDirection: TextDirection.rtl,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 14 : 18,
+                  vertical: isCompact ? 14 : 18,
+                ),
+                decoration: BoxDecoration(
+                  color: surface,
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: borderColor, width: 1.2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(
+                        alpha: isDark ? 0.35 : 0.05,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'لوحة التحليلات والمؤشرات المالية',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: textPrimary,
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Top Row: Title on right, Chart Icon on left
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'التحليلات المالية',
+                          style: TextStyle(
+                            fontSize: isCompact ? 19 : 22,
+                            fontWeight: FontWeight.w900,
+                            color: isDark
+                                ? Colors.white
+                                : const Color(0xFF0F172A),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        Tooltip(
+                          message: 'تحديث البيانات',
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () =>
+                                ref.invalidate(financialAnalyticsProvider),
+                            child: Padding(
+                              padding: const EdgeInsets.all(4.0),
+                              child: Icon(
+                                Icons.insights_rounded,
+                                color: const Color(0xFF5B4DF5),
+                                size: isCompact ? 22 : 26,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'ملخص تفصيلي للمبيعات، الأرباح، حركة السيولة والتزامات ومديونيات العمل',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: isCompact ? 12 : 16),
+
+                    // Middle Row: Capsule Filter with 5 Options
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFF22232A)
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: AnalyticsPeriod.values.map((p) {
+                          final isSelected = p == period;
+                          return Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                if (p == AnalyticsPeriod.custom) {
+                                  await _pickCustomDateRange(
+                                    context,
+                                    customRange,
+                                  );
+                                } else {
+                                  ref
+                                          .read(
+                                            analyticsPeriodProvider.notifier,
+                                          )
+                                          .state =
+                                      p;
+                                }
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 180),
+                                curve: Curves.easeInOut,
+                                padding: EdgeInsets.symmetric(
+                                  vertical: isCompact ? 8 : 10,
+                                ),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFF5B4DF5)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF5B4DF5,
+                                            ).withValues(alpha: 0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ]
+                                      : null,
+                                ),
+                                child: Text(
+                                  p.label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: isCompact ? 12 : 14,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w900
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : (isDark
+                                              ? const Color(0xFFCBD5E1)
+                                              : const Color(0xFF475569)),
+                                  ),
+                                ),
                               ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 12 : 16),
+
+                    // Bottom Row: Date Range Text on right, Calendar Icon on left
+                    InkWell(
+                      onTap: () => _pickCustomDateRange(context, customRange),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'الفترة: ${_formatPeriodRange(period, customRange)}',
+                              style: TextStyle(
+                                fontSize: isCompact ? 13 : 15,
+                                fontWeight: FontWeight.w700,
+                                color: isDark
+                                    ? Colors.white
+                                    : const Color(0xFF1E293B),
+                              ),
+                            ),
+                            Icon(
+                              Icons.calendar_month_rounded,
+                              color: const Color(0xFF5B4DF5),
+                              size: isCompact ? 20 : 22,
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        tooltip: 'تحديث البيانات',
-                        icon: const Icon(
-                          Icons.refresh_rounded,
-                          color: Color(0xFF6366F1),
-                        ),
-                        onPressed: () =>
-                            ref.invalidate(financialAnalyticsProvider),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  const Divider(height: 1),
-                  const SizedBox(height: 14),
-
-                  // Period Selection Filter Chips
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: AnalyticsPeriod.values.map((p) {
-                        final isSelected = p == period;
-                        return Padding(
-                          padding: const EdgeInsets.only(left: 8),
-                          child: InkWell(
-                            onTap: () {
-                              ref.read(analyticsPeriodProvider.notifier).state =
-                                  p;
-                            },
-                            borderRadius: BorderRadius.circular(20),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? const Color(0xFF6366F1)
-                                    : (isDark
-                                          ? const Color(0xFF1E293B)
-                                          : const Color(0xFFF1F5F9)),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? const Color(0xFF6366F1)
-                                      : borderColor,
-                                ),
-                              ),
-                              child: Text(
-                                p.label,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: isSelected
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : (isDark
-                                            ? const Color(0xFFCBD5E1)
-                                            : const Color(0xFF475569)),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: isCompact ? 16 : 24),
 
             // ── 2. Content Handling (Loading / Error / Data) ──
             analyticsAsync.when(
@@ -244,6 +385,7 @@ class _FinancialAnalyticsViewState
                 borderColor: borderColor,
                 textPrimary: textPrimary,
                 textSecondary: textSecondary,
+                isCompact: isCompact,
               ),
             ),
           ],
@@ -260,157 +402,216 @@ class _FinancialAnalyticsViewState
     required Color borderColor,
     required Color textPrimary,
     required Color textSecondary,
+    required bool isCompact,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ── Section 1: KPI Cards Grid ──
+        // ── Section 1: KPI Cards Grid (Dynamic Responsive Grid) ──
         LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final crossCount = width > 1100 ? 3 : (width > 680 ? 2 : 1);
-            final aspect = width > 1100 ? 1.8 : (width > 680 ? 1.6 : 2.2);
+            final int crossCount;
+            final double mainAxisExtent;
+            final double spacing = width < 640 ? 12 : 16;
 
-            return GridView.count(
-              crossAxisCount: crossCount,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: aspect,
+            if (width >= 1150) {
+              crossCount = 3;
+              mainAxisExtent = 142;
+            } else if (width >= 640) {
+              crossCount = 2;
+              mainAxisExtent = 140;
+            } else {
+              crossCount = 1;
+              mainAxisExtent = 136;
+            }
+
+            final cards = [
+              // 1. إجمالي المبيعات
+              _KpiMetricCard(
+                title: 'إجمالي المبيعات',
+                value: _formatCurrency(data.totalSales),
+                subtitle: 'صافي الفواتير في فترة ${data.period.label}',
+                icon: Icons.shopping_bag_rounded,
+                iconColor: const Color(0xFF3B82F6),
+                badgeText: 'إيراد رئيسي',
+                badgeColor: const Color(0xFF3B82F6),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SalesAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 2. صافي الأرباح
+              _KpiMetricCard(
+                title: 'صافي الأرباح المحققة',
+                value: _formatCurrency(data.netProfit),
+                subtitle:
+                    'هامش الربح: ${data.profitMargin.toStringAsFixed(1)}%',
+                icon: Icons.trending_up_rounded,
+                iconColor: data.netProfit >= 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFEF4444),
+                badgeText: data.netProfit >= 0 ? 'ربح صافي' : 'عجز مؤقت',
+                badgeColor: data.netProfit >= 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFEF4444),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NetProfitAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 3. السيولة والنقدية المتاحة
+              _KpiMetricCard(
+                title: 'السيولة النقدية والبنكية',
+                value: _formatCurrency(data.cashAndBankBalance),
+                subtitle:
+                    'تغطية الالتزامات: ${data.liquidityCoverageRatio.toStringAsFixed(0)}%',
+                icon: Icons.account_balance_wallet_rounded,
+                iconColor: const Color(0xFF06B6D4),
+                badgeText: 'أرصدة فورية',
+                badgeColor: const Color(0xFF06B6D4),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const LiquidityAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 4. مديونية العملاء (الذمم المدينة)
+              _KpiMetricCard(
+                title: 'مديونية العملاء (لنا)',
+                value: _formatCurrency(data.customerReceivables),
+                subtitle: '${data.activeCustomersWithDebt} عميل مدين حالياً',
+                icon: Icons.people_outline_rounded,
+                iconColor: const Color(0xFF8B5CF6),
+                badgeText: 'ذمم مدينة',
+                badgeColor: const Color(0xFF8B5CF6),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CustomerDebtsAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 5. التزامات الموردين (الذمم الدائنة)
+              _KpiMetricCard(
+                title: 'التزامات الموردين (علينا)',
+                value: _formatCurrency(data.supplierPayables),
+                subtitle: '${data.activeSuppliersWithDues} مورد دائن مستحق',
+                icon: Icons.inventory_2_rounded,
+                iconColor: const Color(0xFFF43F5E),
+                badgeText: 'ذمم دائنة واجبة',
+                badgeColor: const Color(0xFFF43F5E),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const SupplierPayablesAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 6. صافي التدفق النقدي
+              _KpiMetricCard(
+                title: 'صافي التدفق النقدي',
+                value: _formatCurrency(data.netCashFlow),
+                subtitle:
+                    'مقبوضات: ${_formatCurrency(data.cashInflow)} | مدفوعات: ${_formatCurrency(data.cashOutflow)}',
+                icon: Icons.swap_horiz_rounded,
+                iconColor: data.netCashFlow >= 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFF59E0B),
+                badgeText: data.netCashFlow >= 0 ? 'فائض نقدي' : 'تدفق سالب',
+                badgeColor: data.netCashFlow >= 0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFFF59E0B),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CashFlowAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+            ];
+
+            return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              children: [
-                // 1. إجمالي المبيعات
-                _KpiMetricCard(
-                  title: 'إجمالي المبيعات',
-                  value: _formatCurrency(data.totalSales),
-                  subtitle: 'صافي الفواتير في فترة ${data.period.label}',
-                  icon: Icons.shopping_bag_rounded,
-                  iconColor: const Color(0xFF3B82F6),
-                  badgeText: 'إيراد رئيسي',
-                  badgeColor: const Color(0xFF3B82F6),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                ),
-
-                // 2. صافي الأرباح
-                _KpiMetricCard(
-                  title: 'صافي الأرباح المحققة',
-                  value: _formatCurrency(data.netProfit),
-                  subtitle:
-                      'هامش الربح: ${data.profitMargin.toStringAsFixed(1)}%',
-                  icon: Icons.trending_up_rounded,
-                  iconColor: data.netProfit >= 0
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFEF4444),
-                  badgeText: data.netProfit >= 0 ? 'ربح صافي' : 'عجز مؤقت',
-                  badgeColor: data.netProfit >= 0
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFEF4444),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                ),
-
-                // 3. السيولة والنقدية المتاحة
-                _KpiMetricCard(
-                  title: 'السيولة النقدية والبنكية',
-                  value: _formatCurrency(data.cashAndBankBalance),
-                  subtitle:
-                      'تغطية الالتزامات: ${data.liquidityCoverageRatio.toStringAsFixed(0)}%',
-                  icon: Icons.account_balance_wallet_rounded,
-                  iconColor: const Color(0xFF06B6D4),
-                  badgeText: 'أرصدة فورية',
-                  badgeColor: const Color(0xFF06B6D4),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                ),
-
-                // 4. مديونية العملاء (الذمم المدينة)
-                _KpiMetricCard(
-                  title: 'مديونية العملاء (لنا)',
-                  value: _formatCurrency(data.customerReceivables),
-                  subtitle: '${data.activeCustomersWithDebt} عميل مدين حالياً',
-                  icon: Icons.people_outline_rounded,
-                  iconColor: const Color(0xFF8B5CF6),
-                  badgeText: 'ذمم مدينة',
-                  badgeColor: const Color(0xFF8B5CF6),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const CustomerDebtsAnalysisView(),
-                      ),
-                    );
-                  },
-                ),
-
-                // 5. التزامات الموردين (الذمم الدائنة)
-                _KpiMetricCard(
-                  title: 'التزامات الموردين (علينا)',
-                  value: _formatCurrency(data.supplierPayables),
-                  subtitle: '${data.activeSuppliersWithDues} مورد دائن مستحق',
-                  icon: Icons.inventory_2_rounded,
-                  iconColor: const Color(0xFFF43F5E),
-                  badgeText: 'ذمم دائنة واجبة',
-                  badgeColor: const Color(0xFFF43F5E),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const SupplierPayablesAnalysisView(),
-                      ),
-                    );
-                  },
-                ),
-
-                // 6. صافي التدفق النقدي
-                _KpiMetricCard(
-                  title: 'صافي التدفق النقدي',
-                  value: _formatCurrency(data.netCashFlow),
-                  subtitle:
-                      'مقبوضات: ${_formatCurrency(data.cashInflow)} | مدفوعات: ${_formatCurrency(data.cashOutflow)}',
-                  icon: Icons.swap_horiz_rounded,
-                  iconColor: data.netCashFlow >= 0
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
-                  badgeText: data.netCashFlow >= 0 ? 'فائض نقدي' : 'تدفق سالب',
-                  badgeColor: data.netCashFlow >= 0
-                      ? const Color(0xFF10B981)
-                      : const Color(0xFFF59E0B),
-                  isDark: isDark,
-                  surface: surface,
-                  borderColor: borderColor,
-                  textPrimary: textPrimary,
-                  textSecondary: textSecondary,
-                ),
-              ],
+              itemCount: cards.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossCount,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                mainAxisExtent: mainAxisExtent,
+              ),
+              itemBuilder: (context, i) => cards[i],
             );
           },
         ),
 
-        const SizedBox(height: 28),
+        SizedBox(height: isCompact ? 18 : 28),
 
-        // ── Section 2: Financial Ratio Strip ──
+        // ── Section 2: Financial Ratio Strip (Fully Responsive) ──
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 14 : 20,
+            vertical: isCompact ? 14 : 16,
+          ),
           decoration: BoxDecoration(
             color: surface,
             borderRadius: BorderRadius.circular(16),
@@ -418,128 +619,200 @@ class _FinancialAnalyticsViewState
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth > 700;
-              return Flex(
-                direction: isWide ? Axis.horizontal : Axis.vertical,
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _FinancialRatioItem(
-                    label: 'نسبة الأمان والسيولة',
-                    value:
-                        '${data.liquidityCoverageRatio.clamp(0, 999).toStringAsFixed(1)}%',
-                    description: 'النقدية المتوفرة مقارنة بالالتزامات',
-                    icon: Icons.shield_outlined,
-                    color: const Color(0xFF10B981),
-                  ),
-                  if (isWide)
-                    const SizedBox(height: 40, child: VerticalDivider())
-                  else
-                    const Divider(height: 24),
-                  _FinancialRatioItem(
-                    label: 'هامش الربحية الصافي',
-                    value: '${data.profitMargin.toStringAsFixed(1)}%',
-                    description: 'نسبة الأرباح من المبيعات الكلية',
-                    icon: Icons.pie_chart_outline_rounded,
-                    color: const Color(0xFF6366F1),
-                  ),
-                  if (isWide)
-                    const SizedBox(height: 40, child: VerticalDivider())
-                  else
-                    const Divider(height: 24),
-                  _FinancialRatioItem(
-                    label: 'توازن الذمم (عملاء / موردين)',
-                    value:
-                        '${data.receivablesToPayablesRatio.clamp(0, 999).toStringAsFixed(1)}%',
-                    description: 'مستحقات السوق مقابل التزامات الموردين',
-                    icon: Icons.compare_arrows_rounded,
-                    color: const Color(0xFF06B6D4),
-                  ),
-                ],
-              );
+              final isWide = constraints.maxWidth > 800;
+              if (isWide) {
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _FinancialRatioItem(
+                        label: 'نسبة الأمان والسيولة',
+                        value:
+                            '${data.liquidityCoverageRatio.clamp(0, 999).toStringAsFixed(1)}%',
+                        description: 'النقدية المتوفرة مقارنة بالالتزامات',
+                        icon: Icons.shield_outlined,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 36,
+                      child: VerticalDivider(width: 28),
+                    ),
+                    Expanded(
+                      child: _FinancialRatioItem(
+                        label: 'هامش الربحية الصافي',
+                        value: '${data.profitMargin.toStringAsFixed(1)}%',
+                        description: 'نسبة الأرباح من المبيعات الكلية',
+                        icon: Icons.pie_chart_outline_rounded,
+                        color: const Color(0xFF6366F1),
+                      ),
+                    ),
+                    const SizedBox(
+                      height: 36,
+                      child: VerticalDivider(width: 28),
+                    ),
+                    Expanded(
+                      child: _FinancialRatioItem(
+                        label: 'توازن الذمم (عملاء / موردين)',
+                        value:
+                            '${data.receivablesToPayablesRatio.clamp(0, 999).toStringAsFixed(1)}%',
+                        description: 'مستحقات السوق مقابل التزامات الموردين',
+                        icon: Icons.compare_arrows_rounded,
+                        color: const Color(0xFF06B6D4),
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _FinancialRatioItem(
+                      label: 'نسبة الأمان والسيولة',
+                      value:
+                          '${data.liquidityCoverageRatio.clamp(0, 999).toStringAsFixed(1)}%',
+                      description: 'النقدية المتوفرة مقارنة بالالتزامات',
+                      icon: Icons.shield_outlined,
+                      color: const Color(0xFF10B981),
+                      isCompact: isCompact,
+                    ),
+                    const Divider(height: 20),
+                    _FinancialRatioItem(
+                      label: 'هامش الربحية الصافي',
+                      value: '${data.profitMargin.toStringAsFixed(1)}%',
+                      description: 'نسبة الأرباح من المبيعات الكلية',
+                      icon: Icons.pie_chart_outline_rounded,
+                      color: const Color(0xFF6366F1),
+                      isCompact: isCompact,
+                    ),
+                    const Divider(height: 20),
+                    _FinancialRatioItem(
+                      label: 'توازن الذمم (عملاء / موردين)',
+                      value:
+                          '${data.receivablesToPayablesRatio.clamp(0, 999).toStringAsFixed(1)}%',
+                      description: 'مستحقات السوق مقابل التزامات الموردين',
+                      icon: Icons.compare_arrows_rounded,
+                      color: const Color(0xFF06B6D4),
+                      isCompact: isCompact,
+                    ),
+                  ],
+                );
+              }
             },
           ),
         ),
 
-        const SizedBox(height: 28),
+        SizedBox(height: isCompact ? 18 : 28),
 
-        // ── Section 3: Line Charts (المخططات الخطية) ──
+        // ── Section 3: Line Charts (Desktop 2x2 Grid, Mobile 1-Column) ──
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 1050;
+            final chartHeight = isCompact ? 195.0 : 230.0;
 
-        // Chart 1: Cash Flow Line Chart (التدفق النقدي)
-        _ChartContainer(
-          title: 'مخطط مسار التدفق النقدي (Cash Flow Trend Line)',
-          subtitle:
-              'المقبوضات النقدية الداخلة مقابل المدفوعات والمصروفات الخارجة عبر الزمن',
-          icon: Icons.waterfall_chart_rounded,
-          iconColor: const Color(0xFF10B981),
-          surface: surface,
-          borderColor: borderColor,
-          textPrimary: textPrimary,
-          textSecondary: textSecondary,
-          child: CustomLineChart(
-            seriesList: data.cashFlowSeries,
-            height: 240,
-            valueSuffix: 'ر.ي',
-          ),
-        ),
+            final chart1 = _ChartContainer(
+              title: 'مخطط مسار التدفق النقدي (Cash Flow Trend)',
+              subtitle:
+                  'المقبوضات النقدية الداخلة مقابل المدفوعات والمصروفات الخارجة عبر الزمن',
+              icon: Icons.waterfall_chart_rounded,
+              iconColor: const Color(0xFF10B981),
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isCompact: isCompact,
+              child: CustomLineChart(
+                seriesList: data.cashFlowSeries,
+                height: chartHeight,
+              ),
+            );
 
-        const SizedBox(height: 20),
+            final chart2 = _ChartContainer(
+              title: 'مخطط المبيعات مقابل التكاليف والمصروفات',
+              subtitle:
+                  'مقارنة حجم المبيعات بتكلفة المشتريات والمصروفات التشغيلية المباشرة',
+              icon: Icons.show_chart_rounded,
+              iconColor: const Color(0xFF3B82F6),
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isCompact: isCompact,
+              child: CustomLineChart(
+                seriesList: data.revenueCostSeries,
+                height: chartHeight,
+              ),
+            );
 
-        // Chart 2: Revenue vs Costs Line Chart (المبيعات مقابل التكاليف)
-        _ChartContainer(
-          title: 'مخطط المبيعات مقابل التكاليف والمصروفات',
-          subtitle:
-              'مقارنة حجم المبيعات بتكلفة المشتريات والمصروفات التشغيلية المباشرة',
-          icon: Icons.show_chart_rounded,
-          iconColor: const Color(0xFF3B82F6),
-          surface: surface,
-          borderColor: borderColor,
-          textPrimary: textPrimary,
-          textSecondary: textSecondary,
-          child: CustomLineChart(
-            seriesList: data.revenueCostSeries,
-            height: 240,
-            valueSuffix: 'ر.ي',
-          ),
-        ),
+            final chart3 = _ChartContainer(
+              title: 'منحنى تطور صافي الربح (Net Profit Trajectory)',
+              subtitle:
+                  'مسار الأرباح المحققة بعد خصم جميع تكاليف البضائع والمصروفات',
+              icon: Icons.auto_graph_rounded,
+              iconColor: const Color(0xFF8B5CF6),
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isCompact: isCompact,
+              child: CustomLineChart(
+                seriesList: data.profitSeries,
+                height: chartHeight,
+              ),
+            );
 
-        const SizedBox(height: 20),
+            final chart4 = _ChartContainer(
+              title:
+                  'مخطط توازن المديونية والالتزامات (Receivables vs Payables)',
+              subtitle:
+                  'تتبع مستحقاتك لدى العملاء في السوق مقارنة بالتزاماتك الواجبة للموردين',
+              icon: Icons.account_balance_rounded,
+              iconColor: const Color(0xFF06B6D4),
+              surface: surface,
+              borderColor: borderColor,
+              textPrimary: textPrimary,
+              textSecondary: textSecondary,
+              isCompact: isCompact,
+              child: CustomLineChart(
+                seriesList: data.debtBalanceSeries,
+                height: chartHeight,
+              ),
+            );
 
-        // Chart 3: Net Profit Trajectory Line Chart (مسار صافي الربح)
-        _ChartContainer(
-          title: 'منحنى تطور صافي الربح (Net Profit Trajectory)',
-          subtitle:
-              'مسار الأرباح المحققة بعد خصم جميع تكاليف البضائع والمصروفات',
-          icon: Icons.auto_graph_rounded,
-          iconColor: const Color(0xFF8B5CF6),
-          surface: surface,
-          borderColor: borderColor,
-          textPrimary: textPrimary,
-          textSecondary: textSecondary,
-          child: CustomLineChart(
-            seriesList: data.profitSeries,
-            height: 240,
-            valueSuffix: 'ر.ي',
-          ),
-        ),
-
-        const SizedBox(height: 20),
-
-        // Chart 4: Receivables vs Payables Trend (توازن المديونية والالتزامات)
-        _ChartContainer(
-          title: 'مخطط توازن المديونية والالتزامات (Receivables vs Payables)',
-          subtitle:
-              'تتبع مستحقاتك لدى العملاء في السوق مقارنة بالتزاماتك الواجبة للموردين',
-          icon: Icons.account_balance_rounded,
-          iconColor: const Color(0xFF06B6D4),
-          surface: surface,
-          borderColor: borderColor,
-          textPrimary: textPrimary,
-          textSecondary: textSecondary,
-          child: CustomLineChart(
-            seriesList: data.debtBalanceSeries,
-            height: 240,
-            valueSuffix: 'ر.ي',
-          ),
+            if (isDesktop) {
+              return Column(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: chart1),
+                      const SizedBox(width: 20),
+                      Expanded(child: chart2),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: chart3),
+                      const SizedBox(width: 20),
+                      Expanded(child: chart4),
+                    ],
+                  ),
+                ],
+              );
+            } else {
+              return Column(
+                children: [
+                  chart1,
+                  const SizedBox(height: 18),
+                  chart2,
+                  const SizedBox(height: 18),
+                  chart3,
+                  const SizedBox(height: 18),
+                  chart4,
+                ],
+              );
+            }
+          },
         ),
 
         const SizedBox(height: 32),
@@ -563,6 +836,7 @@ class _KpiMetricCard extends StatelessWidget {
   final Color borderColor;
   final Color textPrimary;
   final Color textSecondary;
+  final bool isCompact;
   final VoidCallback? onTap;
 
   const _KpiMetricCard({
@@ -578,6 +852,7 @@ class _KpiMetricCard extends StatelessWidget {
     required this.borderColor,
     required this.textPrimary,
     required this.textSecondary,
+    this.isCompact = false,
     this.onTap,
   });
 
@@ -602,7 +877,7 @@ class _KpiMetricCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(isCompact ? 13 : 18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -611,20 +886,24 @@ class _KpiMetricCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(isCompact ? 6 : 8),
                       decoration: BoxDecoration(
                         color: iconColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(icon, color: iconColor, size: 20),
+                      child: Icon(
+                        icon,
+                        color: iconColor,
+                        size: isCompact ? 18 : 20,
+                      ),
                     ),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isCompact ? 7 : 8,
+                            vertical: isCompact ? 3 : 4,
                           ),
                           decoration: BoxDecoration(
                             color: badgeColor.withValues(alpha: 0.12),
@@ -633,7 +912,7 @@ class _KpiMetricCard extends StatelessWidget {
                           child: Text(
                             badgeText,
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: isCompact ? 10 : 11,
                               fontWeight: FontWeight.bold,
                               color: badgeColor,
                             ),
@@ -643,7 +922,7 @@ class _KpiMetricCard extends StatelessWidget {
                           const SizedBox(width: 6),
                           Icon(
                             Icons.arrow_forward_ios_rounded,
-                            size: 13,
+                            size: isCompact ? 12 : 13,
                             color: textSecondary.withValues(alpha: 0.7),
                           ),
                         ],
@@ -651,26 +930,26 @@ class _KpiMetricCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 6),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: isCompact ? 12 : 13,
                         fontWeight: FontWeight.w600,
                         color: textSecondary,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerRight,
                       child: Text(
                         value,
                         style: TextStyle(
-                          fontSize: 20,
+                          fontSize: isCompact ? 18 : 20,
                           fontWeight: FontWeight.w800,
                           color: textPrimary,
                           letterSpacing: -0.5,
@@ -679,7 +958,7 @@ class _KpiMetricCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     Expanded(
@@ -688,7 +967,7 @@ class _KpiMetricCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: isCompact ? 10.5 : 11,
                           fontWeight: FontWeight.w500,
                           color: textSecondary.withValues(alpha: 0.85),
                         ),
@@ -698,7 +977,7 @@ class _KpiMetricCard extends StatelessWidget {
                       Text(
                         'عرض التفاصيل',
                         style: TextStyle(
-                          fontSize: 10.5,
+                          fontSize: isCompact ? 10 : 10.5,
                           fontWeight: FontWeight.bold,
                           color: iconColor,
                         ),
@@ -720,6 +999,7 @@ class _FinancialRatioItem extends StatelessWidget {
   final String description;
   final IconData icon;
   final Color color;
+  final bool isCompact;
 
   const _FinancialRatioItem({
     required this.label,
@@ -727,51 +1007,63 @@ class _FinancialRatioItem extends StatelessWidget {
     required this.description,
     required this.icon,
     required this.color,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: EdgeInsets.all(isCompact ? 8 : 10),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: color, size: 22),
+          child: Icon(icon, color: color, size: isCompact ? 18 : 22),
         ),
-        const SizedBox(width: 14),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+        SizedBox(width: isCompact ? 10 : 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: isCompact ? 11.5 : 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w900,
-                    color: color,
+                  const SizedBox(width: 6),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: isCompact ? 14 : 16,
+                      fontWeight: FontWeight.w900,
+                      color: color,
+                    ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                description,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: isCompact ? 10 : 11,
+                  color: Colors.grey.shade500,
                 ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              description,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -788,6 +1080,7 @@ class _ChartContainer extends StatelessWidget {
   final Color textPrimary;
   final Color textSecondary;
   final Widget child;
+  final bool isCompact;
 
   const _ChartContainer({
     required this.title,
@@ -799,12 +1092,13 @@ class _ChartContainer extends StatelessWidget {
     required this.textPrimary,
     required this.textSecondary,
     required this.child,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isCompact ? 14 : 20),
       decoration: BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(16),
@@ -823,14 +1117,14 @@ class _ChartContainer extends StatelessWidget {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(isCompact ? 6 : 8),
                 decoration: BoxDecoration(
                   color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(icon, color: iconColor, size: 20),
+                child: Icon(icon, color: iconColor, size: isCompact ? 18 : 20),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: isCompact ? 10 : 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -838,7 +1132,7 @@ class _ChartContainer extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: isCompact ? 13.5 : 15,
                         fontWeight: FontWeight.w700,
                         color: textPrimary,
                       ),
@@ -847,7 +1141,7 @@ class _ChartContainer extends StatelessWidget {
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: isCompact ? 10.5 : 11.5,
                         fontWeight: FontWeight.w500,
                         color: textSecondary,
                       ),
@@ -857,9 +1151,9 @@ class _ChartContainer extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: isCompact ? 12 : 18),
           const Divider(height: 1),
-          const SizedBox(height: 18),
+          SizedBox(height: isCompact ? 12 : 18),
           child,
         ],
       ),

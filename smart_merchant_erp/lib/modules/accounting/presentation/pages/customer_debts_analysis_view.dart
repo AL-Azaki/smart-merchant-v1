@@ -9,6 +9,7 @@ import '../../../../app/di/getit_instance.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
+import '../services/analytics_pdf_helper.dart';
 
 class CustomerDebtRow {
   final String id;
@@ -235,8 +236,9 @@ class _CustomerDebtsAnalysisViewState
 
   Future<void> _printReportPdf() async {
     final pdf = pw.Document();
-    final font = await PdfGoogleFonts.cairoRegular();
-    final fontBold = await PdfGoogleFonts.cairoBold();
+    final fonts = await AnalyticsPdfHelper.loadArabicFonts();
+    final font = fonts.regular;
+    final fontBold = fonts.bold;
 
     final filtered = _getFilteredRows();
     final totalDebt = filtered.fold<double>(
@@ -461,91 +463,163 @@ class _CustomerDebtsAnalysisViewState
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    // ── 1. Summary Quick Cards ──
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: [
-                        _buildSummaryCard(
-                          title: 'إجمالي المديونية في السوق',
-                          value: '${_moneyFormat.format(totalDebt)} ر.ي',
-                          icon: Icons.account_balance_wallet_rounded,
-                          color: const Color(0xFFEF4444),
-                          subtitle: '$indebtedCount عميل عليهم متبقيات',
-                          isDark: isDark,
-                          surface: surface,
-                          borderColor: borderColor,
-                        ),
-                        _buildSummaryCard(
-                          title: 'إجمالي المبيعات الكلية',
-                          value: '${_moneyFormat.format(totalSales)} ر.ي',
-                          icon: Icons.shopping_bag_rounded,
-                          color: const Color(0xFF3B82F6),
-                          subtitle: 'لكافة العملاء المسجلين',
-                          isDark: isDark,
-                          surface: surface,
-                          borderColor: borderColor,
-                        ),
-                        _buildSummaryCard(
-                          title: 'إجمالي المحصل / المقبوض',
-                          value: '${_moneyFormat.format(totalPaid)} ر.ي',
-                          icon: Icons.check_circle_outline_rounded,
-                          color: const Color(0xFF10B981),
-                          subtitle: 'سدادات مسجلة نقدياً وبنكياً',
-                          isDark: isDark,
-                          surface: surface,
-                          borderColor: borderColor,
-                        ),
-                      ],
+                    // ── 1. Summary Quick Cards (Responsive) ──
+                    LayoutBuilder(
+                      builder: (context, box) {
+                        final w = box.maxWidth;
+                        final int crossCount = w >= 950
+                            ? 3
+                            : (w >= 600 ? 2 : 1);
+                        final cardWidth = crossCount == 1
+                            ? w
+                            : (w - ((crossCount - 1) * 12)) / crossCount;
+
+                        return Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _buildSummaryCard(
+                              title: 'إجمالي المديونية في السوق',
+                              value: '${_moneyFormat.format(totalDebt)} ر.ي',
+                              icon: Icons.account_balance_wallet_rounded,
+                              color: const Color(0xFFEF4444),
+                              subtitle: '$indebtedCount عميل عليهم متبقيات',
+                              isDark: isDark,
+                              surface: surface,
+                              borderColor: borderColor,
+                              width: cardWidth,
+                            ),
+                            _buildSummaryCard(
+                              title: 'إجمالي المبيعات الكلية',
+                              value: '${_moneyFormat.format(totalSales)} ر.ي',
+                              icon: Icons.shopping_bag_rounded,
+                              color: const Color(0xFF3B82F6),
+                              subtitle: 'لكافة العملاء المسجلين',
+                              isDark: isDark,
+                              surface: surface,
+                              borderColor: borderColor,
+                              width: cardWidth,
+                            ),
+                            _buildSummaryCard(
+                              title: 'إجمالي المحصل / المقبوض',
+                              value: '${_moneyFormat.format(totalPaid)} ر.ي',
+                              icon: Icons.check_circle_outline_rounded,
+                              color: const Color(0xFF10B981),
+                              subtitle: 'سدادات مسجلة نقدياً وبنكياً',
+                              isDark: isDark,
+                              surface: surface,
+                              borderColor: borderColor,
+                              width: cardWidth,
+                            ),
+                          ],
+                        );
+                      },
                     ),
 
                     const SizedBox(height: 18),
 
-                    // ── 2. Search & Filter Bar ──
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: surface,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.search_rounded,
-                            color: Color(0xFF64748B),
-                            size: 20,
+                    // ── 2. Search & Report Action Bar (Responsive) ──
+                    LayoutBuilder(
+                      builder: (context, boxConstraints) {
+                        final isMobile = boxConstraints.maxWidth < 650;
+                        final searchBar = Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 8,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (val) =>
-                                  setState(() => _searchQuery = val),
-                              style: TextStyle(
-                                color: textPrimary,
-                                fontSize: 13,
+                          decoration: BoxDecoration(
+                            color: surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.search_rounded,
+                                color: Color(0xFF64748B),
+                                size: 20,
                               ),
-                              decoration: const InputDecoration(
-                                hintText: 'بحث باسم العميل أو رقم الهاتف...',
-                                border: InputBorder.none,
-                                isDense: true,
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  onChanged: (val) =>
+                                      setState(() => _searchQuery = val),
+                                  style: TextStyle(
+                                    color: textPrimary,
+                                    fontSize: 13,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    hintText:
+                                        'بحث باسم العميل أو رقم الهاتف...',
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                  ),
+                                ),
                               ),
+                              if (_searchQuery.isNotEmpty)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.clear_rounded,
+                                    size: 18,
+                                  ),
+                                  onPressed: () {
+                                    _searchController.clear();
+                                    setState(() => _searchQuery = '');
+                                  },
+                                ),
+                            ],
+                          ),
+                        );
+
+                        final pdfButton = ElevatedButton.icon(
+                          onPressed: filteredRows.isEmpty
+                              ? null
+                              : _printReportPdf,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6366F1),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          icon: const Icon(
+                            Icons.picture_as_pdf_rounded,
+                            size: 18,
+                          ),
+                          label: const Text(
+                            'عرض وتحميل التقرير PDF',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
                             ),
                           ),
-                          if (_searchQuery.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchQuery = '');
-                              },
-                            ),
-                        ],
-                      ),
+                        );
+
+                        if (isMobile) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              searchBar,
+                              const SizedBox(height: 10),
+                              pdfButton,
+                            ],
+                          );
+                        } else {
+                          return Row(
+                            children: [
+                              Expanded(child: searchBar),
+                              const SizedBox(width: 12),
+                              pdfButton,
+                            ],
+                          );
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 18),
@@ -793,9 +867,10 @@ class _CustomerDebtsAnalysisViewState
     required bool isDark,
     required Color surface,
     required Color borderColor,
+    required double width,
   }) {
     return Container(
-      width: 260,
+      width: width,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: surface,

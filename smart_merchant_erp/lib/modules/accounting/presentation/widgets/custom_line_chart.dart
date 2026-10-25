@@ -204,8 +204,8 @@ class _CustomLineChartState extends State<CustomLineChart> {
 
   void _handleTouch(Offset localPos, double totalWidth, int maxPoints) {
     if (maxPoints <= 1) return;
-    const leftPadding = 48.0;
-    const rightPadding = 16.0;
+    final leftPadding = totalWidth < 500 ? 36.0 : 48.0;
+    const rightPadding = 14.0;
     final chartWidth = totalWidth - leftPadding - rightPadding;
     if (chartWidth <= 0) return;
 
@@ -356,6 +356,7 @@ class _LineChartPainter extends CustomPainter {
       fontSize: size.width < 500 ? 9 : 10,
       fontWeight: FontWeight.w500,
       color: labelColor,
+      fontFamily: 'Cairo',
       fontFamilyFallback: const ['Cairo', 'Roboto', 'Arial', 'sans-serif'],
     );
 
@@ -406,7 +407,9 @@ class _LineChartPainter extends CustomPainter {
           : chartWidth / 2;
 
       // Smart stride to ensure labels never overlap on small screens
-      final maxVisibleLabels = (chartWidth / (size.width < 500 ? 56 : 46)).floor().clamp(3, 8);
+      final maxVisibleLabels = (chartWidth / (size.width < 500 ? 56 : 46))
+          .floor()
+          .clamp(3, 8);
       final stride = (maxPoints / maxVisibleLabels).ceil().clamp(1, maxPoints);
 
       for (int i = 0; i < maxPoints; i++) {

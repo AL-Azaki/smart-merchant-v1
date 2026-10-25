@@ -9,11 +9,10 @@ import '../widgets/custom_line_chart.dart';
 
 enum AnalyticsPeriod {
   today('اليوم'),
-  thisWeek('هذا الأسبوع'),
-  thisMonth('هذا الشهر'),
-  thisQuarter('هذا الربع'),
-  thisYear('هذا العام'),
-  all('الكل');
+  thisWeek('أسبوع'),
+  thisMonth('شهر'),
+  thisYear('سنة'),
+  custom('مخصص');
 
   final String label;
   const AnalyticsPeriod(this.label);
@@ -99,10 +98,15 @@ final analyticsPeriodProvider = StateProvider<AnalyticsPeriod>(
   (ref) => AnalyticsPeriod.thisMonth,
 );
 
+final analyticsCustomDateRangeProvider = StateProvider<DateTimeRange?>(
+  (ref) => null,
+);
+
 final financialAnalyticsProvider =
     FutureProvider.autoDispose<FinancialAnalyticsData>((ref) async {
       final session = ref.watch(sessionNotifierProvider);
       final period = ref.watch(analyticsPeriodProvider);
+      final customRange = ref.watch(analyticsCustomDateRangeProvider);
 
       if (!session.isActive || session.businessId == null) {
         return FinancialAnalyticsData.empty(period);
@@ -119,6 +123,7 @@ final financialAnalyticsProvider =
       switch (period) {
         case AnalyticsPeriod.today:
           startDate = DateTime(now.year, now.month, now.day);
+          endDate = DateTime(now.year, now.month, now.day, 23, 59, 59);
           break;
         case AnalyticsPeriod.thisWeek:
           startDate = DateTime(
@@ -126,20 +131,31 @@ final financialAnalyticsProvider =
             now.month,
             now.day,
           ).subtract(Duration(days: now.weekday % 7));
+          endDate = now;
           break;
         case AnalyticsPeriod.thisMonth:
           startDate = DateTime(now.year, now.month, 1);
-          break;
-        case AnalyticsPeriod.thisQuarter:
-          final quarterMonth = ((now.month - 1) ~/ 3) * 3 + 1;
-          startDate = DateTime(now.year, quarterMonth, 1);
+          endDate = now;
           break;
         case AnalyticsPeriod.thisYear:
           startDate = DateTime(now.year, 1, 1);
+          endDate = now;
           break;
-        case AnalyticsPeriod.all:
-          startDate = null;
-          endDate = null;
+        case AnalyticsPeriod.custom:
+          if (customRange != null) {
+            startDate = customRange.start;
+            endDate = DateTime(
+              customRange.end.year,
+              customRange.end.month,
+              customRange.end.day,
+              23,
+              59,
+              59,
+            );
+          } else {
+            startDate = DateTime(now.year, now.month, 1);
+            endDate = now;
+          }
           break;
       }
 
@@ -305,7 +321,11 @@ final financialAnalyticsProvider =
       final isDaily =
           period == AnalyticsPeriod.today ||
           period == AnalyticsPeriod.thisWeek ||
-          period == AnalyticsPeriod.thisMonth;
+          period == AnalyticsPeriod.thisMonth ||
+          (period == AnalyticsPeriod.custom &&
+              startDate != null &&
+              endDate != null &&
+              endDate.difference(startDate).inDays <= 31);
 
       final Map<String, _BucketAggregate> buckets = {};
 
@@ -315,7 +335,11 @@ final financialAnalyticsProvider =
             ? 1
             : (period == AnalyticsPeriod.thisWeek
                   ? 7
-                  : (period == AnalyticsPeriod.thisMonth ? 30 : 14));
+                  : (period == AnalyticsPeriod.thisMonth
+                        ? 30
+                        : (startDate != null && endDate != null
+                              ? endDate.difference(startDate).inDays.clamp(1, 31)
+                              : 30)));
 
         final effectiveStart =
             startDate ?? now.subtract(Duration(days: daysCount - 1));
