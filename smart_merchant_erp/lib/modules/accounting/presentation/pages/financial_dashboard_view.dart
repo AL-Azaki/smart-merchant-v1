@@ -16,6 +16,7 @@ import '../widgets/journal_entry_form_sheet.dart';
 import '../widgets/payment_voucher_dialog.dart';
 import '../widgets/receipt_voucher_dialog.dart';
 import 'banks_and_cash_view.dart';
+import 'financial_analytics_view.dart';
 import 'payment_vouchers_view.dart';
 import 'receipt_vouchers_view.dart';
 
@@ -35,6 +36,7 @@ class _FinancialDashboardViewState extends ConsumerState<FinancialDashboardView>
 
   final tabs = const [
     _TabItem(id: 'dashboard', label: 'لوحة التحكم', icon: Icons.dashboard_rounded, color: Color(0xFF10B981)),
+    _TabItem(id: 'analytics', label: 'التحليلات', icon: Icons.insights_rounded, color: Color(0xFF6366F1)),
     _TabItem(id: 'receipts', label: 'سندات القبض', icon: Icons.call_received_rounded, color: Color(0xFF059669)),
     _TabItem(id: 'payments', label: 'سندات الصرف', icon: Icons.call_made_rounded, color: Color(0xFFEF4444)),
     _TabItem(id: 'banks', label: 'الخزينة والبنوك', icon: Icons.account_balance_rounded, color: Color(0xFF06B6D4)),
@@ -168,6 +170,7 @@ class _FinancialDashboardViewState extends ConsumerState<FinancialDashboardView>
                     key: const ValueKey('dashboard'),
                     onSelectTab: _switchTab,
                   ),
+                  const FinancialAnalyticsView(key: ValueKey('analytics')),
                   const ReceiptVouchersView(key: ValueKey('receipts')),
                   const PaymentVouchersView(key: ValueKey('payments')),
                   const BanksAndCashView(key: ValueKey('banks')),
@@ -375,24 +378,31 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
+                label: 'التحليلات المالية',
+                icon: Icons.insights_rounded,
+                color: const Color(0xFF6366F1),
+                onTap: () => widget.onSelectTab?.call(1),
+              ),
+              const SizedBox(width: 14),
+              _QuickActionChip(
                 label: 'الخزينة والبنوك',
                 icon: Icons.account_balance_rounded,
                 color: const Color(0xFF06B6D4),
-                onTap: () => widget.onSelectTab?.call(3),
+                onTap: () => widget.onSelectTab?.call(4),
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
                 label: 'دليل الحسابات',
                 icon: Icons.account_tree_rounded,
                 color: const Color(0xFF3B82F6),
-                onTap: () => widget.onSelectTab?.call(4),
+                onTap: () => widget.onSelectTab?.call(5),
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
                 label: 'التقارير المالية',
                 icon: Icons.pie_chart_rounded,
                 color: const Color(0xFFEC4899),
-                onTap: () => widget.onSelectTab?.call(6),
+                onTap: () => widget.onSelectTab?.call(7),
               ),
             ],
           ),
