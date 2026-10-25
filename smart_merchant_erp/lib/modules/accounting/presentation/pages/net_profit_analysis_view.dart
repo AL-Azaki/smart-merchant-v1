@@ -10,6 +10,7 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
 import '../services/analytics_pdf_helper.dart';
+import 'expenses_analysis_view.dart';
 
 class ProfitLossItem {
   final String title;
@@ -435,13 +436,21 @@ class _NetProfitAnalysisViewState extends ConsumerState<NetProfitAnalysisView> {
                               title: 'إجمالي المصروفات التشغيلية',
                               value:
                                   '${_moneyFormat.format(_operatingExpenses)} ر.ي',
-                              icon: Icons.receipt_long_rounded,
-                              color: const Color(0xFFF59E0B),
+                              icon: Icons.pie_chart_rounded,
+                              color: const Color(0xFFEF4444),
                               subtitle: 'إيجارات، كهرباء، رواتب ومصاريف',
                               isDark: isDark,
                               surface: surface,
                               borderColor: borderColor,
                               width: cardWidth,
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const ExpensesAnalysisView(),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         );
@@ -714,8 +723,9 @@ class _NetProfitAnalysisViewState extends ConsumerState<NetProfitAnalysisView> {
     required Color surface,
     required Color borderColor,
     required double width,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    final card = Container(
       width: width,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -772,5 +782,14 @@ class _NetProfitAnalysisViewState extends ConsumerState<NetProfitAnalysisView> {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: card,
+      );
+    }
+    return card;
   }
 }

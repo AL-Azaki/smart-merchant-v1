@@ -6,6 +6,7 @@ import '../providers/financial_analytics_provider.dart';
 import '../widgets/custom_line_chart.dart';
 import 'cash_flow_analysis_view.dart';
 import 'customer_debts_analysis_view.dart';
+import 'expenses_analysis_view.dart';
 import 'liquidity_analysis_view.dart';
 import 'net_profit_analysis_view.dart';
 import 'sales_analysis_view.dart';
@@ -452,7 +453,32 @@ class _FinancialAnalyticsViewState
                 },
               ),
 
-              // 2. صافي الأرباح
+              // 2. المصروفات التشغيلية (فئات ونفقات عامة دون مشتريات)
+              _KpiMetricCard(
+                title: 'المصروفات التشغيلية',
+                value: _formatCurrency(data.totalExpenses),
+                subtitle: 'كهرباء، إيجارات، طاقة ونفقات عامة',
+                icon: Icons.pie_chart_rounded,
+                iconColor: const Color(0xFFEF4444),
+                badgeText: 'نفقات تشغيل',
+                badgeColor: const Color(0xFFEF4444),
+                isDark: isDark,
+                surface: surface,
+                borderColor: borderColor,
+                textPrimary: textPrimary,
+                textSecondary: textSecondary,
+                isCompact: isCompact,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ExpensesAnalysisView(),
+                    ),
+                  );
+                },
+              ),
+
+              // 3. صافي الأرباح
               _KpiMetricCard(
                 title: 'صافي الأرباح المحققة',
                 value: _formatCurrency(data.netProfit),
