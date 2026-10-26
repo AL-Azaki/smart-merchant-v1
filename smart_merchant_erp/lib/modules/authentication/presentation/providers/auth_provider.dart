@@ -11,6 +11,7 @@ import '../../infrastructure/dto/auth_dtos.dart';
 import 'session_provider.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../database/seeders/default_coa_seeder.dart';
+import '../../../../database/seeders/demo_data_seeder_service.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../kernel/security/subscription_lease_guard.dart';
 import '../../../../kernel/security/time_integrity_guard.dart';
@@ -67,41 +68,50 @@ class AuthNotifier extends _$AuthNotifier {
     try {
       final db = getIt<AppDatabase>();
       // 0. Ensure user exists safely without UNIQUE constraint collision on email
-      final existingQaUser = await (db.select(db.usersTable)
-            ..where((u) => u.id.equals('qa-user-id')))
-          .getSingleOrNull();
+      final existingQaUser = await (db.select(
+        db.usersTable,
+      )..where((u) => u.id.equals('qa-user-id'))).getSingleOrNull();
 
       if (existingQaUser == null) {
-        final emailConflicts = await (db.select(db.usersTable)
-              ..where((u) => u.email.equals('admin@smartmerchant.com')))
-            .get();
+        final emailConflicts = await (db.select(
+          db.usersTable,
+        )..where((u) => u.email.equals('admin@smartmerchant.com'))).get();
         for (final conflict in emailConflicts) {
           if (conflict.id != 'qa-user-id') {
-            await (db.update(db.usersTable)..where((u) => u.id.equals(conflict.id))).write(
+            await (db.update(
+              db.usersTable,
+            )..where((u) => u.id.equals(conflict.id))).write(
               UsersTableCompanion(
-                email: drift.Value('old_${conflict.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')}@smartmerchant.com'),
+                email: drift.Value(
+                  'old_${conflict.id.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '')}@smartmerchant.com',
+                ),
               ),
             );
           }
         }
 
-        await db.into(db.usersTable).insert(
-          UsersTableCompanion.insert(
-            id: const drift.Value('qa-user-id'),
-            email: 'admin@smartmerchant.com',
-            passwordHash: '',
-            firstName: storeName != null ? storeName.split(' ').first : 'المدير',
-            lastName: storeName != null && storeName.contains(' ') ? storeName.substring(storeName.indexOf(' ') + 1) : 'المحلي',
-            isActive: const drift.Value(true),
-          ),
-        );
+        await db
+            .into(db.usersTable)
+            .insert(
+              UsersTableCompanion.insert(
+                id: const drift.Value('qa-user-id'),
+                email: 'admin@smartmerchant.com',
+                passwordHash: '',
+                firstName: storeName != null
+                    ? storeName.split(' ').first
+                    : 'المدير',
+                lastName: storeName != null && storeName.contains(' ')
+                    ? storeName.substring(storeName.indexOf(' ') + 1)
+                    : 'المحلي',
+                isActive: const drift.Value(true),
+              ),
+            );
       }
 
       // 1. Seed complete business, branch, accounts, mappings and warehouses
-      await DefaultChartOfAccountsSeeder(db).seedChartOfAccounts(
-        businessId: 'qa-business-id',
-        currencyId: 'YER',
-      );
+      await DefaultChartOfAccountsSeeder(
+        db,
+      ).seedChartOfAccounts(businessId: 'qa-business-id', currencyId: 'YER');
     } catch (e, st) {
       debugPrint('Bootstrap QA session notice: $e\n$st');
     }
@@ -112,14 +122,24 @@ class AuthNotifier extends _$AuthNotifier {
   Future<void> enterOfflineMode({String? storeName}) async {
     await _bootstrapQaSession(storeName: storeName);
     await _secureStorage.write(StorageKeys.isOfflineMode, 'true');
-    await _secureStorage.write(StorageKeys.lastSessionBusinessId, 'qa-business-id');
+    await _secureStorage.write(
+      StorageKeys.lastSessionBusinessId,
+      'qa-business-id',
+    );
     await _secureStorage.write(StorageKeys.lastSessionBranchId, 'qa-branch-id');
     await _secureStorage.write(StorageKeys.lastSessionUserId, 'qa-user-id');
   }
 
   /// Direct demo / offline bypass mode for instant trial without credentials.
   Future<void> loginAsDemo() async {
-    await enterOfflineMode();
+    state = AuthStatus.authenticating;
+    try {
+      await enterOfflineMode(storeName: 'المتجر التجريبي');
+    } catch (e, st) {
+      debugPrint('Error entering demo mode: $e\n$st');
+    } finally {
+      state = AuthStatus.authenticated;
+    }
   }
 
   /// Full login flow: authenticate → store token → bootstrap → register device.
@@ -150,7 +170,9 @@ class AuthNotifier extends _$AuthNotifier {
       return LoginResult.failure(e.message);
     } catch (e) {
       state = AuthStatus.unauthenticated;
-      return LoginResult.failure('تعذر الاتصال بالخادم. يمكنك المتابعة في وضع العمل المحلي بدون سيرفر.');
+      return LoginResult.failure(
+        'تعذر الاتصال بالخادم. يمكنك المتابعة في وضع العمل المحلي بدون سيرفر.',
+      );
     }
   }
 
@@ -258,7 +280,9 @@ class AuthNotifier extends _$AuthNotifier {
     final leaseCheck = await leaseGuard.validateLease();
 
     if (leaseCheck.isBlocked) {
-      debugPrint('[AuthProvider] 🚫 Offline session blocked by lease guard: ${leaseCheck.status} - ${leaseCheck.message}');
+      debugPrint(
+        '[AuthProvider] 🚫 Offline session blocked by lease guard: ${leaseCheck.status} - ${leaseCheck.message}',
+      );
       state = AuthStatus.subscriptionExpired;
       return false;
     }
@@ -442,7 +466,9 @@ class AuthNotifier extends _$AuthNotifier {
       return LoginResult.failure(e.message);
     } catch (e) {
       state = AuthStatus.unauthenticated;
-      return LoginResult.failure('حدث خطأ أثناء مزامنة الجلسة: ${e.toString()}');
+      return LoginResult.failure(
+        'حدث خطأ أثناء مزامنة الجلسة: ${e.toString()}',
+      );
     }
   }
 
