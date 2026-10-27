@@ -28,6 +28,8 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
   String _selectedBankWallet = 'kuraimi';
   final TextEditingController _cashController = TextEditingController();
   final TextEditingController _bankController = TextEditingController();
+  final TextEditingController _discountController = TextEditingController();
+  bool _isDiscountPercentage = false;
 
   static const List<Map<String, dynamic>> _bankWalletList = [
     {
@@ -72,8 +74,14 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final total = ref.read(posNotifierProvider).totals.grandTotal;
+      final posState = ref.read(posNotifierProvider);
+      final total = posState.totals.grandTotal;
       setState(() {
+        if (posState.invoiceDiscount > 0) {
+          _discountController.text =
+              posState.invoiceDiscount.toStringAsFixed(0);
+          _isDiscountPercentage = posState.isInvoiceDiscountPercentage;
+        }
         _cashAmount = total;
         _bankAmount = 0.0;
         _cashController.text = total.toStringAsFixed(2);
@@ -86,7 +94,18 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
   void dispose() {
     _cashController.dispose();
     _bankController.dispose();
+    _discountController.dispose();
     super.dispose();
+  }
+
+  void _applyInvoiceDiscount(double discount, {bool? isPercentage}) {
+    final effectiveIsPct = isPercentage ?? _isDiscountPercentage;
+    ref.read(posNotifierProvider.notifier).setInvoiceDiscount(
+          discount,
+          isPercentage: effectiveIsPct,
+        );
+    final newTotal = ref.read(posNotifierProvider).totals.grandTotal;
+    _switchMode(_mode, newTotal);
   }
 
   void _switchMode(PosPaymentMode newMode, double total) {
@@ -781,7 +800,203 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                     ),
                     const SizedBox(height: 14),
 
-                    // E. Clean Invoice Summary (No Tax!)
+                    // E. Invoice Discount Section (خصم إضافي على الفاتورة)
+                    AppCard(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.discount_outlined,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'خصم إجمالي على الفاتورة',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12.5,
+                                  color: textColor,
+                                ),
+                              ),
+                              const Spacer(),
+                              SegmentedButton<bool>(
+                                style: const ButtonStyle(
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                segments: const [
+                                  ButtonSegment(
+                                    value: false,
+                                    label: Text('مبلغ'),
+                                  ),
+                                  ButtonSegment(value: true, label: Text('%')),
+                                ],
+                                selected: {_isDiscountPercentage},
+                                onSelectionChanged: (val) {
+                                  setState(() {
+                                    _isDiscountPercentage = val.first;
+                                  });
+                                  final discount =
+                                      double.tryParse(
+                                        _discountController.text.trim(),
+                                      ) ??
+                                      0.0;
+                                  _applyInvoiceDiscount(
+                                    discount,
+                                    isPercentage: _isDiscountPercentage,
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SizedBox(
+                                  height: 38,
+                                  child: TextField(
+                                    controller: _discountController,
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          _isDiscountPercentage
+                                              ? 'أدخل النسبة (مثال: 5%)'
+                                              : 'أدخل المبلغ (مثال: 100)',
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 10,
+                                            vertical: 8,
+                                          ),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      suffixIcon:
+                                          _discountController.text.isNotEmpty
+                                              ? IconButton(
+                                                icon: const Icon(
+                                                  Icons.clear,
+                                                  size: 16,
+                                                ),
+                                                onPressed: () {
+                                                  _discountController.clear();
+                                                  _applyInvoiceDiscount(0.0);
+                                                },
+                                              )
+                                              : null,
+                                    ),
+                                    onChanged: (val) {
+                                      final discount =
+                                          double.tryParse(val.trim()) ?? 0.0;
+                                      _applyInvoiceDiscount(discount);
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              // جبر الكسور
+                              ActionChip(
+                                visualDensity: VisualDensity.compact,
+                                label: const Text(
+                                  'جبر الكسور',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                onPressed: () {
+                                  final raw = posState.totals.rawSubtotal;
+                                  final mod = raw % 50;
+                                  if (mod > 0) {
+                                    _isDiscountPercentage = false;
+                                    _discountController.text = mod
+                                        .toStringAsFixed(0);
+                                    _applyInvoiceDiscount(
+                                      mod,
+                                      isPercentage: false,
+                                    );
+                                  }
+                                },
+                              ),
+                              ActionChip(
+                                visualDensity: VisualDensity.compact,
+                                label: const Text(
+                                  '5%',
+                                  style: TextStyle(fontSize: 10.5),
+                                ),
+                                onPressed: () {
+                                  _isDiscountPercentage = true;
+                                  _discountController.text = '5';
+                                  _applyInvoiceDiscount(
+                                    5.0,
+                                    isPercentage: true,
+                                  );
+                                },
+                              ),
+                              ActionChip(
+                                visualDensity: VisualDensity.compact,
+                                label: const Text(
+                                  '10%',
+                                  style: TextStyle(fontSize: 10.5),
+                                ),
+                                onPressed: () {
+                                  _isDiscountPercentage = true;
+                                  _discountController.text = '10';
+                                  _applyInvoiceDiscount(
+                                    10.0,
+                                    isPercentage: true,
+                                  );
+                                },
+                              ),
+                              if (posState.invoiceDiscount > 0)
+                                ActionChip(
+                                  visualDensity: VisualDensity.compact,
+                                  avatar: const Icon(
+                                    Icons.close,
+                                    size: 12,
+                                    color: AppColors.error,
+                                  ),
+                                  label: const Text(
+                                    'إلغاء الخصم',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _discountController.clear();
+                                    _applyInvoiceDiscount(0.0);
+                                  },
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // F. Clean Invoice Summary (No Tax!)
                     AppCard(
                       padding: const EdgeInsets.all(14),
                       child: Column(

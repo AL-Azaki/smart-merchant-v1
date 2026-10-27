@@ -252,7 +252,7 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                         ),
                         // Reference
                         SizedBox(
-                          width: isSmall ? constraints.maxWidth : 200,
+                          width: isSmall ? constraints.maxWidth : 180,
                           child: TextFormField(
                             initialValue: state.invoiceRef,
                             decoration: InputDecoration(
@@ -266,6 +266,29 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                             ),
                             onChanged: (val) => notifier.updateState(
                               state.copyWith(invoiceRef: val),
+                            ),
+                          ),
+                        ),
+                        // Invoice Discount
+                        SizedBox(
+                          width: isSmall ? constraints.maxWidth : 160,
+                          child: TextFormField(
+                            initialValue: state.invoiceDiscount > 0
+                                ? state.invoiceDiscount.toString()
+                                : '',
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              labelText: 'خصم الفاتورة',
+                              prefixIcon: const Icon(Icons.local_offer_outlined, size: 20),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                            ),
+                            onChanged: (val) => notifier.setInvoiceDiscount(
+                              double.tryParse(val) ?? 0.0,
                             ),
                           ),
                         ),
@@ -288,7 +311,7 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                       scrollDirection: Axis.horizontal,
                       child: SizedBox(
                         width:
-                            1400, // 140+250+140+100+100+120+120+120+120+60+paddings
+                            1520, // 140+250+140+100+100+120+100+120+120+120+60+paddings
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -312,6 +335,8 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                   _headerCell('الكمية', 100),
                                   const SizedBox(width: 8),
                                   _headerCell('سعر الشراء', 120),
+                                  const SizedBox(width: 8),
+                                  _headerCell('الخصم', 100),
                                   const SizedBox(width: 8),
                                   _headerCell('سعر البيع', 120),
                                   const SizedBox(width: 8),
@@ -625,6 +650,21 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
+                                      // Discount
+                                      SizedBox(
+                                        width: 100,
+                                        child: _buildInput(
+                                          value: row.discount > 0 ? row.discount.toString() : '',
+                                          hint: '0.00',
+                                          keyboardType: TextInputType.number,
+                                          textColor: Colors.amber.shade800,
+                                          onChanged: (v) => notifier.updateItemDiscount(
+                                            row.id,
+                                            double.tryParse(v) ?? 0,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
                                       // Selling Price
                                       SizedBox(
                                         width: 120,
@@ -661,7 +701,8 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                         child: Align(
                                           alignment: Alignment.centerLeft,
                                           child: Text(
-                                            (row.quantity * row.purchasePrice)
+                                            ((row.quantity * row.purchasePrice) - row.discount)
+                                                .clamp(0.0, double.infinity)
                                                 .toStringAsFixed(2),
                                             style: const TextStyle(
                                               fontWeight: FontWeight.bold,
@@ -770,6 +811,15 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
+                              if (state.items.fold(0.0, (sum, r) => sum + r.discount) > 0 || state.invoiceDiscount > 0)
+                                Text(
+                                  'إجمالي الخصم: ${(state.items.fold(0.0, (sum, r) => sum + r.discount) + state.invoiceDiscount).toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: Colors.amber.shade800,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               const Text(
                                 'الإجمالي الكلي',
                                 style: TextStyle(
@@ -778,7 +828,7 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                 ),
                               ),
                               Text(
-                                '${state.items.fold(0.0, (sum, r) => sum + (r.quantity * r.purchasePrice)).toStringAsFixed(2)}',
+                                '${(state.items.fold(0.0, (sum, r) => sum + (r.quantity * r.purchasePrice)) - state.items.fold(0.0, (sum, r) => sum + r.discount) - state.invoiceDiscount).clamp(0.0, double.infinity).toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   color: AppColors.primary,
                                   fontSize: 28,
@@ -914,10 +964,15 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
     Color borderColor,
     Color textColor,
   ) {
-    double grandTotal = state.items.fold(
+    final grossTotal = state.items.fold(
       0.0,
       (sum, r) => sum + (r.quantity * r.purchasePrice),
     );
+    final totalDiscount = state.items.fold(
+      0.0,
+      (sum, r) => sum + r.discount,
+    ) + state.invoiceDiscount;
+    final grandTotal = (grossTotal - totalDiscount).clamp(0.0, double.infinity);
     double totalPaid = 0;
     state.paymentAmounts.forEach((key, val) {
       if (key != 'Other') totalPaid += double.tryParse(val) ?? 0;

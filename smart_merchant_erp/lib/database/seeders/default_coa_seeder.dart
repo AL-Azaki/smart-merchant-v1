@@ -430,7 +430,7 @@ class DefaultChartOfAccountsSeeder {
         parentCode: '4',
         category: 'Revenue',
       );
-      await ensureAccount(
+      final discountReceivedId = await ensureAccount(
         code: '42',
         nameAr: 'إيرادات أخرى / خصم مكتسب',
         typeId: 4,
@@ -506,7 +506,7 @@ class DefaultChartOfAccountsSeeder {
         allowPosting: true,
         parentCode: '52',
       );
-      await ensureAccount(
+      final discountAllowedId = await ensureAccount(
         code: '53',
         nameAr: 'خصم مسموح به',
         typeId: 5,
@@ -545,6 +545,16 @@ class DefaultChartOfAccountsSeeder {
           'key': 'wallet_main',
           'name': 'المحافظ الإلكترونية',
           'id': walletMainId,
+        },
+        {
+          'key': 'discount_allowed',
+          'name': 'خصم مسموح به',
+          'id': discountAllowedId,
+        },
+        {
+          'key': 'discount_received',
+          'name': 'خصم مكتسب',
+          'id': discountReceivedId,
         },
       ];
 

@@ -48,6 +48,7 @@ void main() {
       branchId: 'test-branch',
       userId: 'test-user',
       accountId: 'test-acc',
+      includeDemoProductsAndContacts: true,
     );
 
     completeSaleUseCase = getIt<CompleteSaleUseCase>();

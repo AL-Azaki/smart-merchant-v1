@@ -41,7 +41,9 @@ class _ItemReturnDraft {
     this.returnQuantity = 0.0,
   });
 
-  double get subtotal => returnQuantity * item.unitPrice;
+  double get unitDiscount => item.quantity > 0 ? (item.discount / item.quantity) : 0.0;
+  double get netUnitPrice => (item.unitPrice - unitDiscount).clamp(0.0, double.infinity);
+  double get subtotal => returnQuantity * netUnitPrice;
 }
 
 class _ReturnsModalState extends ConsumerState<ReturnsModal>
@@ -60,6 +62,7 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
   bool _isLoadingItems = false;
   final TextEditingController _notesController = TextEditingController();
   bool _isSubmitting = false;
+  String _refundMethod = 'CASH'; // 'CASH', 'BANK', 'RECEIVABLE'
 
   // Search State for Returns List
   String _returnListSearch = '';
@@ -233,6 +236,7 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
         currencyId: _selectedInvoice!.invoice.currencyId,
         exchangeRate: _selectedInvoice!.invoice.exchangeRate,
         items: selectedItems,
+        refundMethod: _refundMethod,
         notes: _notesController.text.trim().isEmpty
             ? null
             : _notesController.text.trim(),
@@ -1147,13 +1151,28 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
                                   ),
                                   Expanded(
                                     flex: 2,
-                                    child: Text(
-                                      draft.item.unitPrice.toStringAsFixed(2),
-                                      textAlign: TextAlign.end,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: textSecondary,
-                                      ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          draft.netUnitPrice.toStringAsFixed(2),
+                                          textAlign: TextAlign.end,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: textColor,
+                                          ),
+                                        ),
+                                        if (draft.unitDiscount > 0)
+                                          Text(
+                                            'خصم: ${draft.unitDiscount.toStringAsFixed(2)}',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.amber.shade800,
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                   Expanded(
@@ -1257,9 +1276,59 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
         ),
         const SizedBox(height: 12),
 
-        // Bottom Summary & Actions
+        // Refund Method Selector & Notes
         Row(
           children: [
+            // Refund Method
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: surfaceColor,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: borderColor),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _refundMethod,
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'CASH',
+                      child: Row(
+                        children: [
+                          Icon(Icons.money, size: 18, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('نقداً من الصندوق'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'BANK',
+                      child: Row(
+                        children: [
+                          Icon(Icons.credit_card, size: 18, color: Colors.blue),
+                          SizedBox(width: 8),
+                          Text('تحويل بنكي / بطاقة'),
+                        ],
+                      ),
+                    ),
+                    DropdownMenuItem(
+                      value: 'RECEIVABLE',
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_outline, size: 18, color: Colors.orange),
+                          SizedBox(width: 8),
+                          Text('رصيد للعميل (آجل)'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) setState(() => _refundMethod = val);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               flex: 3,
               child: Container(

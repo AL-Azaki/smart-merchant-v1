@@ -92,8 +92,7 @@ class PurchaseInvoiceDocumentMapper {
           unitName: null, // Optional: look up from units table
           quantity: item.quantity,
           unitPrice: item.unitPrice, // Purchase uses unitPrice in drift table
-          discount:
-              0.0, // Assuming discount isn't tracked per item for purchase yet
+          discount: item.discount,
           tax: item.tax,
           lineTotal: item.lineTotal,
         ),

@@ -28,6 +28,7 @@ class PurchaseReturnState {
   final String currencyId;
   final double exchangeRate;
   final String notes;
+  final String refundMethod; // 'CASH', 'BANK', 'PAYABLE'
   final Map<String, double> returnQuantities;
 
   final bool isSubmitting;
@@ -40,6 +41,7 @@ class PurchaseReturnState {
     this.currencyId = '',
     this.exchangeRate = 1.0,
     this.notes = 'تالف',
+    this.refundMethod = 'PAYABLE',
     this.returnQuantities = const {},
     this.isSubmitting = false,
     this.successReturnId,
@@ -54,6 +56,7 @@ class PurchaseReturnState {
     String? currencyId,
     double? exchangeRate,
     String? notes,
+    String? refundMethod,
     Map<String, double>? returnQuantities,
     bool? isSubmitting,
     String? successReturnId,
@@ -67,6 +70,7 @@ class PurchaseReturnState {
       currencyId: currencyId ?? this.currencyId,
       exchangeRate: exchangeRate ?? this.exchangeRate,
       notes: notes ?? this.notes,
+      refundMethod: refundMethod ?? this.refundMethod,
       returnQuantities: returnQuantities ?? this.returnQuantities,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       successReturnId: clearSuccess
@@ -89,12 +93,20 @@ class PurchaseReturnNotifier extends AutoDisposeNotifier<PurchaseReturnState> {
     state = newState;
   }
 
+  void setRefundMethod(String method) {
+    state = state.copyWith(refundMethod: method);
+  }
+
   void setInvoice(PurchaseInvoiceWithItems invoiceWithItems) {
     state = state.copyWith(
       purchaseInvoiceId: invoiceWithItems.invoice.id,
       supplierId: invoiceWithItems.invoice.supplierId,
       currencyId: invoiceWithItems.invoice.currencyId,
       exchangeRate: invoiceWithItems.invoice.exchangeRate,
+      refundMethod:
+          invoiceWithItems.invoice.paymentStatus.toLowerCase() != 'paid'
+              ? 'PAYABLE'
+              : 'CASH',
       returnQuantities: {}, // Reset return quantities
     );
   }
@@ -133,13 +145,15 @@ class PurchaseReturnNotifier extends AutoDisposeNotifier<PurchaseReturnState> {
       for (final line in invoiceWithItems.items) {
         final qty = state.returnQuantities[line.productUnitId] ?? 0.0;
         if (qty > 0) {
+          final unitDiscount = line.quantity > 0 ? (line.discount / line.quantity) : 0.0;
+          final netUnitCost = (line.unitPrice - unitDiscount).clamp(0.0, double.infinity);
           items.add(
             PurchaseReturnItemCommand(
               purchaseInvoiceItemId: line.id,
               productUnitId: line.productUnitId,
               warehouseId: line.warehouseId,
               quantity: qty,
-              unitPrice: line.unitPrice,
+              unitPrice: netUnitCost,
             ),
           );
         }
@@ -161,6 +175,7 @@ class PurchaseReturnNotifier extends AutoDisposeNotifier<PurchaseReturnState> {
           exchangeRate: state.exchangeRate,
           items: items,
           notes: state.notes,
+          refundMethod: state.refundMethod,
         ),
       );
 

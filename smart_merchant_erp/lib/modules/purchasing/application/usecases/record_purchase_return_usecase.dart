@@ -42,6 +42,7 @@ class RecordPurchaseReturnCommand {
   final double exchangeRate;
   final List<PurchaseReturnItemCommand> items;
   final String? notes;
+  final String refundMethod; // 'CASH', 'BANK', 'PAYABLE'
 
   const RecordPurchaseReturnCommand({
     required this.purchaseInvoiceId,
@@ -50,6 +51,7 @@ class RecordPurchaseReturnCommand {
     required this.items,
     this.exchangeRate = 1.0,
     this.notes,
+    this.refundMethod = 'PAYABLE',
   });
 }
 
@@ -110,6 +112,12 @@ class RecordPurchaseReturnUseCase
       );
     }
     final inventoryAssetId = inventoryAssetIdResult.getOrElse(() => '');
+
+    final cashMainResult = await _accountingService.resolveAccountMapping('cash_main');
+    final cashMainId = cashMainResult.getOrElse(() => '');
+
+    final bankMainResult = await _accountingService.resolveAccountMapping('bank_main');
+    final bankMainId = bankMainResult.getOrElse(() => '');
 
     // 2. Calculate Totals
     double totalAmount = 0.0;
@@ -222,20 +230,30 @@ class RecordPurchaseReturnUseCase
       postedAt: drift.Value(returnDate),
     );
 
-    // Purchase return reduces Accounts Payable (Debit) and reduces Inventory Asset (Credit)
+    String debitAccountId = creditAccountId;
+    String debitDescription = 'Debit AP for Return $returnNumber';
+
+    if (params.refundMethod == 'CASH' && cashMainId.isNotEmpty) {
+      debitAccountId = cashMainId;
+      debitDescription = 'Debit Cash for Return $returnNumber';
+    } else if (params.refundMethod == 'BANK' && bankMainId.isNotEmpty) {
+      debitAccountId = bankMainId;
+      debitDescription = 'Debit Bank for Return $returnNumber';
+    }
+
     int lineSequence = 1;
     final jeLines = [
       JournalEntryLinesCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
         journalEntryId: journalEntryId,
-        chartOfAccountId: creditAccountId, // Accounts Payable
+        chartOfAccountId: debitAccountId,
         currencyId: params.currencyId,
         lineNumber: lineSequence++,
         type: 'Debit',
         foreignAmount: drift.Value(totalAmount),
         baseAmount: drift.Value(baseTotal),
-        description: drift.Value('Debit AP for Return $returnNumber'),
+        description: drift.Value(debitDescription),
       ),
       JournalEntryLinesCompanion.insert(
         id: _uuid.v4(),
@@ -259,9 +277,8 @@ class RecordPurchaseReturnUseCase
           items: returnItemsCompanions.cast<PurchaseReturnItemsCompanion>(),
         );
 
-        // 2. Adjust Payable with an Adjustment Entry
-        // This simulates applying a credit note or a direct reduction to the supplier's payable
-        // We find the outstanding payables for this invoice if any
+        // 2. Adjust Payable with an Adjustment Entry only if refundMethod is PAYABLE
+        if (params.refundMethod == 'PAYABLE') {
         final payables = await _purchasingRepository.listPayables(
           SupplierPayableFilter(
             businessId: businessId,
@@ -286,6 +303,7 @@ class RecordPurchaseReturnUseCase
             supplierPayableId: payable.id,
             businessId: businessId,
           );
+        }
         }
 
         // 3. Record Inventory Outbound Transaction & Update Stock

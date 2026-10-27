@@ -40,6 +40,7 @@ class ProcessSalesReturnCommand {
   final double exchangeRate;
   final List<SalesReturnItemCommand> items;
   final String? notes;
+  final String refundMethod; // 'CASH', 'BANK', 'RECEIVABLE'
 
   const ProcessSalesReturnCommand({
     required this.salesInvoiceId,
@@ -47,6 +48,7 @@ class ProcessSalesReturnCommand {
     required this.items,
     this.exchangeRate = 1.0,
     this.notes,
+    this.refundMethod = 'CASH',
   });
 }
 
@@ -150,11 +152,19 @@ class ProcessSalesReturnUseCase
       }
 
       final costPrice = originalItem.costPrice ?? 0.0;
+      final unitDiscount = originalItem.quantity > 0
+          ? (originalItem.discount / originalItem.quantity)
+          : 0.0;
+      final netUnitPrice = (cmdItem.unitPrice - unitDiscount).clamp(0.0, double.infinity);
 
-      totalAmount += (cmdItem.quantity * cmdItem.unitPrice);
+      totalAmount += (cmdItem.quantity * netUnitPrice);
       totalCost += (cmdItem.quantity * costPrice);
 
-      itemsWithCost.add({'command': cmdItem, 'costPrice': costPrice});
+      itemsWithCost.add({
+        'command': cmdItem,
+        'costPrice': costPrice,
+        'netUnitPrice': netUnitPrice,
+      });
     }
 
     // 3. Resolve Accounting Mappings
@@ -176,6 +186,12 @@ class ProcessSalesReturnUseCase
     final inventoryAssetIdResult = await _accountingService
         .resolveAccountMapping('inventory_asset');
     final inventoryAssetId = inventoryAssetIdResult.getOrElse(() => '');
+
+    final cashMainResult = await _accountingService.resolveAccountMapping('cash_main');
+    final cashMainId = cashMainResult.getOrElse(() => '');
+
+    final bankMainResult = await _accountingService.resolveAccountMapping('bank_main');
+    final bankMainId = bankMainResult.getOrElse(() => '');
 
     // 4. Prepare Entities
     final returnId = _uuid.v4();
@@ -201,7 +217,8 @@ class ProcessSalesReturnUseCase
     final returnItemsCompanions = itemsWithCost.map((map) {
       final item = map['command'] as SalesReturnItemCommand;
       final costPrice = map['costPrice'] as double;
-      final lineTotal = item.quantity * item.unitPrice;
+      final netUnitPrice = map['netUnitPrice'] as double;
+      final lineTotal = item.quantity * netUnitPrice;
       return SalesReturnItemsCompanion.insert(
         id: _uuid.v4(),
         businessId: businessId,
@@ -209,7 +226,7 @@ class ProcessSalesReturnUseCase
         salesInvoiceItemId: item.salesInvoiceItemId,
         warehouseId: item.warehouseId,
         quantity: item.quantity,
-        unitPrice: item.unitPrice,
+        unitPrice: netUnitPrice,
         costPrice: drift.Value(costPrice),
         totalPrice: lineTotal,
         costTotal: drift.Value(item.quantity * costPrice),
@@ -264,8 +281,8 @@ class ProcessSalesReturnUseCase
       journalNumber: 'JE-$returnNumber',
       documentDate: returnDate,
       postingDate: drift.Value(returnDate),
-      journalType: 'SalesReturn',
-      documentType: 'SalesReturn',
+      journalType: 'SalesInvoice',
+      documentType: 'SalesInvoice',
       documentId: drift.Value(returnId),
       documentNumber: drift.Value(returnNumber),
       currencyId: params.currencyId,
@@ -297,19 +314,33 @@ class ProcessSalesReturnUseCase
       );
     }
 
-    if (accountsReceivableId.isNotEmpty) {
+    String refundAccountId = '';
+    String refundDescription = '';
+    if (params.refundMethod == 'BANK' && bankMainId.isNotEmpty) {
+      refundAccountId = bankMainId;
+      refundDescription = 'Bank Refund for Return: $returnNumber';
+    } else if (params.refundMethod == 'RECEIVABLE' && accountsReceivableId.isNotEmpty) {
+      refundAccountId = accountsReceivableId;
+      refundDescription = 'Receivable Credit for Return: $returnNumber';
+    } else {
+      // Default CASH
+      refundAccountId = cashMainId.isNotEmpty ? cashMainId : accountsReceivableId;
+      refundDescription = 'Cash Refund for Return: $returnNumber';
+    }
+
+    if (refundAccountId.isNotEmpty) {
       jeLines.add(
         JournalEntryLinesCompanion.insert(
           id: _uuid.v4(),
           businessId: businessId,
           journalEntryId: journalEntryId,
-          chartOfAccountId: accountsReceivableId,
+          chartOfAccountId: refundAccountId,
           currencyId: params.currencyId,
           lineNumber: lineSequence++,
           type: 'Credit',
           foreignAmount: drift.Value(totalAmount),
           baseAmount: drift.Value(totalAmount * params.exchangeRate),
-          description: const drift.Value('Receivable Reversal'),
+          description: drift.Value(refundDescription),
         ),
       );
     }
@@ -356,7 +387,8 @@ class ProcessSalesReturnUseCase
           items: returnItemsCompanions,
         );
 
-        // Adjust Receivable
+        // Adjust Receivable only if refundMethod is RECEIVABLE
+        if (params.refundMethod == 'RECEIVABLE') {
         final receivables = await _salesRepository.listReceivables(
           CustomerReceivableFilter(
             businessId: businessId,
@@ -391,6 +423,7 @@ class ProcessSalesReturnUseCase
             newBaseRemainingAmount: newRemainingAmount * params.exchangeRate,
             newStatus: newStatus,
           );
+        }
         }
 
         // Record Inventory Transaction

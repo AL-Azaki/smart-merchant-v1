@@ -531,12 +531,25 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                 ),
               ),
               SizedBox(
-                width: isSmall ? constraints.maxWidth : 200,
+                width: isSmall ? constraints.maxWidth : 180,
                 child: TextFormField(
                   initialValue: state.invoiceRef,
                   decoration: _inputDeco(hint: 'مرجع المورد'),
                   onChanged: (val) =>
                       notifier.updateState(state.copyWith(invoiceRef: val)),
+                ),
+              ),
+              SizedBox(
+                width: isSmall ? constraints.maxWidth : 160,
+                child: TextFormField(
+                  initialValue: state.invoiceDiscount > 0 ? _formatNum(state.invoiceDiscount) : '',
+                  keyboardType: TextInputType.number,
+                  decoration: _inputDeco(
+                    hint: 'خصم الفاتورة',
+                    prefixIcon: const Icon(Icons.discount_outlined, size: 18, color: AppColors.primary),
+                  ),
+                  onChanged: (val) =>
+                      notifier.setInvoiceDiscount(double.tryParse(val) ?? 0.0),
                 ),
               ),
             ],
@@ -558,7 +571,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 1200),
+        constraints: const BoxConstraints(minWidth: 1320),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -578,6 +591,8 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   _headerCell('سعر الشراء', 120),
                   const SizedBox(width: 8),
                   _headerCell('سعر البيع', 120),
+                  const SizedBox(width: 8),
+                  _headerCell('الخصم', 100),
                   const SizedBox(width: 8),
                   _headerCell('تاريخ الانتهاء', 120),
                   const SizedBox(width: 8),
@@ -846,6 +861,21 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                       ),
                       const SizedBox(width: 8),
                       SizedBox(
+                        width: 100,
+                        child: _buildInput(
+                          key: ValueKey('${row.id}_disc'),
+                          value: _formatNum(row.discount),
+                          keyboardType: TextInputType.number,
+                          textColor: AppColors.error,
+                          hint: '0.00',
+                          onChanged: (v) => notifier.updateItemDiscount(
+                            row.id,
+                            double.tryParse(v) ?? 0,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
                         width: 120,
                         child: _buildInput(
                           key: ValueKey('${row.id}_expiry'),
@@ -863,9 +893,9 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            (row.quantity * row.purchasePrice).toStringAsFixed(
-                              2,
-                            ),
+                            ((row.quantity * row.purchasePrice) - row.discount)
+                                .clamp(0.0, double.infinity)
+                                .toStringAsFixed(2),
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -1189,6 +1219,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                 children: [
                   Expanded(
                     child: _buildInput(
+                      key: ValueKey('${row.id}_expiry'),
                       value: row.expiryDate,
                       hint: 'تاريخ الانتهاء',
                       onChanged: (v) => notifier.updateRow(
@@ -1199,26 +1230,52 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        'إجمالي: ${(row.quantity * row.purchasePrice).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                    child: _buildInput(
+                      key: ValueKey('${row.id}_disc'),
+                      value: _formatNum(row.discount),
+                      hint: 'الخصم',
+                      keyboardType: TextInputType.number,
+                      textColor: AppColors.error,
+                      onChanged: (v) => notifier.updateItemDiscount(
+                        row.id,
+                        double.tryParse(v) ?? 0,
                       ),
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'الإجمالي الصافي:',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Text(
+                      '${((row.quantity * row.purchasePrice) - row.discount).clamp(0.0, double.infinity).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1298,15 +1355,29 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  if (state.itemsDiscount > 0 || state.invoiceDiscount > 0) ...[
+                    Text(
+                      'المجموع الفرعي: ${state.subtotal.toStringAsFixed(2)}',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                    Text(
+                      'إجمالي الخصم: - ${(state.itemsDiscount + state.invoiceDiscount).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.error,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
                   const Text(
-                    'الإجمالي الكلي',
+                    'الإجمالي الصافي',
                     style: TextStyle(
                       color: Colors.grey,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
-                    '${state.items.fold(0.0, (sum, r) => sum + (r.quantity * r.purchasePrice)).toStringAsFixed(2)}',
+                    state.total.toStringAsFixed(2),
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 24,
@@ -1362,10 +1433,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     Color borderColor,
     Color textColor,
   ) {
-    double grandTotal = state.items.fold(
-      0.0,
-      (sum, r) => sum + (r.quantity * r.purchasePrice),
-    );
+    double grandTotal = state.total;
     double totalPaid = 0;
     state.paymentAmounts.forEach((key, val) {
       if (key != 'Other') totalPaid += double.tryParse(val) ?? 0;
@@ -1891,10 +1959,11 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
     );
   }
 
-  InputDecoration _inputDeco({String? hint}) {
+  InputDecoration _inputDeco({String? hint, Widget? prefixIcon}) {
     return InputDecoration(
       hintText: hint,
       labelText: hint,
+      prefixIcon: prefixIcon,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
     );

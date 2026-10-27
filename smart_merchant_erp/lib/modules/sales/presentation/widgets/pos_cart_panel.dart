@@ -249,6 +249,14 @@ class PosCartPanel extends ConsumerWidget {
                               .read(posNotifierProvider.notifier)
                               .removeProduct(item.productUnitId ?? item.id);
                         },
+                        onDiscountChanged: (discount) {
+                          ref
+                              .read(posNotifierProvider.notifier)
+                              .updateItemDiscount(
+                                item.productUnitId ?? item.id,
+                                discount,
+                              );
+                        },
                       );
                     },
                   ),

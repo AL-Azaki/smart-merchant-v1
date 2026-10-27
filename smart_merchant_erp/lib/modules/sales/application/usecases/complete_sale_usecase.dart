@@ -56,6 +56,7 @@ class CompleteSaleCommand {
   final double? cashAmount;
   final double? bankAmount;
   final String? bankAccountId;
+  final double invoiceDiscount;
 
   const CompleteSaleCommand({
     this.customerId,
@@ -69,6 +70,7 @@ class CompleteSaleCommand {
     this.cashAmount,
     this.bankAmount,
     this.bankAccountId,
+    this.invoiceDiscount = 0.0,
   });
 }
 
@@ -352,6 +354,20 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       );
     final inventoryAssetId = inventoryAssetIdResult.getOrElse(() => '');
 
+    String? discountAllowedId;
+    final discountAllowedResult = await _accountingService.resolveAccountMapping(
+      'discount_allowed',
+    );
+    if (discountAllowedResult.isRight()) {
+      discountAllowedId = discountAllowedResult.getOrElse(() => '');
+    } else {
+      final coaAccounts = await _accountingRepository.listChartOfAccounts(
+        ChartOfAccountFilter(businessId: businessId),
+      );
+      discountAllowedId =
+          coaAccounts.where((a) => a.accountCode == '53').firstOrNull?.id;
+    }
+
     // 2. Validate Items & Check Stock
     double subTotal = 0.0;
     double discountTotal = 0.0;
@@ -435,7 +451,15 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
       });
     }
 
-    final grandTotal = subTotal - discountTotal + taxTotal;
+    if (params.invoiceDiscount > 0.001) {
+      discountTotal = PrecisionMath.roundMoney(
+        discountTotal + params.invoiceDiscount,
+      );
+    }
+
+    final grandTotal = PrecisionMath.roundMoney(
+      subTotal - discountTotal + taxTotal,
+    );
     final grandTotalInBase = PrecisionMath.toBaseAmount(
       foreignAmount: grandTotal,
       exchangeRate: params.exchangeRate,
@@ -829,21 +853,64 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           );
         }
 
-        // Credit: Sales Revenue
-        journalLines.add(
-          JournalEntryLinesCompanion.insert(
-            id: _uuid.v4(),
-            businessId: businessId,
-            journalEntryId: journalId,
-            chartOfAccountId: salesRevenueId,
-            currencyId: params.currencyId,
-            lineNumber: lineSequence++,
-            type: 'Credit',
-            foreignAmount: drift.Value(grandTotal),
-            baseAmount: drift.Value(grandTotalInBase),
-            description: const drift.Value('إيرادات المبيعات'),
-          ),
-        );
+        // Credit: Sales Revenue & Debit: Discount Allowed (if applicable)
+        if (discountTotal > 0.001 &&
+            discountAllowedId != null &&
+            discountAllowedId.isNotEmpty) {
+          final discountInBase = PrecisionMath.toBaseAmount(
+            foreignAmount: discountTotal,
+            exchangeRate: params.exchangeRate,
+          );
+          journalLines.add(
+            JournalEntryLinesCompanion.insert(
+              id: _uuid.v4(),
+              businessId: businessId,
+              journalEntryId: journalId,
+              chartOfAccountId: discountAllowedId,
+              currencyId: params.currencyId,
+              lineNumber: lineSequence++,
+              type: 'Debit',
+              foreignAmount: drift.Value(discountTotal),
+              baseAmount: drift.Value(discountInBase),
+              description: const drift.Value('خصم مسموح به للمبيعات'),
+            ),
+          );
+
+          final grossSales = PrecisionMath.roundMoney(subTotal + taxTotal);
+          final grossSalesInBase = PrecisionMath.toBaseAmount(
+            foreignAmount: grossSales,
+            exchangeRate: params.exchangeRate,
+          );
+          journalLines.add(
+            JournalEntryLinesCompanion.insert(
+              id: _uuid.v4(),
+              businessId: businessId,
+              journalEntryId: journalId,
+              chartOfAccountId: salesRevenueId,
+              currencyId: params.currencyId,
+              lineNumber: lineSequence++,
+              type: 'Credit',
+              foreignAmount: drift.Value(grossSales),
+              baseAmount: drift.Value(grossSalesInBase),
+              description: const drift.Value('إيرادات المبيعات'),
+            ),
+          );
+        } else {
+          journalLines.add(
+            JournalEntryLinesCompanion.insert(
+              id: _uuid.v4(),
+              businessId: businessId,
+              journalEntryId: journalId,
+              chartOfAccountId: salesRevenueId,
+              currencyId: params.currencyId,
+              lineNumber: lineSequence++,
+              type: 'Credit',
+              foreignAmount: drift.Value(grandTotal),
+              baseAmount: drift.Value(grandTotalInBase),
+              description: const drift.Value('إيرادات المبيعات'),
+            ),
+          );
+        }
 
         final totalCostInBase = PrecisionMath.roundMoney(totalCost);
         final totalCostInForeign = PrecisionMath.toForeignAmount(
