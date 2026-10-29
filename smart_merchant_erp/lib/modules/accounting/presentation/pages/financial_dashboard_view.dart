@@ -12,10 +12,12 @@ import '../providers/accounting_provider.dart';
 import '../widgets/chart_of_accounts_tab.dart';
 import '../widgets/financial_reports_tab.dart';
 import '../widgets/journal_entries_tab.dart';
+import '../widgets/create_expense_dialog.dart';
 import '../widgets/journal_entry_form_sheet.dart';
 import '../widgets/payment_voucher_dialog.dart';
 import '../widgets/receipt_voucher_dialog.dart';
 import 'banks_and_cash_view.dart';
+import 'expenses_view.dart';
 import 'financial_analytics_view.dart';
 import 'payment_vouchers_view.dart';
 import 'receipt_vouchers_view.dart';
@@ -37,6 +39,7 @@ class _FinancialDashboardViewState extends ConsumerState<FinancialDashboardView>
   final tabs = const [
     _TabItem(id: 'dashboard', label: 'لوحة التحكم', icon: Icons.dashboard_rounded, color: Color(0xFF10B981)),
     _TabItem(id: 'analytics', label: 'التحليلات', icon: Icons.insights_rounded, color: Color(0xFF6366F1)),
+    _TabItem(id: 'expenses', label: 'المصروفات', icon: Icons.payments_rounded, color: Color(0xFFF97316)),
     _TabItem(id: 'receipts', label: 'سندات القبض', icon: Icons.call_received_rounded, color: Color(0xFF059669)),
     _TabItem(id: 'payments', label: 'سندات الصرف', icon: Icons.call_made_rounded, color: Color(0xFFEF4444)),
     _TabItem(id: 'banks', label: 'الخزينة والبنوك', icon: Icons.account_balance_rounded, color: Color(0xFF06B6D4)),
@@ -171,6 +174,7 @@ class _FinancialDashboardViewState extends ConsumerState<FinancialDashboardView>
                     onSelectTab: _switchTab,
                   ),
                   const FinancialAnalyticsView(key: ValueKey('analytics')),
+                  const ExpensesView(key: ValueKey('expenses')),
                   const ReceiptVouchersView(key: ValueKey('receipts')),
                   const PaymentVouchersView(key: ValueKey('payments')),
                   const BanksAndCashView(key: ValueKey('banks')),
@@ -228,6 +232,18 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
     final res = await showDialog<bool>(
       context: context,
       builder: (_) => const PaymentVoucherDialog(),
+    );
+    if (res == true && mounted) {
+      ref.invalidate(paymentVouchersStreamProvider);
+      ref.invalidate(chartOfAccountsNotifierProvider);
+      ref.invalidate(trialBalanceReportProvider());
+    }
+  }
+
+  Future<void> _openCreateExpenseDialog() async {
+    final res = await showDialog<bool>(
+      context: context,
+      builder: (_) => const CreateExpenseDialog(),
     );
     if (res == true && mounted) {
       ref.invalidate(paymentVouchersStreamProvider);
@@ -341,7 +357,9 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
       ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
 
     final filtered = allVouchers.where((v) {
-      if (_search.isEmpty) return true;
+      if (_search.isEmpty) {
+        return true;
+      }
       final q = _search.toLowerCase();
       return (v.notes?.toLowerCase().contains(q) ?? false) ||
           v.id.toLowerCase().contains(q) ||
@@ -371,10 +389,24 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
+                label: 'تسجيل مصروف / صرفية',
+                icon: Icons.payments_rounded,
+                color: const Color(0xFFF97316),
+                onTap: _openCreateExpenseDialog,
+              ),
+              const SizedBox(width: 14),
+              _QuickActionChip(
                 label: 'قيد يومي يدوي',
                 icon: Icons.receipt_long_rounded,
                 color: const Color(0xFF8B5CF6),
                 onTap: _openCreateJournalEntry,
+              ),
+              const SizedBox(width: 14),
+              _QuickActionChip(
+                label: 'المصروفات',
+                icon: Icons.payments_rounded,
+                color: const Color(0xFFF97316),
+                onTap: () => widget.onSelectTab?.call(2),
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
@@ -388,21 +420,21 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
                 label: 'الخزينة والبنوك',
                 icon: Icons.account_balance_rounded,
                 color: const Color(0xFF06B6D4),
-                onTap: () => widget.onSelectTab?.call(4),
+                onTap: () => widget.onSelectTab?.call(5),
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
                 label: 'دليل الحسابات',
                 icon: Icons.account_tree_rounded,
                 color: const Color(0xFF3B82F6),
-                onTap: () => widget.onSelectTab?.call(5),
+                onTap: () => widget.onSelectTab?.call(6),
               ),
               const SizedBox(width: 14),
               _QuickActionChip(
                 label: 'التقارير المالية',
                 icon: Icons.pie_chart_rounded,
                 color: const Color(0xFFEC4899),
-                onTap: () => widget.onSelectTab?.call(7),
+                onTap: () => widget.onSelectTab?.call(8),
               ),
             ],
           ),
@@ -527,7 +559,7 @@ class _DashboardTabState extends ConsumerState<_DashboardTab> {
               color: const Color(0xFF3B82F6),
               textColor: Colors.white,
               onTap: () {
-                showModalBottomSheet(
+                showModalBottomSheet<void>(
                   context: context,
                   backgroundColor: surface,
                   shape: const RoundedRectangleBorder(
