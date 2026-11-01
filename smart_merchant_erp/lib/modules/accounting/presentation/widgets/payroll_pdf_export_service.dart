@@ -40,8 +40,10 @@ class PayrollPdfExportService {
   /// 1. طباعة كشف حساب شامل لجميع الموظفين (مسير الرواتب)
   static Future<void> exportAllEmployeesPayrollPdf({
     required List<EmployeePayrollRecord> records,
-    required DateTime periodDate,
     required String businessName,
+    DateTime? periodDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     await _loadFonts();
     final pdfTheme = pw.ThemeData.withFont(
@@ -50,7 +52,13 @@ class PayrollPdfExportService {
     );
     final pdf = pw.Document(theme: pdfTheme);
 
-    final monthName = DateFormat('MMMM yyyy', 'ar').format(periodDate);
+    final start = startDate ?? periodDate ?? DateTime.now();
+    final end = endDate ?? periodDate ?? DateTime.now();
+    final isSameMonth = start.year == end.year && start.month == end.month;
+    final periodLabel = isSameMonth
+        ? DateFormat('MMMM yyyy', 'ar').format(start)
+        : 'من ${DateFormat('yyyy/MM/dd').format(start)} إلى ${DateFormat('yyyy/MM/dd').format(end)}';
+
     final totalSalaries = records.fold(0.0, (sum, r) => sum + r.basicSalary);
     final totalAdvances = records.fold(0.0, (sum, r) => sum + r.totalAdvances);
     final totalRemaining = records.fold(0.0, (sum, r) => sum + r.remainingSalary);
@@ -86,8 +94,8 @@ class PayrollPdfExportService {
                     borderRadius: pw.BorderRadius.circular(6),
                   ),
                   child: pw.Text(
-                    'مسير الرواتب والسلف - $monthName',
-                    style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold),
+                    'مسير الرواتب والسلف - $periodLabel',
+                    style: pw.TextStyle(fontSize: 11, fontWeight: pw.FontWeight.bold),
                   ),
                 ),
               ],
@@ -174,17 +182,22 @@ class PayrollPdfExportService {
       ),
     );
 
+    final filenameDate = isSameMonth
+        ? '${start.year}_${start.month}'
+        : '${DateFormat('yyyyMMdd').format(start)}_${DateFormat('yyyyMMdd').format(end)}';
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: 'مسير_الرواتب_${periodDate.year}_${periodDate.month}.pdf',
+      name: 'مسير_الرواتب_$filenameDate.pdf',
     );
   }
 
   /// 2. طباعة كشف حساب فردي لموظف محدد
   static Future<void> exportSingleEmployeeStatementPdf({
     required EmployeePayrollRecord record,
-    required DateTime periodDate,
     required String businessName,
+    DateTime? periodDate,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     await _loadFonts();
     final pdfTheme = pw.ThemeData.withFont(
@@ -193,7 +206,13 @@ class PayrollPdfExportService {
     );
     final pdf = pw.Document(theme: pdfTheme);
 
-    final monthName = DateFormat('MMMM yyyy', 'ar').format(periodDate);
+    final start = startDate ?? periodDate ?? DateTime.now();
+    final end = endDate ?? periodDate ?? DateTime.now();
+    final isSameMonth = start.year == end.year && start.month == end.month;
+    final periodLabel = isSameMonth
+        ? DateFormat('MMMM yyyy', 'ar').format(start)
+        : 'من ${DateFormat('yyyy/MM/dd').format(start)} إلى ${DateFormat('yyyy/MM/dd').format(end)}';
+
     final emp = record.employee;
 
     pdf.addPage(
@@ -259,8 +278,8 @@ class PayrollPdfExportService {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                   children: [
-                    pw.Text('الفترة: $monthName', style: const pw.TextStyle(fontSize: 10)),
-                    pw.Text('رقم الهاتف: ${emp.phone ?? '-'}', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('الفترة: $periodLabel', style: pw.TextStyle(font: _cairoRegular, fontSize: 10)),
+                    pw.Text('رقم الهاتف: ${emp.phone ?? '-'}', style: pw.TextStyle(font: _cairoRegular, fontSize: 10)),
                   ],
                 ),
               ],
@@ -339,9 +358,12 @@ class PayrollPdfExportService {
       ),
     );
 
+    final filenameDate = isSameMonth
+        ? '${start.year}_${start.month}'
+        : '${DateFormat('yyyyMMdd').format(start)}_${DateFormat('yyyyMMdd').format(end)}';
     await Printing.layoutPdf(
       onLayout: (format) async => pdf.save(),
-      name: 'كشف_حساب_${emp.firstName}_${emp.lastName}.pdf',
+      name: 'كشف_حساب_${emp.firstName}_${emp.lastName}_$filenameDate.pdf',
     );
   }
 

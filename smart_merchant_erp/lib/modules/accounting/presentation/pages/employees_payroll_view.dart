@@ -21,7 +21,8 @@ class EmployeesPayrollView extends ConsumerStatefulWidget {
 class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
-  DateTime _selectedPeriod = DateTime.now();
+  DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month);
+  DateTime _endDate = DateTime(DateTime.now().year, DateTime.now().month + 1, 0, 23, 59, 59);
 
   @override
   void dispose() {
@@ -34,15 +35,49 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     return formatter.format(val);
   }
 
-  void _previousMonth() {
-    setState(() {
-      _selectedPeriod = DateTime(_selectedPeriod.year, _selectedPeriod.month - 1);
-    });
+  Future<void> _pickCustomDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+      locale: const Locale('ar'),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: const Color(0xFF6366F1),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = DateTime(picked.start.year, picked.start.month, picked.start.day);
+        _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
+      });
+    }
   }
 
-  void _nextMonth() {
+  void _setDatePreset(String preset) {
+    final now = DateTime.now();
     setState(() {
-      _selectedPeriod = DateTime(_selectedPeriod.year, _selectedPeriod.month + 1);
+      if (preset == 'current_month') {
+        _startDate = DateTime(now.year, now.month);
+        _endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      } else if (preset == 'prev_month') {
+        _startDate = DateTime(now.year, now.month - 1);
+        _endDate = DateTime(now.year, now.month, 0, 23, 59, 59);
+      } else if (preset == 'last_3_months') {
+        _startDate = DateTime(now.year, now.month - 2);
+        _endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
+      } else if (preset == 'current_year') {
+        _startDate = DateTime(now.year);
+        _endDate = DateTime(now.year, 12, 31, 23, 59, 59);
+      }
     });
   }
 
@@ -70,7 +105,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     }
   }
 
-  Future<void> _accrueAllSalariesDialog(double totalSalaries, int employeeCount) async {
+  Future<void> _accrueAllSalariesDialog(double totalSalaries, int employeeCount, String periodLabel) async {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -78,7 +113,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
           children: [
             Icon(Icons.calendar_month_rounded, color: Color(0xFF6366F1)),
             SizedBox(width: 8),
-            Text('استحقاق رواتب الشهر', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            Text('استحقاق رواتب الفترة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -86,7 +121,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'الفترة: ${DateFormat('MMMM yyyy', 'ar').format(_selectedPeriod)}',
+              'الفترة: $periodLabel',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -94,7 +129,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
             Text('إجمالي مبلغ الاستحقاق: ${_formatAmount(totalSalaries)} ر.ي'),
             const SizedBox(height: 12),
             const Text(
-              'نظام الاستحقاق يثبت الرواتب كالتزام شهري في ميزان المراجعة ليتم خصم السلف منها تلقائياً.',
+              'نظام الاستحقاق يثبت الرواتب كالتزام في ميزان المراجعة ليتم خصم السلف منها تلقائياً.',
               style: TextStyle(fontSize: 11.5, color: Colors.grey),
             ),
           ],
@@ -111,7 +146,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'تم احتساب وتثبيت استحقاقات رواتب شهر ${DateFormat('MMMM', 'ar').format(_selectedPeriod)} بنجاح',
+                    'تم احتساب وتثبيت استحقاقات الرواتب لفترة $periodLabel بنجاح',
                   ),
                 ),
               );
@@ -145,27 +180,39 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
         data: (employees) {
           final payments = paymentsAsync.asData?.value ?? [];
 
-          // Filter payments belonging to current selected month & employee advances
-          final currentMonthPayments = payments.where((p) {
-            final isSameMonth = p.paymentDate.year == _selectedPeriod.year &&
-                p.paymentDate.month == _selectedPeriod.month;
-            return isSameMonth;
+          // Filter payments belonging to current selected date range
+          final startBound = DateTime(_startDate.year, _startDate.month, _startDate.day);
+          final endBound = DateTime(_endDate.year, _endDate.month, _endDate.day, 23, 59, 59);
+
+          final periodPayments = payments.where((p) {
+            return !p.paymentDate.isBefore(startBound) && !p.paymentDate.isAfter(endBound);
           }).toList();
+
+          final days = _endDate.difference(_startDate).inDays + 1;
+          final int monthsCount = (days > 31)
+              ? ((_endDate.year - _startDate.year) * 12 + _endDate.month - _startDate.month + 1).clamp(1, 120)
+              : 1;
+
+          final isSameMonth = _startDate.year == _endDate.year && _startDate.month == _endDate.month;
+          final periodLabel = isSameMonth
+              ? DateFormat('MMMM yyyy', 'ar').format(_startDate)
+              : 'من ${DateFormat('yyyy/MM/dd').format(_startDate)} إلى ${DateFormat('yyyy/MM/dd').format(_endDate)}';
 
           // Build payroll records per employee
           final List<EmployeePayrollRecord> payrollRecords = employees.map((emp) {
-            final empPayments = currentMonthPayments.where((p) {
+            final empPayments = periodPayments.where((p) {
               final isEmpContact = p.contactType == 'Employee' && p.contactId == emp.id;
               final isEmpNotes = p.notes?.contains(emp.firstName) ?? false;
               return isEmpContact || isEmpNotes;
             }).toList();
 
             final totalAdvances = empPayments.fold(0.0, (sum, p) => sum + p.amount);
-            final remainingSalary = (emp.salary - totalAdvances).clamp(0.0, double.infinity);
+            final basicSalary = emp.salary * monthsCount;
+            final remainingSalary = (basicSalary - totalAdvances).clamp(0.0, double.infinity);
 
             return EmployeePayrollRecord(
               employee: emp,
-              basicSalary: emp.salary,
+              basicSalary: basicSalary,
               totalAdvances: totalAdvances,
               remainingSalary: remainingSalary,
               transactions: empPayments,
@@ -173,13 +220,16 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
           }).toList();
 
           // Overall Totals
-          final totalSalaries = payrollRecords.fold(0.0, (sum, r) => sum + r.basicSalary);
-          final totalAdvances = payrollRecords.fold(0.0, (sum, r) => sum + r.totalAdvances);
-          final totalRemaining = payrollRecords.fold(0.0, (sum, r) => sum + r.remainingSalary);
+          final double totalSalaries = payrollRecords.fold(0.0, (sum, r) => sum + r.basicSalary);
+          final double totalAdvances = payrollRecords.fold(0.0, (sum, r) => sum + r.totalAdvances);
+          final double totalRemaining = payrollRecords.fold(0.0, (sum, r) => sum + r.remainingSalary);
 
           // Filter by search query
           final filteredRecords = payrollRecords.where((r) {
             final q = _searchQuery.toLowerCase();
+            if (q.isEmpty) {
+              return true;
+            }
             final name = '${r.employee.firstName} ${r.employee.lastName}'.toLowerCase();
             final code = r.employee.employeeCode.toLowerCase();
             final phone = r.employee.phone ?? '';
@@ -207,7 +257,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                 ),
               ),
 
-              // ── 1. Top 4 KPI Summary Cards (Matching Reference Image 2x2 Grid) ──
+              // ── 1. Top 4 KPI Summary Cards ──
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -226,7 +276,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildDarkKpiCard(
-                              title: 'مستحقات الرواتب',
+                              title: monthsCount > 1 ? 'مستحق الراتب ($monthsCount أشهر)' : 'مستحق الراتب',
                               value: _formatAmount(totalSalaries),
                               isDark: isDark,
                               color: Colors.white,
@@ -239,7 +289,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                         children: [
                           Expanded(
                             child: _buildDarkKpiCard(
-                              title: 'السلف القائمة',
+                              title: 'السلف المسحوبة',
                               value: _formatAmount(totalAdvances),
                               isDark: isDark,
                               color: const Color(0xFFF59E0B),
@@ -261,7 +311,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                 ),
               ),
 
-              // ── 2. Quick Actions Header & 2x2 Grid (Matching Reference Image) ──
+              // ── 2. Quick Actions Header & 2x2 Grid ──
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
@@ -293,7 +343,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                               title: 'تسجيل سلفة',
                               icon: Icons.account_balance_wallet_outlined,
                               isDark: isDark,
-                              onTap: _openRecordAdvanceDialog,
+                              onTap: () => _openRecordAdvanceDialog(),
                             ),
                           ),
                         ],
@@ -306,7 +356,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                               title: 'استحقاق راتب',
                               icon: Icons.calendar_month_outlined,
                               isDark: isDark,
-                              onTap: () => _accrueAllSalariesDialog(totalSalaries, employees.length),
+                              onTap: () => _accrueAllSalariesDialog(totalSalaries, employees.length, periodLabel),
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -315,7 +365,9 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                               title: 'صرف راتب',
                               icon: Icons.price_check_rounded,
                               isDark: isDark,
-                              onTap: () => _openRecordAdvanceDialog(isAdvance: false),
+                              onTap: () => _openRecordAdvanceDialog(
+                                isAdvance: false,
+                              ),
                             ),
                           ),
                         ],
@@ -325,7 +377,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                 ),
               ),
 
-              // ── 3. Search & Period Bar + All-Employees PDF Export Button ──
+              // ── 3. Filters Section: Statement Print + Date Range + Search Bar ──
               SliverToBoxAdapter(
                 child: Container(
                   margin: const EdgeInsets.fromLTRB(16, 14, 16, 8),
@@ -336,74 +388,55 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                     border: Border.all(color: borderColor),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Month Navigator & Print All Button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Month Selector
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.chevron_right_rounded),
-                                onPressed: _previousMonth,
-                                tooltip: 'الشهر السابق',
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF2B3040) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.date_range_rounded, size: 16, color: Color(0xFF3B82F6)),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      DateFormat('MMMM yyyy', 'ar').format(_selectedPeriod),
-                                      style: TextStyle(
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.bold,
-                                        color: textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.chevron_left_rounded),
-                                onPressed: _nextMonth,
-                                tooltip: 'الشهر القادم',
-                              ),
-                            ],
+                      // Row A: Statement Download Button (Full Width & Clean)
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.tonalIcon(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                            foregroundColor: const Color(0xFF6366F1),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           ),
-
-                          // Print All Button
-                          FilledButton.tonalIcon(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                              foregroundColor: const Color(0xFF6366F1),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                            ),
-                            onPressed: () {
-                              PayrollPdfExportService.exportAllEmployeesPayrollPdf(
-                                records: payrollRecords,
-                                periodDate: _selectedPeriod,
-                                businessName: 'منشأة سمارت ميرشانت',
-                              );
-                            },
-                            icon: const Icon(Icons.print_rounded, size: 16),
-                            label: const Text(
-                              'كشف حساب للكل (PDF)',
-                              style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
-                            ),
+                          onPressed: () {
+                            PayrollPdfExportService.exportAllEmployeesPayrollPdf(
+                              records: payrollRecords,
+                              startDate: _startDate,
+                              endDate: _endDate,
+                              businessName: 'منشأة سمارت ميرشانت',
+                            );
+                          },
+                          icon: const Icon(Icons.print_rounded, size: 18),
+                          label: const Text(
+                            'كشف حساب للكل (PDF)',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                           ),
-                        ],
+                        ),
                       ),
                       const SizedBox(height: 10),
 
-                      // Search Box
+                      // Row B: Quick Period Chips
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            _buildPeriodChip('الشهر الحالي', () => _setDatePreset('current_month'), isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip('الشهر السابق', () => _setDatePreset('prev_month'), isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip('آخر 3 أشهر', () => _setDatePreset('last_3_months'), isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip('السنة الحالية', () => _setDatePreset('current_year'), isDark),
+                            const SizedBox(width: 6),
+                            _buildPeriodChip('تحديد تاريخ محدد 📅', _pickCustomDateRange, isDark, isHighlight: true),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Row C: Search Box
                       TextField(
                         controller: _searchController,
                         decoration: InputDecoration(
@@ -521,8 +554,14 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                                       showDialog<void>(
                                         context: context,
                                         builder: (_) => EmployeeStatementDialog(
-                                          record: record,
-                                          selectedMonth: _selectedPeriod,
+                                          initialRecord: record,
+                                          initialStartDate: _startDate,
+                                          initialEndDate: _endDate,
+                                          allEmployeePayments: payments.where((p) {
+                                            final isEmpContact = p.contactType == 'Employee' && p.contactId == emp.id;
+                                            final isEmpNotes = p.notes?.contains(emp.firstName) ?? false;
+                                            return isEmpContact || isEmpNotes;
+                                          }).toList(),
                                           onDataChanged: () => ref.invalidate(paymentVouchersStreamProvider),
                                         ),
                                       );
@@ -543,46 +582,65 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                                   children: [
-                                    _buildPillColumn('الراتب المستحق', '${_formatAmount(record.basicSalary)} ر.ي', textSecondary, textPrimary),
+                                    _buildPillColumn(
+                                      monthsCount > 1 ? 'الراتب ($monthsCount أشهر)' : 'الراتب المستحق',
+                                      '${_formatAmount(record.basicSalary)} ر.ي',
+                                      textSecondary,
+                                      textPrimary,
+                                    ),
                                     Container(width: 1, height: 28, color: borderColor),
-                                    _buildPillColumn('السلف المسحوبة', '${_formatAmount(record.totalAdvances)} ر.ي', textSecondary, const Color(0xFFF59E0B)),
+                                    _buildPillColumn(
+                                      'السلف المسحوبة',
+                                      '${_formatAmount(record.totalAdvances)} ر.ي',
+                                      textSecondary,
+                                      const Color(0xFFF59E0B),
+                                    ),
                                     Container(width: 1, height: 28, color: borderColor),
-                                    _buildPillColumn('المتبقي له (التزام)', '${_formatAmount(record.remainingSalary)} ر.ي', textSecondary, const Color(0xFF10B981)),
+                                    _buildPillColumn(
+                                      'المتبقي له (التزام)',
+                                      '${_formatAmount(record.remainingSalary)} ر.ي',
+                                      textSecondary,
+                                      const Color(0xFF10B981),
+                                    ),
                                   ],
                                 ),
                               ),
                               const SizedBox(height: 10),
 
-                              // Row 3: Progress Bar of salary consumed
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              // Row 3: Progress Bar
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
                                 children: [
-                                  Text(
-                                    'استلم: ${(percent * 100).toStringAsFixed(0)}%',
-                                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'ما تم سحبه: ${(percent * 100).toStringAsFixed(0)}%',
+                                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary),
+                                      ),
+                                      Text(
+                                        'المتبقي: ${((1.0 - percent) * 100).toStringAsFixed(0)}%',
+                                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                                      ),
+                                    ],
                                   ),
-                                  Text(
-                                    'متبقي: ${((1.0 - percent) * 100).toStringAsFixed(0)}%',
-                                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                                  const SizedBox(height: 5),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(4),
+                                    child: LinearProgressIndicator(
+                                      value: percent,
+                                      minHeight: 6,
+                                      backgroundColor: isDark ? const Color(0xFF2C3140) : const Color(0xFFE2E8F0),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        percent > 0.8 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: LinearProgressIndicator(
-                                  value: percent,
-                                  minHeight: 6,
-                                  backgroundColor: isDark ? const Color(0xFF262A36) : const Color(0xFFE2E8F0),
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    percent >= 0.9 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
-                                  ),
-                                ),
-                              ),
-
                               const SizedBox(height: 12),
 
-                              // Row 4: Action Buttons (سلفة سريعة / صرف المتبقي)
+                              // Row 4: Quick Action Buttons per Employee
                               Row(
                                 children: [
                                   Expanded(
@@ -595,8 +653,8 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
                                         employee: emp,
                                         remaining: record.remainingSalary,
                                       ),
-                                      icon: const Icon(Icons.payments_outlined, size: 16),
-                                      label: const Text('سلفة سريعة', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                                      icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+                                      label: const Text('إعطاء سلفة', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -635,17 +693,43 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     );
   }
 
-  /// 4 Dark KPI Cards (Exactly as in Reference Image)
+  Widget _buildPeriodChip(String label, VoidCallback onTap, bool isDark, {bool isHighlight = false}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isHighlight
+              ? const Color(0xFF6366F1).withValues(alpha: 0.15)
+              : (isDark ? const Color(0xFF262A38) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(6),
+          border: isHighlight ? Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.4)) : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 10.5,
+            fontWeight: FontWeight.bold,
+            color: isHighlight ? const Color(0xFF6366F1) : null,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 4 Dark KPI Cards
   Widget _buildDarkKpiCard({
     required String title,
     required String value,
     required bool isDark,
     required Color color,
+    bool isSmallText = false,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E2024), // Sleek dark card tone from image
+        color: const Color(0xFF1E2024),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -661,8 +745,10 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
           const SizedBox(height: 8),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 22,
+              fontSize: isSmallText ? 15 : 22,
               fontWeight: FontWeight.w900,
               color: color,
             ),
@@ -672,7 +758,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     );
   }
 
-  /// 4 Quick Action Buttons (Exactly as in Reference Image)
+  /// 4 Quick Action Buttons
   Widget _buildQuickActionButton({
     required String title,
     required IconData icon,
@@ -685,7 +771,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
         decoration: BoxDecoration(
-          color: const Color(0xFF111215), // Deep dark button surface from image
+          color: const Color(0xFF111215),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: const Color(0xFF26282E)),
         ),
