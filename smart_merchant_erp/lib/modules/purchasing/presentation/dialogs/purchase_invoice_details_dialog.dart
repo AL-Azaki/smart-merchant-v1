@@ -415,7 +415,7 @@ class _PurchaseInvoiceDetailsDialogState
                         ),
                         if (widget.invoice.discountTotal > 0)
                           Text(
-                            'الخصم الممنوح: -${widget.invoice.discountTotal.toStringAsFixed(2)} ر.ي',
+                            'الخصم المكتسب: -${widget.invoice.discountTotal.toStringAsFixed(2)} ر.ي',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFFEF4444),

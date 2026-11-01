@@ -481,7 +481,7 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                       ), // Ideally we have product name
                       const SizedBox(height: 4),
                       Text(
-                        'السعر: ${item.unitPrice} | الكمية المشتراة: ${item.quantity}',
+                        'السعر: ${item.unitPrice}${item.discount > 0 ? ' (صافي: ${(item.unitPrice - (item.discount / item.quantity)).toStringAsFixed(2)})' : ''} | الكمية المشتراة: ${item.quantity}',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
@@ -532,6 +532,66 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
         const SizedBox(height: 24),
 
         Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            border: Border.all(color: borderColor),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'طريقة استرداد المبلغ:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.refundMethod,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'PAYABLE',
+                        child: Row(
+                          children: [
+                            Icon(Icons.account_balance_wallet_outlined, size: 18, color: Colors.orange),
+                            SizedBox(width: 8),
+                            Text('تخفيض رصيد المورد (آجل)'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'CASH',
+                        child: Row(
+                          children: [
+                            Icon(Icons.money, size: 18, color: Colors.green),
+                            SizedBox(width: 8),
+                            Text('استلام نقدي بالصندوق'),
+                          ],
+                        ),
+                      ),
+                      DropdownMenuItem(
+                        value: 'BANK',
+                        child: Row(
+                          children: [
+                            Icon(Icons.credit_card, size: 18, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text('تحويل بنكي'),
+                          ],
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) notifier.setRefundMethod(val);
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: Colors.orange.withOpacity(0.05),
@@ -568,7 +628,9 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
     double total = 0.0;
     for (final item in _selectedInvoice!.items) {
       final qty = state.returnQuantities[item.productUnitId] ?? 0.0;
-      total += qty * item.unitPrice;
+      final unitDiscount = item.quantity > 0 ? (item.discount / item.quantity) : 0.0;
+      final netUnitCost = (item.unitPrice - unitDiscount).clamp(0.0, double.infinity);
+      total += qty * netUnitCost;
     }
     return total;
   }

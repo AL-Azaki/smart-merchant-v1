@@ -54,6 +54,7 @@ class RecordPurchaseCommand {
   final double? paidAmount;
   final double? cashAmount;
   final double? bankAmount;
+  final double invoiceDiscount;
 
   const RecordPurchaseCommand({
     required this.supplierId,
@@ -68,6 +69,7 @@ class RecordPurchaseCommand {
     this.paidAmount,
     this.cashAmount,
     this.bankAmount,
+    this.invoiceDiscount = 0.0,
   });
 }
 
@@ -280,7 +282,6 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
     double subTotal = 0.0;
     double discountTotal = 0.0;
     double taxTotal = 0.0;
-    double totalCost = 0.0;
 
     for (final item in params.items) {
       if (item.quantity <= 0)
@@ -293,9 +294,16 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
       subTotal += (item.quantity * item.unitCost);
       discountTotal += item.discount;
       taxTotal += item.tax;
-      totalCost += ((item.quantity * item.unitCost) - item.discount + item.tax);
     }
-    final grandTotal = totalCost;
+
+    if (params.invoiceDiscount > 0.001) {
+      discountTotal = PrecisionMath.roundMoney(
+        discountTotal + params.invoiceDiscount,
+      );
+    }
+    final grandTotal = PrecisionMath.roundMoney(
+      subTotal - discountTotal + taxTotal,
+    );
 
     // 3. Prepare Purchase Entities & Split/Partial Payment Calculations
     final invoiceId = _uuid.v4();
@@ -671,13 +679,16 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
           final baseQuantity = unitInfo != null
               ? unitInfo.toBaseQuantity(item.quantity)
               : PrecisionMath.roundQty(item.quantity);
+          final effectiveUnitCost = item.quantity > 0
+              ? (item.quantity * item.unitCost - item.discount) / item.quantity
+              : item.unitCost;
           final baseUnitCost = unitInfo != null
               ? unitInfo.toBaseUnitCost(
-                  unitCost: item.unitCost,
+                  unitCost: effectiveUnitCost,
                   exchangeRate: params.exchangeRate,
                 )
               : PrecisionMath.toBaseAmount(
-                  foreignAmount: item.unitCost,
+                  foreignAmount: effectiveUnitCost,
                   exchangeRate: params.exchangeRate,
                   decimals: 4,
                 );

@@ -20,6 +20,7 @@ class PosCartItem {
   final double quantity;
   final double unitPrice;
   final double taxRate;
+  final double discount;
 
   // Real database IDs for submission
   final String? productUnitId;
@@ -31,17 +32,19 @@ class PosCartItem {
     required this.quantity,
     required this.unitPrice,
     this.taxRate = 0.0, // 0% Tax (No VAT)
+    this.discount = 0.0,
     this.productUnitId,
     this.unitName,
   });
 
-  PosCartItem copyWith({double? quantity}) {
+  PosCartItem copyWith({double? quantity, double? discount}) {
     return PosCartItem(
       id: id,
       name: name,
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice,
       taxRate: taxRate,
+      discount: discount ?? this.discount,
       productUnitId: productUnitId,
       unitName: unitName,
     );
@@ -59,6 +62,10 @@ class PosState {
   final String currencyId;
   final String? warehouseId;
 
+  // Invoice discount
+  final double invoiceDiscount;
+  final bool isInvoiceDiscountPercentage;
+
   // Online Order source reference (for POS handoff)
   final String? sourceOrderId;
 
@@ -74,6 +81,8 @@ class PosState {
     this.customerName,
     this.currencyId = 'YER',
     this.warehouseId,
+    this.invoiceDiscount = 0.0,
+    this.isInvoiceDiscountPercentage = false,
     this.sourceOrderId,
     this.isSubmitting = false,
     this.successInvoiceId,
@@ -90,6 +99,8 @@ class PosState {
         taxTotal: 0,
         grandTotal: 0,
       ),
+      invoiceDiscount: 0.0,
+      isInvoiceDiscountPercentage: false,
     );
   }
 
@@ -100,6 +111,8 @@ class PosState {
     String? customerName,
     String? currencyId,
     String? warehouseId,
+    double? invoiceDiscount,
+    bool? isInvoiceDiscountPercentage,
     String? sourceOrderId,
     bool? isSubmitting,
     String? successInvoiceId,
@@ -115,6 +128,9 @@ class PosState {
       customerName: customerName ?? this.customerName,
       currencyId: currencyId ?? this.currencyId,
       warehouseId: warehouseId ?? this.warehouseId,
+      invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
+      isInvoiceDiscountPercentage:
+          isInvoiceDiscountPercentage ?? this.isInvoiceDiscountPercentage,
       sourceOrderId: clearSourceOrder
           ? null
           : (sourceOrderId ?? this.sourceOrderId),
@@ -203,22 +219,64 @@ class PosNotifier extends _$PosNotifier {
     updateQuantity(idOrUnitId, 0);
   }
 
-  void _recalculate(List<PosCartItem> newCart) {
+  void updateItemDiscount(String idOrUnitId, double discount) {
+    if (state.isSubmitting) return;
+
+    final currentCart = List<PosCartItem>.from(state.cart);
+    final existingIndex = currentCart.indexWhere(
+      (item) =>
+          (item.productUnitId ?? item.id) == idOrUnitId ||
+          item.id == idOrUnitId,
+    );
+    if (existingIndex >= 0) {
+      final existing = currentCart[existingIndex];
+      final maxDiscount = existing.quantity * existing.unitPrice;
+      final safeDiscount = discount.clamp(0.0, maxDiscount);
+      currentCart[existingIndex] = existing.copyWith(discount: safeDiscount);
+      _recalculate(currentCart);
+    }
+  }
+
+  void setInvoiceDiscount(double discount, {bool isPercentage = false}) {
+    if (state.isSubmitting) return;
+    _recalculate(
+      state.cart,
+      invoiceDiscount: discount >= 0 ? discount : 0.0,
+      isPercentage: isPercentage,
+    );
+  }
+
+  void _recalculate(
+    List<PosCartItem> newCart, {
+    double? invoiceDiscount,
+    bool? isPercentage,
+  }) {
+    final effectiveDiscount = invoiceDiscount ?? state.invoiceDiscount;
+    final effectiveIsPercentage =
+        isPercentage ?? state.isInvoiceDiscountPercentage;
+
     final salesItems = newCart
         .map(
           (c) => SalesItem(
             quantity: c.quantity,
             unitPrice: c.unitPrice,
+            discountAmount: c.discount,
             taxRate: c.taxRate,
           ),
         )
         .toList();
 
-    final totals = SalesCalculator.calculate(items: salesItems);
+    final totals = SalesCalculator.calculate(
+      items: salesItems,
+      globalDiscountValue: effectiveDiscount,
+      isGlobalDiscountPercentage: effectiveIsPercentage,
+    );
 
     state = state.copyWith(
       cart: newCart,
       totals: totals,
+      invoiceDiscount: effectiveDiscount,
+      isInvoiceDiscountPercentage: effectiveIsPercentage,
       clearError: true,
       clearSuccess: true,
     );
@@ -375,7 +433,7 @@ class PosNotifier extends _$PosNotifier {
         unitPrice: item.unitPrice,
         warehouseId: resolvedWarehouseId,
         tax: lineTotal * item.taxRate,
-        discount: 0,
+        discount: item.discount,
       );
     }).toList();
 
@@ -402,6 +460,14 @@ class PosNotifier extends _$PosNotifier {
     final totalPaid = resolvedCash + resolvedBank;
     final isCredit = totalPaid < (total - 0.001);
 
+    final totalItemDiscounts = state.cart.fold<double>(
+      0.0,
+      (sum, i) => sum + i.discount,
+    );
+    final effectiveInvoiceDiscount =
+        (state.totals.totalDiscount - totalItemDiscounts)
+            .clamp(0.0, state.totals.totalDiscount);
+
     final command = CompleteSaleCommand(
       customerId: state.customerId,
       currencyId: state.currencyId,
@@ -411,6 +477,7 @@ class PosNotifier extends _$PosNotifier {
       cashAmount: resolvedCash,
       bankAmount: resolvedBank,
       items: items,
+      invoiceDiscount: effectiveInvoiceDiscount,
     );
 
     final result = await useCase(command);
@@ -448,6 +515,8 @@ class PosNotifier extends _$PosNotifier {
           currencyId: state.currencyId,
           isSubmitting: false,
           successInvoiceId: invoiceId,
+          invoiceDiscount: 0.0,
+          isInvoiceDiscountPercentage: false,
         );
       },
     );

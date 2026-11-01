@@ -9,14 +9,145 @@ class PosCartItemTile extends StatelessWidget {
   final String currency;
   final ValueChanged<double> onQuantityChanged;
   final VoidCallback onRemove;
+  final ValueChanged<double>? onDiscountChanged;
 
   const PosCartItemTile({
     required this.item,
     required this.currency,
     required this.onQuantityChanged,
     required this.onRemove,
+    this.onDiscountChanged,
     super.key,
   });
+
+  void _showDiscountDialog(BuildContext context) {
+    if (onDiscountChanged == null) return;
+    final total = item.quantity * item.unitPrice;
+    final controller = TextEditingController(
+      text: item.discount > 0 ? item.discount.toStringAsFixed(0) : '',
+    );
+    bool isPercentage = false;
+
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                const Icon(Icons.discount_outlined, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'خصم على: ${item.name}',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'إجمالي الصنف قبل الخصم: ${total.toStringAsFixed(0)} $currency',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller,
+                        autofocus: true,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: InputDecoration(
+                          labelText: isPercentage ? 'نسبة الخصم (%)' : 'مبلغ الخصم ($currency)',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SegmentedButton<bool>(
+                      segments: const [
+                        ButtonSegment(value: false, label: Text('مبلغ')),
+                        ButtonSegment(value: true, label: Text('%')),
+                      ],
+                      selected: {isPercentage},
+                      onSelectionChanged: (val) {
+                        setDialogState(() {
+                          isPercentage = val.first;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 6,
+                  children: [
+                    ActionChip(
+                      label: const Text('5%'),
+                      onPressed: () {
+                        controller.text = (total * 0.05).toStringAsFixed(0);
+                        setDialogState(() => isPercentage = false);
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('10%'),
+                      onPressed: () {
+                        controller.text = (total * 0.10).toStringAsFixed(0);
+                        setDialogState(() => isPercentage = false);
+                      },
+                    ),
+                    ActionChip(
+                      label: const Text('20%'),
+                      onPressed: () {
+                        controller.text = (total * 0.20).toStringAsFixed(0);
+                        setDialogState(() => isPercentage = false);
+                      },
+                    ),
+                    if (item.discount > 0)
+                      ActionChip(
+                        avatar: const Icon(Icons.clear, size: 14, color: AppColors.error),
+                        label: const Text('إلغاء الخصم', style: TextStyle(color: AppColors.error)),
+                        onPressed: () {
+                          onDiscountChanged!(0.0);
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final input = double.tryParse(controller.text.trim()) ?? 0.0;
+                  double calculatedDiscount = 0.0;
+                  if (isPercentage) {
+                    calculatedDiscount = (total * (input / 100.0)).clamp(0.0, total);
+                  } else {
+                    calculatedDiscount = input.clamp(0.0, total);
+                  }
+                  onDiscountChanged!(calculatedDiscount);
+                  Navigator.pop(ctx);
+                },
+                child: const Text('تطبيق الخصم'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +158,8 @@ class PosCartItemTile extends StatelessWidget {
     final textSecondary =
         isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
-    final lineTotal = item.quantity * item.unitPrice;
+    final grossLineTotal = item.quantity * item.unitPrice;
+    final netLineTotal = (grossLineTotal - item.discount).clamp(0.0, double.infinity);
     final String formattedQty = item.quantity == item.quantity.roundToDouble()
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
@@ -98,7 +230,7 @@ class PosCartItemTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 5),
 
-                // Price & Line Calculation
+                // Price & Line Calculation & Discount Trigger
                 Row(
                   children: [
                     Text(
@@ -119,14 +251,79 @@ class PosCartItemTile extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${lineTotal.toStringAsFixed(0)} $currency',
-                        style: const TextStyle(
+                        '${grossLineTotal.toStringAsFixed(0)} $currency',
+                        style: TextStyle(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w800,
-                          color: AppColors.primary,
+                          decoration:
+                              item.discount > 0 ? TextDecoration.lineThrough : null,
+                          color: item.discount > 0
+                              ? textSecondary
+                              : AppColors.primary,
                         ),
                       ),
                     ],
+                    const SizedBox(width: 8),
+                    if (onDiscountChanged != null)
+                      InkWell(
+                        onTap: () => _showDiscountDialog(context),
+                        borderRadius: BorderRadius.circular(6),
+                        child: item.discount > 0
+                            ? Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1.5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber
+                                      .withValues(alpha: isDark ? 0.25 : 0.12),
+                                  borderRadius: BorderRadius.circular(5),
+                                  border: Border.all(
+                                    color: Colors.amber.shade700
+                                        .withValues(alpha: 0.4),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.discount_outlined,
+                                      size: 11,
+                                      color: isDark
+                                          ? Colors.amber.shade300
+                                          : Colors.amber.shade800,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      '-${item.discount.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: isDark
+                                            ? Colors.amber.shade300
+                                            : Colors.amber.shade900,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : Tooltip(
+                                message: 'إضافة خصم للصنف',
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
+                                  ),
+                                  child: Icon(
+                                    Icons.discount_outlined,
+                                    size: 14,
+                                    color:
+                                        textSecondary.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              ),
+                      ),
                   ],
                 ),
               ],
@@ -212,13 +409,31 @@ class PosCartItemTile extends StatelessWidget {
 
               // Total Amount for this item displayed prominently
               const SizedBox(height: 4),
-              Text(
-                '${lineTotal.toStringAsFixed(0)} $currency',
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (item.discount > 0) ...[
+                    Text(
+                      grossLineTotal.toStringAsFixed(0),
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        decoration: TextDecoration.lineThrough,
+                        color: textSecondary,
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Text(
+                    '${netLineTotal.toStringAsFixed(0)} $currency',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      color: item.discount > 0
+                          ? AppColors.success
+                          : AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

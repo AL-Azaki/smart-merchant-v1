@@ -23,6 +23,7 @@ class PurchaseItemState {
   final double quantity;
   final double purchasePrice;
   final double sellingPrice;
+  final double discount;
   final String expiryDate;
 
   PurchaseItemState({
@@ -36,6 +37,7 @@ class PurchaseItemState {
     required this.quantity,
     required this.purchasePrice,
     required this.sellingPrice,
+    this.discount = 0.0,
     required this.expiryDate,
   });
 
@@ -49,6 +51,7 @@ class PurchaseItemState {
     double? quantity,
     double? purchasePrice,
     double? sellingPrice,
+    double? discount,
     String? expiryDate,
   }) {
     return PurchaseItemState(
@@ -62,6 +65,7 @@ class PurchaseItemState {
       quantity: quantity ?? this.quantity,
       purchasePrice: purchasePrice ?? this.purchasePrice,
       sellingPrice: sellingPrice ?? this.sellingPrice,
+      discount: discount ?? this.discount,
       expiryDate: expiryDate ?? this.expiryDate,
     );
   }
@@ -74,6 +78,7 @@ class PurchasingState {
   final String currencyId;
   final double exchangeRate;
   final String invoiceRef;
+  final double invoiceDiscount;
 
   // Payment State
   final Map<String, String> paymentAmounts;
@@ -90,11 +95,20 @@ class PurchasingState {
     this.currencyId = '',
     this.exchangeRate = 1.0,
     this.invoiceRef = '',
+    this.invoiceDiscount = 0.0,
     this.paymentAmounts = const {},
     this.isSubmitting = false,
     this.successInvoiceId,
     this.error,
   });
+
+  double get subtotal =>
+      items.fold(0.0, (sum, r) => sum + (r.quantity * r.purchasePrice));
+  double get itemsDiscount =>
+      items.fold(0.0, (sum, r) => sum + r.discount);
+  double get totalDiscount => itemsDiscount + invoiceDiscount;
+  double get total =>
+      (subtotal - totalDiscount).clamp(0.0, double.infinity);
 
   factory PurchasingState.initial() => PurchasingState(
     items: [
@@ -107,9 +121,11 @@ class PurchasingState {
         quantity: 1,
         purchasePrice: 0,
         sellingPrice: 0,
+        discount: 0,
         expiryDate: '',
       ),
     ],
+    invoiceDiscount: 0.0,
   );
 
   PurchasingState copyWith({
@@ -119,6 +135,7 @@ class PurchasingState {
     String? currencyId,
     double? exchangeRate,
     String? invoiceRef,
+    double? invoiceDiscount,
     Map<String, String>? paymentAmounts,
     bool? isSubmitting,
     String? successInvoiceId,
@@ -133,6 +150,7 @@ class PurchasingState {
       currencyId: currencyId ?? this.currencyId,
       exchangeRate: exchangeRate ?? this.exchangeRate,
       invoiceRef: invoiceRef ?? this.invoiceRef,
+      invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
       paymentAmounts: paymentAmounts ?? this.paymentAmounts,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       successInvoiceId: clearSuccess
@@ -229,6 +247,19 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
     }
   }
 
+  void updateItemDiscount(String id, double discount) {
+    final index = state.items.indexWhere((i) => i.id == id);
+    if (index >= 0) {
+      final newItems = List<PurchaseItemState>.from(state.items);
+      newItems[index] = newItems[index].copyWith(discount: discount);
+      state = state.copyWith(items: newItems);
+    }
+  }
+
+  void setInvoiceDiscount(double discount) {
+    state = state.copyWith(invoiceDiscount: discount);
+  }
+
   void clearForm() {
     state = PurchasingState.initial();
   }
@@ -275,16 +306,20 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
               productUnitId: e.productUnitId!,
               quantity: e.quantity,
               unitCost: e.purchasePrice,
+              discount: e.discount,
               warehouseId: state.warehouseId,
             ),
           )
           .toList();
 
       // check payment
-      double grandTotal = 0;
+      double itemsTotal = 0;
+      double itemsDiscountTotal = 0;
       for (final item in validItems) {
-        grandTotal += item.quantity * item.purchasePrice;
+        itemsTotal += item.quantity * item.purchasePrice;
+        itemsDiscountTotal += item.discount;
       }
+      final grandTotal = (itemsTotal - itemsDiscountTotal - state.invoiceDiscount).clamp(0.0, double.infinity);
 
       final session = ref.read(sessionNotifierProvider);
       final businessId = session.businessId ?? '';
@@ -352,6 +387,7 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
         paidAmount: totalPaid,
         cashAmount: cashPaid,
         bankAmount: bankPaid,
+        invoiceDiscount: state.invoiceDiscount,
       );
 
       final result = await useCase(command);
