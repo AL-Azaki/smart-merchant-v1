@@ -9,6 +9,7 @@ import '../../../../kernel/storage/app_database.dart';
 import '../../application/services/balance_sheet_service.dart';
 import '../../application/services/cash_flow_service.dart';
 import '../../application/services/trial_balance_service.dart';
+import '../services/analytics_pdf_helper.dart';
 
 /// Professional Arabic PDF Print and Share Service for all Financial Reports.
 class FinancialReportPdfService {
@@ -19,8 +20,9 @@ class FinancialReportPdfService {
   static pw.Font? _arabicBold;
 
   static Future<void> _loadFonts() async {
-    _arabicRegular ??= await PdfGoogleFonts.cairoRegular();
-    _arabicBold ??= await PdfGoogleFonts.cairoBold();
+    final fonts = await AnalyticsPdfHelper.loadArabicFonts();
+    _arabicRegular = fonts.regular;
+    _arabicBold = fonts.bold;
   }
 
   static pw.TextStyle _ts({

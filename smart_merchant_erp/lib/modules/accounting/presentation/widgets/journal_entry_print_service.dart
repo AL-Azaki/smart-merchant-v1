@@ -5,6 +5,8 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../services/analytics_pdf_helper.dart';
+
 class JournalEntryPrintService {
   static Future<void> printDocument({
     required BuildContext context,
@@ -16,8 +18,9 @@ class JournalEntryPrintService {
     final dateStr = entry['date']?.toString() ?? '2024/06/25';
     final status = entry['status']?.toString() ?? 'Posted';
 
-    final arabicFont = await PdfGoogleFonts.cairoRegular();
-    final arabicFontBold = await PdfGoogleFonts.cairoBold();
+    final fonts = await AnalyticsPdfHelper.loadArabicFonts();
+    final arabicFont = fonts.regular;
+    final arabicFontBold = fonts.bold;
 
     pw.TextStyle ts({double size = 11, bool bold = false, PdfColor? color}) => pw.TextStyle(
           font: bold ? arabicFontBold : arabicFont,
@@ -52,12 +55,14 @@ class JournalEntryPrintService {
                 ['2', 'COA_41', 'إيرادات المبيعات', 'إيراد مبيعات', '--', '8,700'],
               ];
 
-    final pdf = pw.Document();
+    final pageTheme = pw.ThemeData.withFont(base: arabicFont, bold: arabicFontBold);
+    final pdf = pw.Document(theme: pageTheme);
 
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
+        theme: pageTheme,
         margin: const pw.EdgeInsets.all(24),
         build: (pw.Context ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -162,7 +167,7 @@ class JournalEntryPrintService {
                       child: pw.Row(
                         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                         children: [
-                          pw.Text('الإجمالي النهائي:', style: ts(size: 11, bold: true, color: PdfColors.white)),
+                          pw.Text('الإجمالي النهائي:', style: ts(bold: true, color: PdfColors.white)),
                           pw.Text(
                             isInvoiceTab ? '1,700 ر.ي' : '8,700 ر.ي',
                             style: ts(size: 12, bold: true, color: PdfColors.white),
