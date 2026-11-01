@@ -1887,7 +1887,7 @@ class _PurchaseInvoiceModalState extends ConsumerState<PurchaseInvoiceModal> {
           newMap[key] = val;
           notifier.updateState(state.copyWith(paymentAmounts: newMap));
         },
-      ),
+      ),        
     );
   }
 
