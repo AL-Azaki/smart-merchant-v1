@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
 import { formatCurrency } from '@/lib/utils';
 import { ProductImage } from '@/components/ProductImage';
+import { ShoppingCart, ShieldCheck, CheckCircle, ArrowLeft } from 'lucide-react';
 
 export default function CartPage() {
   const params = useParams();
@@ -24,8 +25,8 @@ export default function CartPage() {
   if (items.length === 0) {
     return (
       <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8 sm:p-12 shadow-xs max-w-lg mx-auto">
-        <div className="w-20 h-20 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4 text-3xl font-black shadow-sm">
-          🛒
+        <div className="w-20 h-20 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4 shadow-sm">
+          <ShoppingCart className="w-9 h-9 text-teal-700" />
         </div>
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 mb-2">سلة مشترياتك فارغة حالياً</h1>
         <p className="text-xs sm:text-sm text-slate-500 mb-6 leading-relaxed max-w-sm mx-auto">
@@ -36,7 +37,7 @@ export default function CartPage() {
           className="inline-flex items-center gap-2 px-6 py-3.5 bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-black rounded-2xl transition shadow-lg shadow-teal-600/20 cursor-pointer"
         >
           <span>تصفح أحدث المنتجات والعروض</span>
-          <span>←</span>
+          <ArrowLeft className="w-4 h-4" />
         </Link>
       </div>
     );
@@ -47,8 +48,8 @@ export default function CartPage() {
       {/* Page Title & Controls */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-200/80">
         <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🛒</span>
+          <div className="flex items-center gap-2.5">
+            <ShoppingCart className="w-6 h-6 text-teal-600" />
             <h1 className="text-xl sm:text-2xl font-black text-slate-900">سلة المشتريات</h1>
             <span className="text-xs font-bold bg-teal-50 text-teal-800 px-2.5 py-0.5 rounded-full border border-teal-200/60">
               {items.length} منتجات
@@ -70,7 +71,7 @@ export default function CartPage() {
 
       {/* Trust Signal Banner */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-teal-50/70 border border-teal-100 flex items-center gap-3 text-xs text-teal-900">
-        <span className="text-xl shrink-0">🛡️</span>
+        <ShieldCheck className="w-5 h-5 text-teal-600 shrink-0" />
         <div>
           <strong className="font-bold block">تسوق بأمان تام:</strong>
           <span className="text-teal-800/80 text-[11px]">
@@ -163,8 +164,9 @@ export default function CartPage() {
             </span>
           </div>
 
-          <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-3 text-[11px] text-slate-600 leading-relaxed">
-            ✓ لا توجد رسوم خفية. يتم اعتماد السعر النهائي من المتجر فور إرسال الطلب.
+          <div className="bg-slate-50 border border-slate-200/70 rounded-2xl p-3 text-[11px] text-slate-600 leading-relaxed flex items-center gap-1.5">
+            <CheckCircle className="w-3.5 h-3.5 text-teal-600 shrink-0" />
+            <span>لا توجد رسوم خفية. يتم اعتماد السعر النهائي من المتجر فور إرسال الطلب.</span>
           </div>
 
           <Link

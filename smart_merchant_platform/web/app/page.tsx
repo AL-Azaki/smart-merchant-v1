@@ -3,7 +3,6 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { MarketplaceNavbar } from '@/components/MarketplaceNavbar';
 import { MarketplaceFooter } from '@/components/MarketplaceFooter';
-import { StoreStoriesBar } from '@/components/StoreStoriesBar';
 import { MarketplaceHero } from '@/components/MarketplaceHero';
 import { FeaturedMerchantsGrid } from '@/components/FeaturedMerchantsGrid';
 import { CrossStoreProductGrid } from '@/components/CrossStoreProductGrid';
@@ -11,6 +10,7 @@ import { MerchantOnboardingBanner } from '@/components/MerchantOnboardingBanner'
 import { getMarketplaceExplore } from '@/lib/api';
 import type { MarketplaceExploreData } from '@/lib/types';
 import { MarketplaceProvider, useMarketplace } from '@/lib/marketplace-context';
+import { AlertTriangle } from 'lucide-react';
 
 function MarketplaceHomeContent() {
   const { t } = useMarketplace();
@@ -83,12 +83,7 @@ function MarketplaceHomeContent() {
       {/* 1. Global Navigation Bar */}
       <MarketplaceNavbar />
 
-      {/* 2. Interactive Stories Reel (9:16 Visuals) */}
-      {data && data.merchants && data.merchants.length > 0 && (
-        <StoreStoriesBar merchants={data.merchants} />
-      )}
-
-      {/* 3. Hero Search & Omnisearch Section */}
+      {/* 2. Hero Search & Omnisearch Section */}
       <MarketplaceHero
         categories={data?.categories || []}
         merchants={data?.merchants || []}
@@ -114,7 +109,9 @@ function MarketplaceHomeContent() {
       {/* Error Message */}
       {error && !loading && (
         <div className="max-w-xl mx-auto my-12 p-6 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 rounded-3xl text-center space-y-3">
-          <span className="text-3xl">⚠️</span>
+          <div className="flex justify-center">
+            <AlertTriangle className="w-10 h-10 text-rose-500" />
+          </div>
           <p className="text-rose-700 dark:text-rose-300 text-sm font-bold">{error}</p>
           <button
             onClick={() => loadData(searchQuery, selectedCategory)}

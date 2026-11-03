@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import type { MarketplaceMerchant } from '@/lib/types';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { X, Store } from 'lucide-react';
 
 interface StoreStoriesBarProps {
   merchants: MarketplaceMerchant[];
@@ -115,16 +116,17 @@ export function StoreStoriesBar({ merchants }: StoreStoriesBarProps) {
                 <button
                   onClick={() => setActiveStoryMerchant(null)}
                   className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition text-xs sm:text-sm"
+                  aria-label="إغلاق القصة"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
             {/* Story Middle Content */}
             <div className="text-center space-y-3 sm:space-y-4 my-auto relative z-10">
-              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl sm:rounded-3xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-3xl sm:text-4xl shadow-lg">
-                🏪
+              <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto rounded-2xl sm:rounded-3xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center shadow-lg">
+                <Store className="w-8 h-8 sm:w-10 sm:h-10 text-teal-400" />
               </div>
 
               <div className="space-y-1.5 sm:space-y-2">

@@ -3,6 +3,7 @@
 import React, { useState, useTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { StoreCategory } from '@/lib/types';
+import { X } from 'lucide-react';
 
 interface StoreFiltersProps {
   slug: string;
@@ -70,10 +71,10 @@ export function StoreFilters({
             <button
               type="button"
               onClick={clearSearch}
-              className="p-1 text-slate-400 hover:text-slate-600 ml-1 text-xs"
+              className="p-1 text-slate-400 hover:text-slate-600 ml-1 flex items-center justify-center rounded-full hover:bg-slate-100"
               aria-label="مسح البحث"
             >
-              ✕
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
 

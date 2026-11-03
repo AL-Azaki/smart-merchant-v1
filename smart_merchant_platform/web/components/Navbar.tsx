@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { StoreBootstrap } from '@/lib/types';
 import { useCart } from '@/lib/cart-context';
 import { buildWhatsAppUrl, isValidImageUrl } from '@/lib/utils';
+import { Phone, ShieldCheck, Check } from 'lucide-react';
 
 interface NavbarProps {
   slug: string;
@@ -35,16 +36,17 @@ export function Navbar({ slug, store }: NavbarProps) {
             {store.phone && (
               <a
                 href={`tel:${store.phone}`}
-                className="hover:text-teal-400 transition flex items-center gap-1 font-semibold"
+                className="hover:text-teal-400 transition flex items-center gap-1.5 font-semibold"
                 dir="ltr"
               >
-                <span>📞</span>
+                <Phone className="w-3.5 h-3.5 text-teal-400" />
                 <span>{store.phone}</span>
               </a>
             )}
             <span className="text-slate-700">|</span>
-            <div className="flex items-center gap-1 text-slate-400">
-              <span>🛡️ متجر معتمد وموثق</span>
+            <div className="flex items-center gap-1.5 text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-400" />
+              <span>متجر معتمد وموثق</span>
             </div>
           </div>
         </div>
@@ -72,10 +74,10 @@ export function Navbar({ slug, store }: NavbarProps) {
             )}
             {/* Verified Merchant Badge */}
             <span
-              className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] ring-2 ring-white shadow-xs font-bold"
+              className="absolute -bottom-1 -left-1 w-4 h-4 rounded-full bg-teal-600 text-white flex items-center justify-center ring-2 ring-white shadow-xs"
               title="متجر رسمي معتمد وموثق"
             >
-              ✓
+              <Check className="w-2.5 h-2.5 text-white" />
             </span>
           </div>
 
@@ -85,7 +87,7 @@ export function Navbar({ slug, store }: NavbarProps) {
                 {storeTitle}
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2 py-0.5 rounded-full">
-                <span>🛡️</span>
+                <ShieldCheck className="w-3 h-3 text-teal-600" />
                 <span>متجر موثق</span>
               </span>
             </div>

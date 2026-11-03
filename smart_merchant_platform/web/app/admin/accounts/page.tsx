@@ -7,6 +7,7 @@ import { adminApi } from '@/lib/admin-api';
 import type { AdminAccount, CreateAccountPayload, CreatedAccountResponse } from '@/lib/admin-types';
 import { ApproveSubscriptionModal } from '@/components/admin/ApproveSubscriptionModal';
 import { AccountStatementModal } from '@/components/admin/AccountStatementModal';
+import { Check, FileText } from 'lucide-react';
 
 export default function AdminAccountsPage() {
   const { lang, t } = useAdminAuth();
@@ -421,9 +422,9 @@ export default function AdminAccountsPage() {
                           {acc.status === 'Pending' ? (
                             <button
                               onClick={() => openAction(acc, 'approve')}
-                              className="px-3 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition flex items-center gap-1"
+                              className="px-3 py-1 rounded-lg text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs transition flex items-center gap-1.5"
                             >
-                              <span>✓</span>
+                              <Check className="w-3.5 h-3.5" />
                               <span>{t.btnApproveAndActivate}</span>
                             </button>
                           ) : acc.status !== 'Active' ? (
@@ -439,9 +440,9 @@ export default function AdminAccountsPage() {
                                 type="button"
                                 onClick={() => setStatementAccountId(acc.id)}
                                 title={isAr ? 'كشف حساب الأقساط والاشتراك' : 'Account Statement'}
-                                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-[#B3945B]/20 hover:text-[#B3945B] border border-slate-200 dark:border-slate-700 transition flex items-center gap-1"
+                                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-[#B3945B]/20 hover:text-[#B3945B] border border-slate-200 dark:border-slate-700 transition flex items-center gap-1.5"
                               >
-                                <span>📋</span>
+                                <FileText className="w-3.5 h-3.5 text-[#B3945B]" />
                                 <span>{isAr ? 'كشف الحساب' : 'Statement'}</span>
                               </button>
                               <button

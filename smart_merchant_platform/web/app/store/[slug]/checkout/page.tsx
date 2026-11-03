@@ -7,6 +7,7 @@ import { useCart } from '@/lib/cart-context';
 import { createOrder, isApiError } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import type { CreateOrderPayload } from '@/lib/types';
+import { AlertTriangle, MapPin, Banknote, ShieldCheck, Truck } from 'lucide-react';
 
 export default function CheckoutPage() {
   const params = useParams();
@@ -42,8 +43,8 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8 shadow-xs max-w-lg mx-auto">
-        <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-          ⚠️
+        <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center mx-auto mb-4">
+          <AlertTriangle className="w-8 h-8 text-amber-600" />
         </div>
         <h1 className="text-xl font-black text-slate-900 mb-2">سلة المشتريات فارغة</h1>
         <p className="text-xs text-slate-500 mb-6 leading-relaxed">
@@ -205,7 +206,7 @@ export default function CheckoutPage() {
         {/* Form Fields */}
         <div className="lg:col-span-2 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
           <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-2">
-            <span className="text-teal-600 font-bold text-lg">📍</span>
+            <MapPin className="w-5 h-5 text-teal-600 shrink-0" />
             <div>
               <h2 className="font-black text-slate-900 text-base">بيانات المستلم وعنوان التوصيل</h2>
               <span className="text-[11px] text-slate-400">تُستخدم هذه البيانات فقط لضمان وصول طلبك بدقة وسرعة</span>
@@ -327,7 +328,7 @@ export default function CheckoutPage() {
           <div className="pt-2">
             <label className="block text-xs font-bold text-slate-700 mb-2">طريقة الدفع المعتمدة:</label>
             <div className="flex items-center gap-3.5 p-4 rounded-2xl bg-teal-50/80 border border-teal-200/80 text-teal-950 text-xs">
-              <span className="text-2xl shrink-0">💵</span>
+              <Banknote className="w-7 h-7 text-teal-700 shrink-0" />
               <div>
                 <strong className="text-teal-900 block font-black text-sm">الدفع نقداً عند الاستلام (COD)</strong>
                 <p className="text-[11px] text-teal-800/90 mt-0.5 leading-relaxed">
@@ -370,8 +371,9 @@ export default function CheckoutPage() {
             </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 leading-relaxed">
-            🔒 معاملة شراء مباشرة ومحمية عبر منصة التاجر الذكي الرسمية.
+          <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-[11px] text-slate-500 leading-relaxed flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-teal-600 shrink-0" />
+            <span>معاملة شراء مباشرة ومحمية عبر منصة التاجر الذكي الرسمية.</span>
           </div>
 
           <button
@@ -388,7 +390,10 @@ export default function CheckoutPage() {
                 <span>جاري إرسال وتأكيد الطلب...</span>
               </>
             ) : (
-              <span>تأكيد الطلب والدفع عند الاستلام 🚚</span>
+              <span className="flex items-center gap-2">
+                <Truck className="w-5 h-5" />
+                <span>تأكيد الطلب والدفع عند الاستلام</span>
+              </span>
             )}
           </button>
         </div>

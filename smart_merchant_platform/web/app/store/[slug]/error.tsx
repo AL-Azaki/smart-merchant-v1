@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { WifiOff, AlertTriangle } from 'lucide-react';
 
 export default function StoreError({
   error,
@@ -21,8 +22,8 @@ export default function StoreError({
 
   return (
     <div className="py-20 text-center bg-white rounded-3xl border border-red-100 p-8 shadow-xs max-w-lg mx-auto">
-      <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4 text-2xl">
-        {isNetwork ? '📡' : '⚠️'}
+      <div className="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+        {isNetwork ? <WifiOff className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
       </div>
       <h2 className="text-lg font-bold text-gray-900 mb-2">
         {isNetwork ? 'تعذر الاتصال بالخادم' : 'عذراً، حدث خطأ ما'}

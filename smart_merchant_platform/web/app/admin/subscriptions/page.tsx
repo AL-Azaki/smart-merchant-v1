@@ -7,6 +7,7 @@ import { useAdminAuth } from '@/lib/admin-context';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminSubscription, SubscriptionMetrics } from '@/lib/admin-types';
 import { AccountStatementModal } from '@/components/admin/AccountStatementModal';
+import { FileText } from 'lucide-react';
 
 export default function AdminSubscriptionsPage() {
   const { lang } = useAdminAuth();
@@ -308,7 +309,7 @@ export default function AdminSubscriptionsPage() {
                             onClick={() => setStatementAccountId(sub.account_id)}
                             className="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#14233B] text-[#B3945B] hover:bg-[#1E3557] hover:text-white border border-[#B3945B]/30 transition shadow-xs flex items-center gap-1.5 mx-auto"
                           >
-                            <span>📋</span>
+                            <FileText className="w-3.5 h-3.5 text-[#B3945B]" />
                             <span>{isAr ? 'كشف الحساب' : 'Statement'}</span>
                           </button>
                         </td>

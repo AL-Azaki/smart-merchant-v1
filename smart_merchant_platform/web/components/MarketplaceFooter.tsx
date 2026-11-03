@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { ShoppingBag, CheckCircle, Zap, MessageSquare, Smartphone } from 'lucide-react';
 
 export function MarketplaceFooter() {
   const { t } = useMarketplace();
@@ -15,7 +16,7 @@ export function MarketplaceFooter() {
           <div className="space-y-3.5 sm:col-span-2">
             <div className="flex items-center gap-2.5">
               <span className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-teal-500 to-teal-700 text-white flex items-center justify-center font-black text-xl shadow-md shadow-teal-500/20 shrink-0">
-                🛍️
+                <ShoppingBag className="w-5 h-5 text-white" />
               </span>
               <div>
                 <h3 className="font-black text-white text-base sm:text-lg">{t('footer_brand_title')}</h3>
@@ -29,13 +30,16 @@ export function MarketplaceFooter() {
 
             <div className="pt-2 flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-teal-300 bg-teal-950/90 border border-teal-800/80 px-2.5 sm:px-3 py-1 rounded-full">
-                <span>✓</span> {t('footer_badge_verified')}
+                <CheckCircle className="w-3.5 h-3.5 text-teal-400" />
+                <span>{t('footer_badge_verified')}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-slate-300 bg-slate-800/90 border border-slate-700 px-2.5 sm:px-3 py-1 rounded-full">
-                <span>⚡</span> {t('footer_badge_cod')}
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                <span>{t('footer_badge_cod')}</span>
               </span>
               <span className="inline-flex items-center gap-1.5 text-[10px] sm:text-[11px] font-bold text-slate-300 bg-slate-800/90 border border-slate-700 px-2.5 sm:px-3 py-1 rounded-full">
-                <span>💬</span> {t('footer_badge_whatsapp')}
+                <MessageSquare className="w-3.5 h-3.5 text-teal-400" />
+                <span>{t('footer_badge_whatsapp')}</span>
               </span>
             </div>
           </div>
@@ -78,7 +82,7 @@ export function MarketplaceFooter() {
                 href="/merchants/onboarding"
                 className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs font-bold rounded-xl border border-slate-700 transition active:scale-95"
               >
-                <span>📲</span>
+                <Smartphone className="w-4 h-4 text-teal-300" />
                 <span>{t('footer_merchants_btn')}</span>
               </Link>
             </div>

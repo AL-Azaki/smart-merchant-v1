@@ -5,9 +5,24 @@ import Link from 'next/link';
 import { MarketplaceNavbar } from '@/components/MarketplaceNavbar';
 import { MarketplaceFooter } from '@/components/MarketplaceFooter';
 import { MarketplaceProvider, useMarketplace } from '@/lib/marketplace-context';
+import {
+  Home,
+  Tag,
+  Rocket,
+  Smartphone,
+  MessageSquare,
+  Zap,
+  WifiOff,
+  TrendingUp,
+  Download,
+  Eye,
+  ArrowLeft,
+  ArrowRight,
+} from 'lucide-react';
 
 function MerchantOnboardingContent() {
   const { isAr } = useMarketplace();
+  const BackIcon = isAr ? ArrowRight : ArrowLeft;
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans transition-colors duration-200">
@@ -17,8 +32,8 @@ function MerchantOnboardingContent() {
       <div className="bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/60 dark:border-slate-800/80 py-2.5 px-3 sm:px-6 lg:px-8 text-xs font-semibold backdrop-blur-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-            <Link href="/" className="hover:text-teal-600 dark:hover:text-teal-400 flex items-center gap-1 transition">
-              <span>🏠</span>
+            <Link href="/" className="hover:text-teal-600 dark:hover:text-teal-400 flex items-center gap-1.5 transition">
+              <Home className="w-3.5 h-3.5" />
               <span>{isAr ? 'الرئيسية' : 'Home'}</span>
             </Link>
             <span>/</span>
@@ -30,9 +45,9 @@ function MerchantOnboardingContent() {
           <div className="flex items-center gap-3">
             <Link
               href="/#explore-products"
-              className="text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 font-bold text-xs transition hidden sm:inline-flex items-center gap-1"
+              className="text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-400 font-bold text-xs transition hidden sm:inline-flex items-center gap-1.5"
             >
-              <span>🏷️</span>
+              <Tag className="w-3.5 h-3.5" />
               <span>{isAr ? 'استعراض المنتجات' : 'Explore Products'}</span>
             </Link>
             <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">|</span>
@@ -40,7 +55,8 @@ function MerchantOnboardingContent() {
               href="/"
               className="inline-flex items-center gap-1.5 text-teal-600 dark:text-teal-400 hover:text-teal-700 dark:hover:text-teal-300 font-bold text-xs transition"
             >
-              <span>{isAr ? '← العودة إلى الرئيسية' : '← Back to Home'}</span>
+              <BackIcon className="w-3.5 h-3.5" />
+              <span>{isAr ? 'العودة إلى الرئيسية' : 'Back to Home'}</span>
             </Link>
           </div>
         </div>
@@ -54,7 +70,7 @@ function MerchantOnboardingContent() {
 
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-4 sm:space-y-6">
             <span className="inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-teal-500/20 text-teal-300 text-[11px] sm:text-xs font-black border border-teal-500/30">
-              <span>🚀</span>
+              <Rocket className="w-3.5 h-3.5 text-teal-300" />
               <span>{isAr ? 'بوابة تجار منصة تاجركم (Tajer)' : 'Tajer Merchant Portal'}</span>
             </span>
 
@@ -76,7 +92,7 @@ function MerchantOnboardingContent() {
                 href="#download-app"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-teal-500/20 transition active:scale-95 flex items-center justify-center gap-2"
               >
-                <span>📲</span>
+                <Smartphone className="w-4 h-4" />
                 <span>{isAr ? 'تحميل تطبيق التاجر الذكي (APK)' : 'Download Smart Merchant App (APK)'}</span>
               </a>
 
@@ -84,7 +100,7 @@ function MerchantOnboardingContent() {
                 href="/#explore-products"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-slate-800/90 hover:bg-slate-700 text-teal-300 font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-slate-700 transition flex items-center justify-center gap-2"
               >
-                <span>🏷️</span>
+                <Tag className="w-4 h-4" />
                 <span>{isAr ? 'استعراض منتجات ومتاجر السوق' : 'Explore Market & Products'}</span>
               </Link>
 
@@ -92,7 +108,7 @@ function MerchantOnboardingContent() {
                 href="/"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-teal-950/60 hover:bg-teal-900/60 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-teal-500/40 transition flex items-center justify-center gap-2"
               >
-                <span>🏠</span>
+                <Home className="w-4 h-4" />
                 <span>{isAr ? 'العودة للرئيسية' : 'Return to Home'}</span>
               </Link>
 
@@ -102,7 +118,7 @@ function MerchantOnboardingContent() {
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-slate-900/80 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-slate-800 transition flex items-center justify-center gap-2"
               >
-                <span>💬</span>
+                <MessageSquare className="w-4 h-4" />
                 <span>{isAr ? 'تواصل مع المبيعات' : 'Chat with Sales'}</span>
               </a>
             </div>
@@ -147,8 +163,8 @@ function MerchantOnboardingContent() {
                 </h3>
                 <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   {isAr
-                    ? 'من داخل التطبيق، توجه إلى الإعدادات ⬅️ المتجر الإلكتروني، اختر رابط متجرك المخصص واضغط تفعيل.'
-                    : 'Inside the app, go to Settings ➔ Online Store, choose your custom store link slug, and hit Activate.'}
+                    ? 'من داخل التطبيق، توجه إلى الإعدادات ← المتجر الإلكتروني، اختر رابط متجرك المخصص واضغط تفعيل.'
+                    : 'Inside the app, go to Settings → Online Store, choose your custom store link slug, and hit Activate.'}
                 </p>
               </div>
 
@@ -184,7 +200,7 @@ function MerchantOnboardingContent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
               <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-                <span className="text-2xl block">⚡</span>
+                <Zap className="w-6 h-6 text-amber-500" />
                 <h4 className="font-black text-sm text-slate-900 dark:text-white">
                   {isAr ? 'مزامنة المخزون التلقائية' : 'Instant Stock Sync'}
                 </h4>
@@ -194,7 +210,7 @@ function MerchantOnboardingContent() {
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-                <span className="text-2xl block">💬</span>
+                <MessageSquare className="w-6 h-6 text-teal-500" />
                 <h4 className="font-black text-sm text-slate-900 dark:text-white">
                   {isAr ? 'تأكيد فوري عبر واتساب' : 'Direct WhatsApp Orders'}
                 </h4>
@@ -204,7 +220,7 @@ function MerchantOnboardingContent() {
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-                <span className="text-2xl block">📴</span>
+                <WifiOff className="w-6 h-6 text-indigo-500" />
                 <h4 className="font-black text-sm text-slate-900 dark:text-white">
                   {isAr ? 'يعمل بدون إنترنت (Offline)' : 'Works Offline'}
                 </h4>
@@ -214,7 +230,7 @@ function MerchantOnboardingContent() {
               </div>
 
               <div className="bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-2">
-                <span className="text-2xl block">📈</span>
+                <TrendingUp className="w-6 h-6 text-emerald-500" />
                 <h4 className="font-black text-sm text-slate-900 dark:text-white">
                   {isAr ? 'ظهور مجاني في السوق' : 'Free Marketplace Exposure'}
                 </h4>
@@ -229,8 +245,8 @@ function MerchantOnboardingContent() {
         {/* Download & Onboarding CTA */}
         <section id="download-app" className="py-12 sm:py-16 bg-white dark:bg-slate-900 transition-colors">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-4 sm:space-y-6">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 flex items-center justify-center text-2xl sm:text-3xl mx-auto">
-              📲
+            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800 text-teal-600 dark:text-teal-400 flex items-center justify-center mx-auto">
+              <Smartphone className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
 
             <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white">
@@ -248,7 +264,7 @@ function MerchantOnboardingContent() {
                 href="/downloads/smart-merchant-latest.apk"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-teal-600/20 transition active:scale-95 flex items-center justify-center gap-2"
               >
-                <span>📥</span>
+                <Download className="w-4 h-4" />
                 <span>{isAr ? 'تحميل مباشر لنظام أندرويد (APK)' : 'Direct Android APK Download'}</span>
               </a>
 
@@ -256,7 +272,7 @@ function MerchantOnboardingContent() {
                 href="/store/bbg"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-700 transition flex items-center justify-center gap-2"
               >
-                <span>👀</span>
+                <Eye className="w-4 h-4" />
                 <span>{isAr ? 'شاهد نموذج لمتجر حقيقي' : 'Preview a Live Store'}</span>
               </Link>
 
@@ -264,7 +280,7 @@ function MerchantOnboardingContent() {
                 href="/#explore-products"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-teal-600 hover:bg-teal-700 text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-lg shadow-teal-600/20 transition active:scale-95 flex items-center justify-center gap-2"
               >
-                <span>🏷️</span>
+                <Tag className="w-4 h-4" />
                 <span>{isAr ? 'استعراض منتجات السوق' : 'Explore Market Products'}</span>
               </Link>
 
@@ -272,7 +288,7 @@ function MerchantOnboardingContent() {
                 href="/"
                 className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 dark:hover:bg-teal-900/60 text-teal-700 dark:text-teal-300 font-bold text-xs sm:text-sm rounded-xl sm:rounded-2xl border border-teal-200 dark:border-teal-800 transition flex items-center justify-center gap-2"
               >
-                <span>🏠</span>
+                <Home className="w-4 h-4" />
                 <span>{isAr ? 'العودة للصفحة الرئيسية' : 'Return to Home Page'}</span>
               </Link>
             </div>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { adminApi } from '@/lib/admin-api';
 import { useAdminAuth } from '@/lib/admin-context';
+import { ShieldCheck, Lock } from 'lucide-react';
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -110,7 +111,7 @@ export default function AdminLoginPage() {
             </div>
             
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-[10px] font-black mb-2">
-              <span>🛡️</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
               <span>{t.brandPlatformAdmin}</span>
             </div>
 
@@ -189,7 +190,7 @@ export default function AdminLoginPage() {
                 </>
               ) : (
                 <>
-                  <span>🔐</span>
+                  <Lock className="w-4 h-4" />
                   <span>{t.loginSubmit}</span>
                 </>
               )}

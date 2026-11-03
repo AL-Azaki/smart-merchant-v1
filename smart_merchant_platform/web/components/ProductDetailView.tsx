@@ -6,6 +6,7 @@ import type { StoreProductDetail } from '@/lib/types';
 import { formatCurrency, buildWhatsAppUrl } from '@/lib/utils';
 import { useCart } from '@/lib/cart-context';
 import { ProductImage } from './ProductImage';
+import { ShieldCheck, Banknote, Truck, Check, CheckCircle } from 'lucide-react';
 
 interface ProductDetailViewProps {
   slug: string;
@@ -116,7 +117,7 @@ export function ProductDetailView({ slug, product }: ProductDetailViewProps) {
           {/* Customer Trust Guarantees Box */}
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/70 space-y-2.5 text-xs">
             <div className="flex items-center gap-2.5 text-slate-700">
-              <span className="text-teal-600 font-bold text-base">🛡️</span>
+              <ShieldCheck className="w-5 h-5 text-teal-600 shrink-0" />
               <div>
                 <strong className="text-slate-900 block font-bold">ضمان المعاينة والمطابقة:</strong>
                 <span className="text-slate-500 text-[11px]">يحق لك فحص المنتج ومعاينته عند الاستلام قبل دفع أي مبلغ.</span>
@@ -124,7 +125,7 @@ export function ProductDetailView({ slug, product }: ProductDetailViewProps) {
             </div>
 
             <div className="flex items-center gap-2.5 text-slate-700 pt-2 border-t border-slate-200/50">
-              <span className="text-teal-600 font-bold text-base">💵</span>
+              <Banknote className="w-5 h-5 text-teal-600 shrink-0" />
               <div>
                 <strong className="text-slate-900 block font-bold">الدفع الآمن عند الاستلام:</strong>
                 <span className="text-slate-500 text-[11px]">سداد المبلغ نقداً وبأمان للمندوب بعد التأكد من طلبك.</span>
@@ -132,7 +133,7 @@ export function ProductDetailView({ slug, product }: ProductDetailViewProps) {
             </div>
 
             <div className="flex items-center gap-2.5 text-slate-700 pt-2 border-t border-slate-200/50">
-              <span className="text-teal-600 font-bold text-base">🚚</span>
+              <Truck className="w-5 h-5 text-teal-600 shrink-0" />
               <div>
                 <strong className="text-slate-900 block font-bold">تجهيز سريع وشحن بعناية:</strong>
                 <span className="text-slate-500 text-[11px]">يتم تجهيز المنتجات من المخزن مباشرة وتغليفها بأمان.</span>
@@ -145,8 +146,9 @@ export function ProductDetailView({ slug, product }: ProductDetailViewProps) {
         <div className="flex flex-col h-full justify-between space-y-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full">
-                <span>✓</span> منتج متوفر بالمخزن
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-800 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full">
+                <Check className="w-3 h-3 text-teal-700" />
+                <span>منتج متوفر بالمخزن</span>
               </span>
               {product.brand?.brand_name && (
                 <span className="text-xs text-slate-500 font-medium">
@@ -279,7 +281,7 @@ export function ProductDetailView({ slug, product }: ProductDetailViewProps) {
 
               {addedToast && (
                 <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs text-center font-bold animate-in fade-in flex items-center justify-center gap-2">
-                  <span className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-xs">✓</span>
+                  <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" />
                   <span>رائع! تمت إضافة المنتج إلى سلتك بنجاح. يمكنك متابعة التسوق أو إتمام الطلب الآن.</span>
                 </div>
               )}

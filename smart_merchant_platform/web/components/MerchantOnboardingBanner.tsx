@@ -3,9 +3,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { Rocket, CheckCircle, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
 
 export function MerchantOnboardingBanner() {
   const { t, isAr } = useMarketplace();
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
   return (
     <section className="py-10 sm:py-16 lg:py-20 bg-gradient-to-tr from-slate-950 via-slate-900 to-teal-950 text-white relative overflow-hidden">
@@ -18,7 +20,7 @@ export function MerchantOnboardingBanner() {
           {/* Content */}
           <div className="space-y-3 sm:space-y-4 max-w-2xl text-center lg:text-right">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-500/20 text-teal-300 text-[10px] sm:text-xs font-black border border-teal-500/30">
-              <span>🚀</span>
+              <Rocket className="w-3.5 h-3.5 text-teal-300" />
               <span>{t('banner_badge')}</span>
             </span>
 
@@ -33,13 +35,16 @@ export function MerchantOnboardingBanner() {
 
             <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-4 text-xs text-slate-300">
               <div className="flex items-center gap-1.5 font-bold">
-                <span className="text-teal-400">✓</span> {t('banner_feat_slug')}
+                <CheckCircle className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>{t('banner_feat_slug')}</span>
               </div>
               <div className="flex items-center gap-1.5 font-bold">
-                <span className="text-teal-400">✓</span> {t('banner_feat_sync')}
+                <CheckCircle className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>{t('banner_feat_sync')}</span>
               </div>
               <div className="flex items-center gap-1.5 font-bold">
-                <span className="text-teal-400">✓</span> {t('banner_feat_whatsapp')}
+                <CheckCircle className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>{t('banner_feat_whatsapp')}</span>
               </div>
             </div>
           </div>
@@ -51,7 +56,7 @@ export function MerchantOnboardingBanner() {
               className="px-6 sm:px-8 py-3 sm:py-3.5 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-slate-950 font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-teal-500/20 text-center transition active:scale-95 flex items-center justify-center gap-2"
             >
               <span>{t('banner_cta_open')}</span>
-              <span>←</span>
+              <ArrowIcon className="w-4 h-4" />
             </Link>
 
             <a
@@ -60,7 +65,7 @@ export function MerchantOnboardingBanner() {
               rel="noopener noreferrer"
               className="px-6 sm:px-8 py-2.5 sm:py-3 bg-slate-800/80 hover:bg-slate-800 text-white font-bold text-xs rounded-xl sm:rounded-2xl border border-slate-700 text-center transition flex items-center justify-center gap-2"
             >
-              <span>💬</span>
+              <MessageSquare className="w-4 h-4 text-emerald-400" />
               <span>{t('banner_cta_support')}</span>
             </a>
           </div>

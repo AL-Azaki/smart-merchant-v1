@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { MarketplaceProductItem } from '@/lib/types';
 import { formatCurrency } from '@/lib/utils';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { Tag, Search, Package, Store, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CrossStoreProductGridProps {
   products: MarketplaceProductItem[];
@@ -12,7 +13,8 @@ interface CrossStoreProductGridProps {
 }
 
 export function CrossStoreProductGrid({ products, searchTerm }: CrossStoreProductGridProps) {
-  const { t } = useMarketplace();
+  const { isAr, t } = useMarketplace();
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
   return (
     <section id="explore-products" className="py-10 sm:py-14 lg:py-16 bg-white dark:bg-slate-900 transition-colors">
@@ -20,7 +22,7 @@ export function CrossStoreProductGrid({ products, searchTerm }: CrossStoreProduc
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base sm:text-lg">🏷️</span>
+              <Tag className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               <span className="text-[11px] sm:text-xs font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 rounded-full border border-indigo-200 dark:border-indigo-800">
                 {t('products_badge')}
               </span>
@@ -41,7 +43,7 @@ export function CrossStoreProductGrid({ products, searchTerm }: CrossStoreProduc
         {/* Empty State */}
         {products.length === 0 ? (
           <div className="text-center py-12 sm:py-16 bg-slate-50 dark:bg-slate-800/40 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-6 sm:p-8">
-            <span className="text-3xl sm:text-4xl mb-3 block">🔍</span>
+            <Search className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-3" />
             <h3 className="text-sm sm:text-base font-black text-slate-800 dark:text-slate-200 mb-1">
               {t('products_empty_title')}
             </h3>
@@ -73,13 +75,13 @@ export function CrossStoreProductGrid({ products, searchTerm }: CrossStoreProduc
                           className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         />
                       ) : (
-                        <span className="text-3xl sm:text-4xl">📦</span>
+                        <Package className="w-10 h-10 text-slate-300 dark:text-slate-600" />
                       )}
 
                       {/* Store Badge Over Image */}
                       {p.merchant && (
-                        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-slate-900/85 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg border border-slate-700/50 flex items-center gap-1 shadow-xs">
-                          <span>🏪</span>
+                        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 bg-slate-900/85 backdrop-blur-md text-white text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg border border-slate-700/50 flex items-center gap-1.5 shadow-xs">
+                          <Store className="w-3 h-3 text-teal-400 shrink-0" />
                           <span className="truncate max-w-[70px] sm:max-w-[90px]">{p.merchant.name}</span>
                         </div>
                       )}
@@ -113,10 +115,10 @@ export function CrossStoreProductGrid({ products, searchTerm }: CrossStoreProduc
                     {merchantSlug ? (
                       <Link
                         href={`/store/${merchantSlug}/product/${p.id}`}
-                        className="w-full py-1.5 sm:py-2 px-2.5 sm:px-3 bg-teal-50 hover:bg-teal-600 dark:bg-slate-700 dark:hover:bg-teal-600 text-teal-700 hover:text-white dark:text-teal-300 dark:hover:text-white text-[11px] sm:text-xs font-bold rounded-xl text-center transition flex items-center justify-center gap-1 active:scale-95"
+                        className="w-full py-1.5 sm:py-2 px-2.5 sm:px-3 bg-teal-50 hover:bg-teal-600 dark:bg-slate-700 dark:hover:bg-teal-600 text-teal-700 hover:text-white dark:text-teal-300 dark:hover:text-white text-[11px] sm:text-xs font-bold rounded-xl text-center transition flex items-center justify-center gap-1.5 active:scale-95"
                       >
                         <span>{t('products_view_buy')}</span>
-                        <span className="text-xs sm:text-sm">←</span>
+                        <ArrowIcon className="w-3 h-3" />
                       </Link>
                     ) : (
                       <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 block text-center">

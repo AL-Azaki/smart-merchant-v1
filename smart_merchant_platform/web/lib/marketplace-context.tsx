@@ -98,7 +98,7 @@ export const translations = {
     footer_merchants_desc: 'اربط فرعك ومخزنك بمتجر إلكتروني احترافي يستقبل الطلبات تلقائياً.',
     footer_merchants_btn: 'دليل التاجر وتحميل التطبيق',
     footer_rights: 'منصة تاجركم (Tajer Marketplace) • مدعومة بتقنية التاجر الذكي (Smart Merchant ERP). جميع الحقوق محفوظة.',
-    footer_made_in: 'صُنع بشغف واحترافية للتجارة الحديثة 🇾🇪',
+    footer_made_in: 'صُنع بشغف واحترافية للتجارة الحديثة',
 
     // States & Common
     loading: 'جاري تحميل بيانات السوق المركزي...',
@@ -197,7 +197,7 @@ export const translations = {
     footer_merchants_desc: 'Connect your store and warehouse to a professional online storefront taking orders 24/7.',
     footer_merchants_btn: 'Merchant Guide & App Download',
     footer_rights: 'Tajer Marketplace • Powered by Smart Merchant ERP. All rights reserved.',
-    footer_made_in: 'Built with passion for modern commerce 🇾🇪',
+    footer_made_in: 'Built with passion for modern commerce',
 
     // States & Common
     loading: 'Loading central marketplace data...',

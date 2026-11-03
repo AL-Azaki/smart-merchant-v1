@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { adminApi } from '@/lib/admin-api';
 import type { AdminAccount, ApproveAccountPayload, SubscriptionPlan } from '@/lib/admin-types';
 import { useAdminAuth } from '@/lib/admin-context';
+import { Sparkles, X, FileText, Check } from 'lucide-react';
 
 interface ApproveSubscriptionModalProps {
   isOpen: boolean;
@@ -165,7 +166,7 @@ export function ApproveSubscriptionModal({
         <div className="px-6 py-4 bg-gradient-to-r from-[#14233B] to-[#1E3557] text-white flex items-center justify-between border-b border-slate-700/50">
           <div>
             <h3 className="text-base font-bold flex items-center gap-2">
-              <span>🌟</span>
+              <Sparkles className="w-5 h-5 text-[#B3945B]" />
               <span>{isAr ? 'تفعيل الحساب وتحديد خطة الأقساط' : 'Approve Account & Setup Installments'}</span>
             </h3>
             <p className="text-xs text-slate-300 mt-0.5">
@@ -175,8 +176,9 @@ export function ApproveSubscriptionModal({
           <button
             onClick={onClose}
             className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-300 hover:text-white transition"
+            aria-label="إغلاق"
           >
-            ✕
+            <X className="w-4 h-4" />
           </button>
         </div>
 
@@ -325,7 +327,10 @@ export function ApproveSubscriptionModal({
           {/* Live Schedule Preview Table */}
           <div className="bg-slate-50 dark:bg-[#0B1220] border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-2">
             <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
-              <span>📋 {isAr ? 'معاينة جدول الأقساط المستحقة وكشف الحساب' : 'Installment Schedule Preview'}</span>
+              <span className="flex items-center gap-1.5">
+                <FileText className="w-4 h-4 text-[#B3945B]" />
+                <span>{isAr ? 'معاينة جدول الأقساط المستحقة وكشف الحساب' : 'Installment Schedule Preview'}</span>
+              </span>
               <span className="text-[#B3945B]">
                 {isAr ? `المتبقي: ${(totalAmount - downPayment).toLocaleString()} YER` : `Balance: ${(totalAmount - downPayment).toLocaleString()}`}
               </span>
@@ -401,7 +406,10 @@ export function ApproveSubscriptionModal({
                   <span>{isAr ? 'جاري الاعتماد وإرسال الإيميل...' : 'Approving...'}</span>
                 </>
               ) : (
-                <span>{isAr ? '✓ تأكيد التفعيل واعتماد خطة الأقساط' : 'Confirm & Activate Subscription'}</span>
+                <span className="flex items-center gap-1.5">
+                  <Check className="w-4 h-4" />
+                  <span>{isAr ? 'تأكيد التفعيل واعتماد خطة الأقساط' : 'Confirm & Activate Subscription'}</span>
+                </span>
               )}
             </button>
           </div>

@@ -1,11 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
+import { Package } from 'lucide-react';
 
 export default function ProductNotFound() {
   return (
     <div className="py-20 text-center bg-white rounded-3xl border border-gray-100 p-8 shadow-xs max-w-lg mx-auto">
-      <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-4 text-2xl">
-        📦
+      <div className="w-16 h-16 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center mx-auto mb-4">
+        <Package className="w-8 h-8" />
       </div>
       <h2 className="text-xl font-bold text-gray-900 mb-2">المنتج غير متوفر</h2>
       <p className="text-xs text-gray-500 mb-6 leading-relaxed">

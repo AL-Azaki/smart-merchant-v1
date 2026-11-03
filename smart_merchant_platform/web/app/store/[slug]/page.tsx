@@ -6,6 +6,7 @@ import type { StoreCategory } from '@/lib/types';
 import { ProductCard } from '@/components/ProductCard';
 import { StoreFilters } from '@/components/StoreFilters';
 import { buildWhatsAppUrl } from '@/lib/utils';
+import { MapPin, ShieldCheck, Banknote, Truck, MessageSquare, Sparkles, Search } from 'lucide-react';
 
 interface StoreHomePageProps {
   params: Promise<{ slug: string }>;
@@ -98,7 +99,7 @@ export default async function StoreHomePage({
 
             {store?.address_text && (
               <p className="text-teal-200/90 text-xs flex items-center gap-1.5 font-medium">
-                <span>📍</span>
+                <MapPin className="w-3.5 h-3.5 text-teal-300 shrink-0" />
                 <span>{store.address_text}</span>
               </p>
             )}
@@ -125,7 +126,9 @@ export default async function StoreHomePage({
         {/* 4 Trust Value Pillars Strip */}
         <div className="mt-8 pt-6 border-t border-teal-800/60 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <div className="flex items-center gap-2 text-teal-100">
-            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm">🛡️</span>
+            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm flex items-center justify-center">
+              <ShieldCheck className="w-4 h-4 text-teal-300" />
+            </span>
             <div>
               <strong className="block text-white font-bold">منتجات أصلية</strong>
               <span className="text-[11px] text-teal-200/80">مضمونة 100% من المتجر</span>
@@ -133,7 +136,9 @@ export default async function StoreHomePage({
           </div>
 
           <div className="flex items-center gap-2 text-teal-100">
-            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm">💵</span>
+            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm flex items-center justify-center">
+              <Banknote className="w-4 h-4 text-teal-300" />
+            </span>
             <div>
               <strong className="block text-white font-bold">دفع عند الاستلام</strong>
               <span className="text-[11px] text-teal-200/80">عاين طلبك ثم ادفع نقداً</span>
@@ -141,7 +146,9 @@ export default async function StoreHomePage({
           </div>
 
           <div className="flex items-center gap-2 text-teal-100">
-            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm">🚚</span>
+            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm flex items-center justify-center">
+              <Truck className="w-4 h-4 text-teal-300" />
+            </span>
             <div>
               <strong className="block text-white font-bold">توصيل سريع وموثوق</strong>
               <span className="text-[11px] text-teal-200/80">تنسيق فوري للتسليم</span>
@@ -149,7 +156,9 @@ export default async function StoreHomePage({
           </div>
 
           <div className="flex items-center gap-2 text-teal-100">
-            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm">💬</span>
+            <span className="p-1.5 rounded-xl bg-teal-800/60 text-teal-300 text-sm flex items-center justify-center">
+              <MessageSquare className="w-4 h-4 text-teal-300" />
+            </span>
             <div>
               <strong className="block text-white font-bold">دعم وخدمة عملاء</strong>
               <span className="text-[11px] text-teal-200/80">متابعة فورية ومباشرة</span>
@@ -169,7 +178,7 @@ export default async function StoreHomePage({
       {/* Section Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-2">
-          <span className="text-lg">✨</span>
+          <Sparkles className="w-5 h-5 text-teal-600" />
           <h2 className="font-black text-slate-900 text-base sm:text-lg">
             {category_id ? 'المنتجات في هذا القسم' : search ? `نتائج البحث عن "${search}"` : 'أحدث المنتجات والعروض'}
           </h2>
@@ -193,8 +202,8 @@ export default async function StoreHomePage({
       {/* Products Grid or Empty State */}
       {products.length === 0 ? (
         <div className="py-20 text-center bg-white rounded-3xl border border-slate-200/80 p-8 shadow-xs">
-          <div className="w-16 h-16 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4 text-2xl font-bold">
-            🔍
+          <div className="w-16 h-16 rounded-full bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4">
+            <Search className="w-8 h-8" />
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1">لم نتمكن من العثور على نتائج مطابقة</h3>
           <p className="text-xs text-slate-500 max-w-sm mx-auto leading-relaxed">

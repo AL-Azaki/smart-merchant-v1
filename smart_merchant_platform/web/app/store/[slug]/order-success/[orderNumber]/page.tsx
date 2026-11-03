@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation';
 import { buildWhatsAppUrl, formatCurrency } from '@/lib/utils';
 import { getStoreBootstrap } from '@/lib/api';
 import type { StoreBootstrap } from '@/lib/types';
+import { CheckCircle } from 'lucide-react';
 
 interface OrderSuccessCache {
   orderNumber: string;
@@ -55,8 +56,8 @@ export default function OrderSuccessPage() {
     <div className="py-8 sm:py-12 max-w-xl mx-auto space-y-6">
       <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-[0_4px_25px_rgba(15,23,42,0.05)] text-center space-y-6">
         {/* Animated Celebration Badge */}
-        <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto text-3xl shadow-sm border border-emerald-100 animate-in zoom-in-75 duration-300">
-          ✓
+        <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-sm border border-emerald-100 animate-in zoom-in-75 duration-300">
+          <CheckCircle className="w-10 h-10 text-emerald-600" />
         </div>
 
         <div>

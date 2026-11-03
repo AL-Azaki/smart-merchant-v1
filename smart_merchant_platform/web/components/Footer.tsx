@@ -3,6 +3,7 @@
 import React from 'react';
 import type { StoreBootstrap } from '@/lib/types';
 import { buildWhatsAppUrl } from '@/lib/utils';
+import { MapPin, CheckCircle, ShieldCheck, Banknote, Zap } from 'lucide-react';
 
 interface FooterProps {
   store: StoreBootstrap;
@@ -30,7 +31,7 @@ export function Footer({ store }: FooterProps) {
 
             {store.address_text && (
               <p className="text-slate-400 text-xs leading-relaxed flex items-center gap-1.5">
-                <span>📍</span>
+                <MapPin className="w-3.5 h-3.5 text-teal-400 shrink-0" />
                 <span>{store.address_text}</span>
               </p>
             )}
@@ -40,8 +41,9 @@ export function Footer({ store }: FooterProps) {
             </p>
 
             <div className="pt-1 flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-300 bg-teal-950/90 border border-teal-800/80 px-3 py-1 rounded-full">
-                <span>✓</span> متجر معتمد وموثق
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-300 bg-teal-950/90 border border-teal-800/80 px-3 py-1 rounded-full">
+                <CheckCircle className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>متجر معتمد وموثق</span>
               </span>
             </div>
           </div>
@@ -88,16 +90,19 @@ export function Footer({ store }: FooterProps) {
               هذا المتجر مدعوم رسمياً بمنظومة «التاجر الذكي» لإدارة نقاط البيع والمخازن السحابية. نضمن لك دقة الأسعار وتوفر المنتجات بالمخزون وسلامة إجراءات التسليم.
             </p>
             <div className="pt-1 flex items-center gap-3 text-xs text-slate-400">
-              <span className="flex items-center gap-1 text-teal-400 font-semibold">
-                <span>🛡️</span> فحص ومعاينة
+              <span className="flex items-center gap-1.5 text-teal-400 font-semibold">
+                <ShieldCheck className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>فحص ومعاينة</span>
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-teal-400 font-semibold">
-                <span>💵</span> دفع عند الاستلام
+              <span className="flex items-center gap-1.5 text-teal-400 font-semibold">
+                <Banknote className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>دفع عند الاستلام</span>
               </span>
               <span>•</span>
-              <span className="flex items-center gap-1 text-teal-400 font-semibold">
-                <span>⚡</span> توصيل سريع
+              <span className="flex items-center gap-1.5 text-teal-400 font-semibold">
+                <Zap className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                <span>توصيل سريع</span>
               </span>
             </div>
           </div>

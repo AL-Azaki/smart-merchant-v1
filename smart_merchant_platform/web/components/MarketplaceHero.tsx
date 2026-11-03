@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import type { MarketplaceCategory, MarketplaceMerchant } from '@/lib/types';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { Sparkles, MapPin, X, Search } from 'lucide-react';
 
 interface MarketplaceHeroProps {
   categories: MarketplaceCategory[];
@@ -50,7 +51,7 @@ export function MarketplaceHero({
         <div className="max-w-3xl mx-auto text-center space-y-4 sm:space-y-6">
           {/* Badge */}
           <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1.5 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-300 text-[11px] sm:text-xs font-black">
-            <span>✨</span>
+            <Sparkles className="w-3.5 h-3.5 text-teal-300" />
             <span>{t('hero_badge')}</span>
           </div>
 
@@ -73,7 +74,7 @@ export function MarketplaceHero({
           >
             {/* City Selector */}
             <div className="flex items-center gap-2 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl sm:rounded-2xl shrink-0 w-full sm:w-auto">
-              <span className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm">📍</span>
+              <MapPin className="w-4 h-4 text-slate-500 dark:text-slate-400 shrink-0" />
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
@@ -103,9 +104,10 @@ export function MarketplaceHero({
                     setSearchTerm('');
                     onSearch('');
                   }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center p-1 rounded-full hover:bg-slate-200/50"
+                  aria-label="Clear search"
                 >
-                  ✕
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -113,9 +115,9 @@ export function MarketplaceHero({
             {/* Search Button */}
             <button
               type="submit"
-              className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 shrink-0 flex items-center justify-center gap-1.5"
+              className="w-full sm:w-auto px-5 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-700 hover:to-teal-800 text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-md transition active:scale-95 shrink-0 flex items-center justify-center gap-2"
             >
-              <span>🔍</span>
+              <Search className="w-4 h-4" />
               <span>{t('hero_search_btn')}</span>
             </button>
           </form>

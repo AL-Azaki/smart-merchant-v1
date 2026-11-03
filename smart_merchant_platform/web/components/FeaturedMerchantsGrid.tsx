@@ -4,13 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import type { MarketplaceMerchant } from '@/lib/types';
 import { useMarketplace } from '@/lib/marketplace-context';
+import { Store, CheckCircle, MapPin, ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface FeaturedMerchantsGridProps {
   merchants: MarketplaceMerchant[];
 }
 
 export function FeaturedMerchantsGrid({ merchants }: FeaturedMerchantsGridProps) {
-  const { t } = useMarketplace();
+  const { isAr, t } = useMarketplace();
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
   if (!merchants || merchants.length === 0) return null;
 
@@ -20,7 +22,7 @@ export function FeaturedMerchantsGrid({ merchants }: FeaturedMerchantsGridProps)
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-6 sm:mb-8">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-base sm:text-lg">🏪</span>
+              <Store className="w-5 h-5 text-teal-600 dark:text-teal-400" />
               <span className="text-[11px] sm:text-xs font-bold text-teal-600 dark:text-teal-400 bg-teal-50 dark:bg-teal-950/60 px-2.5 py-0.5 rounded-full border border-teal-200 dark:border-teal-800">
                 {t('merchants_badge')}
               </span>
@@ -64,8 +66,8 @@ export function FeaturedMerchantsGrid({ merchants }: FeaturedMerchantsGridProps)
                         <h3 className="font-black text-slate-900 dark:text-white text-xs sm:text-sm truncate group-hover:text-teal-600 dark:group-hover:text-teal-400 transition">
                           {m.name}
                         </h3>
-                        <span className="text-teal-500 text-xs shrink-0" title="متجر موثق">
-                          ✓
+                        <span title="متجر موثق" className="inline-flex shrink-0">
+                          <CheckCircle className="w-3.5 h-3.5 text-teal-500" />
                         </span>
                       </div>
                       <span className="text-[10px] sm:text-[11px] text-slate-400 dark:text-slate-500 font-medium block truncate">
@@ -76,8 +78,8 @@ export function FeaturedMerchantsGrid({ merchants }: FeaturedMerchantsGridProps)
 
                   {/* Address */}
                   {m.address && (
-                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-1 flex items-center gap-1">
-                      <span>📍</span>
+                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-3 line-clamp-1 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{m.address}</span>
                     </p>
                   )}
@@ -96,10 +98,10 @@ export function FeaturedMerchantsGrid({ merchants }: FeaturedMerchantsGridProps)
                 {/* Visit Button */}
                 <Link
                   href={`/store/${m.slug}`}
-                  className="w-full py-2 sm:py-2.5 px-3 bg-slate-900 hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500 text-white text-xs font-black rounded-xl text-center transition flex items-center justify-center gap-1.5 group-hover:shadow-xs active:scale-95"
+                  className="w-full py-2 sm:py-2.5 px-3 bg-slate-900 hover:bg-teal-600 dark:bg-teal-600 dark:hover:bg-teal-500 text-white text-xs font-black rounded-xl text-center transition flex items-center justify-center gap-2 group-hover:shadow-xs active:scale-95"
                 >
                   <span>{t('merchants_view_store')}</span>
-                  <span className="text-sm">←</span>
+                  <ArrowIcon className="w-3.5 h-3.5" />
                 </Link>
               </div>
             );

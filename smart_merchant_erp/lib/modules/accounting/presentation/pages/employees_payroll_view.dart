@@ -11,6 +11,8 @@ import '../widgets/employee_statement_dialog.dart';
 import '../widgets/payroll_pdf_export_service.dart';
 import '../widgets/record_employee_advance_dialog.dart';
 
+/// Professional, distilled and streamlined Employees & Payroll management view.
+/// Focused on scanability, low cognitive load, and instant access to employee records.
 class EmployeesPayrollView extends ConsumerStatefulWidget {
   const EmployeesPayrollView({super.key});
 
@@ -21,6 +23,8 @@ class EmployeesPayrollView extends ConsumerStatefulWidget {
 class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+  String _activePreset = 'current_month';
+
   DateTime _startDate = DateTime(DateTime.now().year, DateTime.now().month);
   DateTime _endDate = DateTime(DateTime.now().year, DateTime.now().month + 1, 0, 23, 59, 59);
 
@@ -46,7 +50,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: const Color(0xFF6366F1),
+              primary: AppColors.primary,
             ),
           ),
           child: child!,
@@ -56,6 +60,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
 
     if (picked != null) {
       setState(() {
+        _activePreset = 'custom';
         _startDate = DateTime(picked.start.year, picked.start.month, picked.start.day);
         _endDate = DateTime(picked.end.year, picked.end.month, picked.end.day, 23, 59, 59);
       });
@@ -65,6 +70,7 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
   void _setDatePreset(String preset) {
     final now = DateTime.now();
     setState(() {
+      _activePreset = preset;
       if (preset == 'current_month') {
         _startDate = DateTime(now.year, now.month);
         _endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
@@ -74,9 +80,6 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
       } else if (preset == 'last_3_months') {
         _startDate = DateTime(now.year, now.month - 2);
         _endDate = DateTime(now.year, now.month + 1, 0, 23, 59, 59);
-      } else if (preset == 'current_year') {
-        _startDate = DateTime(now.year);
-        _endDate = DateTime(now.year, 12, 31, 23, 59, 59);
       }
     });
   }
@@ -91,7 +94,11 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     }
   }
 
-  Future<void> _openRecordAdvanceDialog({Employee? employee, bool isAdvance = true, double remaining = 0.0}) async {
+  Future<void> _openRecordAdvanceDialog({
+    Employee? employee,
+    bool isAdvance = true,
+    double remaining = 0.0,
+  }) async {
     final res = await showDialog<bool>(
       context: context,
       builder: (_) => RecordEmployeeAdvanceDialog(
@@ -105,77 +112,27 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     }
   }
 
-  Future<void> _accrueAllSalariesDialog(double totalSalaries, int employeeCount, String periodLabel) async {
-    await showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.calendar_month_rounded, color: Color(0xFF6366F1)),
-            SizedBox(width: 8),
-            Text('استحقاق رواتب الفترة', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'الفترة: $periodLabel',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text('عدد الموظفين المستحقين: $employeeCount موظف'),
-            Text('إجمالي مبلغ الاستحقاق: ${_formatAmount(totalSalaries)} ر.ي'),
-            const SizedBox(height: 12),
-            const Text(
-              'نظام الاستحقاق يثبت الرواتب كالتزام في ميزان المراجعة ليتم خصم السلف منها تلقائياً.',
-              style: TextStyle(fontSize: 11.5, color: Colors.grey),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('إغلاق'),
-          ),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFF6366F1)),
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'تم احتساب وتثبيت استحقاقات الرواتب لفترة $periodLabel بنجاح',
-                  ),
-                ),
-              );
-            },
-            icon: const Icon(Icons.check_rounded),
-            label: const Text('تأكيد الاستحقاق'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.surfaceDark : Colors.white;
+    final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final background = isDark ? AppColors.backgroundDark : const Color(0xFFF8FAFC);
+    final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
     final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
-    final borderColor = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
 
     final employeesAsync = ref.watch(employeesListProvider);
     final paymentsAsync = ref.watch(paymentVouchersStreamProvider);
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0D0F14) : const Color(0xFFF8FAFC),
+      backgroundColor: background,
       body: employeesAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
-          child: Text('حدث خطأ أثناء تحميل بيانات الموظفين: $err', style: const TextStyle(color: Colors.red)),
+          child: Text(
+            'حدث خطأ أثناء تحميل بيانات الموظفين: $err',
+            style: const TextStyle(color: AppColors.error),
+          ),
         ),
         data: (employees) {
           final payments = paymentsAsync.asData?.value ?? [];
@@ -236,555 +193,591 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
             return name.contains(q) || code.contains(q) || phone.contains(q);
           }).toList();
 
-          return CustomScrollView(
-            slivers: [
-              // ── Header ──
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  child: Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'إدارة الموظفين',
-                      textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: textPrimary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 900;
+              final isCompact = constraints.maxWidth < 650;
 
-              // ── 1. Top 4 KPI Summary Cards ──
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDarkKpiCard(
-                              title: 'عدد الموظفين',
-                              value: '${employees.length}',
-                              isDark: isDark,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDarkKpiCard(
-                              title: monthsCount > 1 ? 'مستحق الراتب ($monthsCount أشهر)' : 'مستحق الراتب',
-                              value: _formatAmount(totalSalaries),
-                              isDark: isDark,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
+              return CustomScrollView(
+                slivers: [
+                  // ── 1. Clean Operational Header ──
+                  SliverToBoxAdapter(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 14 : 20,
+                        vertical: 14,
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildDarkKpiCard(
-                              title: 'السلف المسحوبة',
-                              value: _formatAmount(totalAdvances),
-                              isDark: isDark,
-                              color: const Color(0xFFF59E0B),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildDarkKpiCard(
-                              title: 'الرواتب غير المصروفة',
-                              value: _formatAmount(totalRemaining),
-                              isDark: isDark,
-                              color: const Color(0xFF10B981),
-                            ),
-                          ),
-                        ],
+                      decoration: BoxDecoration(
+                        color: surface,
+                        border: Border(bottom: BorderSide(color: borderColor)),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── 2. Quick Actions Header & 2x2 Grid ──
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'العمليات السريعة',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              title: 'إضافة موظف',
-                              icon: Icons.person_add_outlined,
-                              isDark: isDark,
-                              onTap: _openAddEmployeeDialog,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              title: 'تسجيل سلفة',
-                              icon: Icons.account_balance_wallet_outlined,
-                              isDark: isDark,
-                              onTap: () => _openRecordAdvanceDialog(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              title: 'استحقاق راتب',
-                              icon: Icons.calendar_month_outlined,
-                              isDark: isDark,
-                              onTap: () => _accrueAllSalariesDialog(totalSalaries, employees.length, periodLabel),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildQuickActionButton(
-                              title: 'صرف راتب',
-                              icon: Icons.price_check_rounded,
-                              isDark: isDark,
-                              onTap: () => _openRecordAdvanceDialog(
-                                isAdvance: false,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── 3. Filters Section: Statement Print + Date Range + Search Bar ──
-              SliverToBoxAdapter(
-                child: Container(
-                  margin: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E222D) : surface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: borderColor),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // Row A: Statement Download Button (Full Width & Clean)
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.tonalIcon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
-                            foregroundColor: const Color(0xFF6366F1),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          onPressed: () {
-                            PayrollPdfExportService.exportAllEmployeesPayrollPdf(
-                              records: payrollRecords,
-                              startDate: _startDate,
-                              endDate: _endDate,
-                              businessName: 'منشأة سمارت ميرشانت',
-                            );
-                          },
-                          icon: const Icon(Icons.print_rounded, size: 18),
-                          label: const Text(
-                            'كشف حساب للكل (PDF)',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Row B: Quick Period Chips
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildPeriodChip('الشهر الحالي', () => _setDatePreset('current_month'), isDark),
-                            const SizedBox(width: 6),
-                            _buildPeriodChip('الشهر السابق', () => _setDatePreset('prev_month'), isDark),
-                            const SizedBox(width: 6),
-                            _buildPeriodChip('آخر 3 أشهر', () => _setDatePreset('last_3_months'), isDark),
-                            const SizedBox(width: 6),
-                            _buildPeriodChip('السنة الحالية', () => _setDatePreset('current_year'), isDark),
-                            const SizedBox(width: 6),
-                            _buildPeriodChip('تحديد تاريخ محدد 📅', _pickCustomDateRange, isDark, isHighlight: true),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Row C: Search Box
-                      TextField(
-                        controller: _searchController,
-                        decoration: InputDecoration(
-                          hintText: 'بحث باسم الموظف أو هاتفه أو رمزه...',
-                          hintStyle: TextStyle(fontSize: 12, color: textSecondary),
-                          prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: const Icon(Icons.close_rounded, size: 16),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                )
-                              : null,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                        ),
-                        onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // ── 4. Employees List (Cards with Salary, Advances, Remaining & Progress Bar) ──
-              if (filteredRecords.isEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
-                    child: Center(
-                      child: Column(
-                        children: [
-                          Icon(Icons.badge_outlined, size: 48, color: textSecondary.withValues(alpha: 0.4)),
-                          const SizedBox(height: 10),
-                          Text(
-                            employees.isEmpty
-                                ? 'لا يوجد موظفون مسجلون حالياً'
-                                : 'لا توجد نتائج مطابقة لبحثك',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textSecondary),
-                          ),
-                          const SizedBox(height: 6),
-                          if (employees.isEmpty)
-                            FilledButton.icon(
-                              style: FilledButton.styleFrom(backgroundColor: const Color(0xFF10B981)),
-                              onPressed: _openAddEmployeeDialog,
-                              icon: const Icon(Icons.add_rounded),
-                              label: const Text('إضافة أول موظف الآن'),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 40),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final record = filteredRecords[index];
-                        final emp = record.employee;
-                        final percent = record.basicSalary > 0
-                            ? (record.totalAdvances / record.basicSalary).clamp(0.0, 1.0)
-                            : 0.0;
-
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF1A1D24) : surface,
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: borderColor),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              // Row 1: Employee Info & Code
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.15),
-                                    child: const Icon(Icons.person_rounded, size: 18, color: Color(0xFF3B82F6)),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '${emp.firstName} ${emp.lastName}',
-                                          style: TextStyle(
-                                            fontSize: 14.5,
-                                            fontWeight: FontWeight.w900,
-                                            color: textPrimary,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${emp.employeeCode} • ${emp.phone ?? "بدون هاتف"}',
-                                          style: TextStyle(fontSize: 11, color: textSecondary),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  // Individual Statement (PDF & Details)
-                                  IconButton.filledTonal(
-                                    tooltip: 'كشف حساب الموظف (PDF / عرض)',
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: const Color(0xFF3B82F6).withValues(alpha: 0.12),
-                                      foregroundColor: const Color(0xFF3B82F6),
-                                    ),
-                                    onPressed: () {
-                                      showDialog<void>(
-                                        context: context,
-                                        builder: (_) => EmployeeStatementDialog(
-                                          initialRecord: record,
-                                          initialStartDate: _startDate,
-                                          initialEndDate: _endDate,
-                                          allEmployeePayments: payments.where((p) {
-                                            final isEmpContact = p.contactType == 'Employee' && p.contactId == emp.id;
-                                            final isEmpNotes = p.notes?.contains(emp.firstName) ?? false;
-                                            return isEmpContact || isEmpNotes;
-                                          }).toList(),
-                                          onDataChanged: () => ref.invalidate(paymentVouchersStreamProvider),
-                                        ),
-                                      );
-                                    },
-                                    icon: const Icon(Icons.receipt_long_rounded, size: 18),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-
-                              // Row 2: 3 Metrics (الراتب المستحق، المسحوب، المتبقي له)
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF121419) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      child: isCompact
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
                                   children: [
-                                    _buildPillColumn(
-                                      monthsCount > 1 ? 'الراتب ($monthsCount أشهر)' : 'الراتب المستحق',
-                                      '${_formatAmount(record.basicSalary)} ر.ي',
-                                      textSecondary,
-                                      textPrimary,
+                                    Expanded(
+                                      child: _buildHeaderTitle(
+                                        employeesCount: employees.length,
+                                        periodLabel: periodLabel,
+                                        textPrimary: textPrimary,
+                                        textSecondary: textSecondary,
+                                      ),
                                     ),
-                                    Container(width: 1, height: 28, color: borderColor),
-                                    _buildPillColumn(
-                                      'السلف المسحوبة',
-                                      '${_formatAmount(record.totalAdvances)} ر.ي',
-                                      textSecondary,
-                                      const Color(0xFFF59E0B),
-                                    ),
-                                    Container(width: 1, height: 28, color: borderColor),
-                                    _buildPillColumn(
-                                      'المتبقي له (التزام)',
-                                      '${_formatAmount(record.remainingSalary)} ر.ي',
-                                      textSecondary,
-                                      const Color(0xFF10B981),
+                                    IconButton.filledTonal(
+                                      tooltip: 'طباعة مسير الرواتب (PDF)',
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                                        foregroundColor: AppColors.primary,
+                                      ),
+                                      onPressed: () {
+                                        PayrollPdfExportService.exportAllEmployeesPayrollPdf(
+                                          records: payrollRecords,
+                                          startDate: _startDate,
+                                          endDate: _endDate,
+                                          businessName: 'منشأة سمارت ميرشانت',
+                                        );
+                                      },
+                                      icon: const Icon(Icons.print_rounded, size: 20),
                                     ),
                                   ],
                                 ),
-                              ),
-                              const SizedBox(height: 10),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: FilledButton.icon(
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: AppColors.success,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        onPressed: _openAddEmployeeDialog,
+                                        icon: const Icon(Icons.person_add_rounded, size: 18),
+                                        label: const Text(
+                                          'إضافة موظف',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: textPrimary,
+                                          side: BorderSide(color: borderColor),
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                        onPressed: () => _openRecordAdvanceDialog(),
+                                        icon: const Icon(Icons.payments_outlined, size: 18),
+                                        label: const Text(
+                                          'تسجيل سلفة',
+                                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: _buildHeaderTitle(
+                                    employeesCount: employees.length,
+                                    periodLabel: periodLabel,
+                                    textPrimary: textPrimary,
+                                    textSecondary: textSecondary,
+                                  ),
+                                ),
+                                FilledButton.tonalIcon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: isDark
+                                        ? AppColors.surfaceVariantDark
+                                        : const Color(0xFFF1F5F9),
+                                    foregroundColor: textPrimary,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    PayrollPdfExportService.exportAllEmployeesPayrollPdf(
+                                      records: payrollRecords,
+                                      startDate: _startDate,
+                                      endDate: _endDate,
+                                      businessName: 'منشأة سمارت ميرشانت',
+                                    );
+                                  },
+                                  icon: const Icon(Icons.print_outlined, size: 18),
+                                  label: const Text(
+                                    'مسير الرواتب (PDF)',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: textPrimary,
+                                    side: BorderSide(color: borderColor),
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () => _openRecordAdvanceDialog(),
+                                  icon: const Icon(Icons.payments_outlined, size: 18),
+                                  label: const Text(
+                                    'تسجيل سلفة',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.success,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: _openAddEmployeeDialog,
+                                  icon: const Icon(Icons.person_add_rounded, size: 18),
+                                  label: const Text(
+                                    'إضافة موظف',
+                                    style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
 
-                              // Row 3: Progress Bar
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'ما تم سحبه: ${(percent * 100).toStringAsFixed(0)}%',
-                                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: textSecondary),
-                                      ),
-                                      Text(
-                                        'المتبقي: ${((1.0 - percent) * 100).toStringAsFixed(0)}%',
-                                        style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 5),
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(4),
-                                    child: LinearProgressIndicator(
-                                      value: percent,
-                                      minHeight: 6,
-                                      backgroundColor: isDark ? const Color(0xFF2C3140) : const Color(0xFFE2E8F0),
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        percent > 0.8 ? const Color(0xFFEF4444) : const Color(0xFFF59E0B),
+                  // ── 2. Unified Quiet Summary Strip (Single Sleek Bar) ──
+                  SliverToBoxAdapter(
+                    child: Container(
+                      margin: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 12 : 20,
+                        vertical: 12,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: surface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: borderColor),
+                      ),
+                      child: isCompact
+                          ? Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildMetricItem(
+                                        label: 'عدد الموظفين',
+                                        value: '${employees.length} موظف',
+                                        valueColor: textPrimary,
+                                        textSecondary: textSecondary,
                                       ),
                                     ),
+                                    Container(width: 1, height: 28, color: borderColor),
+                                    Expanded(
+                                      child: _buildMetricItem(
+                                        label: monthsCount > 1
+                                            ? 'الرواتب ($monthsCount أشهر)'
+                                            : 'الرواتب المستحقة',
+                                        value: '${_formatAmount(totalSalaries)} ر.ي',
+                                        valueColor: textPrimary,
+                                        textSecondary: textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Divider(height: 1, thickness: 1, color: borderColor),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildMetricItem(
+                                        label: 'السلف المسحوبة',
+                                        value: '${_formatAmount(totalAdvances)} ر.ي',
+                                        valueColor: AppColors.warning,
+                                        textSecondary: textSecondary,
+                                      ),
+                                    ),
+                                    Container(width: 1, height: 28, color: borderColor),
+                                    Expanded(
+                                      child: _buildMetricItem(
+                                        label: 'صافي المستحق للموظفين',
+                                        value: '${_formatAmount(totalRemaining)} ر.ي',
+                                        valueColor: AppColors.success,
+                                        textSecondary: textSecondary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            )
+                          : Row(
+                              children: [
+                                Expanded(
+                                  child: _buildMetricItem(
+                                    label: 'الموظفون النشطون',
+                                    value: '${employees.length} موظف',
+                                    valueColor: textPrimary,
+                                    textSecondary: textSecondary,
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
+                                ),
+                                Container(width: 1, height: 32, color: borderColor),
+                                Expanded(
+                                  child: _buildMetricItem(
+                                    label: monthsCount > 1
+                                        ? 'الرواتب ($monthsCount أشهر)'
+                                        : 'إجمالي الرواتب',
+                                    value: '${_formatAmount(totalSalaries)} ر.ي',
+                                    valueColor: textPrimary,
+                                    textSecondary: textSecondary,
+                                  ),
+                                ),
+                                Container(width: 1, height: 32, color: borderColor),
+                                Expanded(
+                                  child: _buildMetricItem(
+                                    label: 'السلف المسحوبة',
+                                    value: '${_formatAmount(totalAdvances)} ر.ي',
+                                    valueColor: AppColors.warning,
+                                    textSecondary: textSecondary,
+                                  ),
+                                ),
+                                Container(width: 1, height: 32, color: borderColor),
+                                Expanded(
+                                  child: _buildMetricItem(
+                                    label: 'صافي الالتزام المتبقي',
+                                    value: '${_formatAmount(totalRemaining)} ر.ي',
+                                    valueColor: AppColors.success,
+                                    textSecondary: textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
+                  ),
 
-                              // Row 4: Quick Action Buttons per Employee
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: OutlinedButton.icon(
-                                      style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: () => _openRecordAdvanceDialog(
-                                        employee: emp,
-                                        remaining: record.remainingSalary,
-                                      ),
-                                      icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
-                                      label: const Text('إعطاء سلفة', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                  // ── 3. Filters & Search Strip ──
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isCompact ? 12 : 20,
+                        vertical: 4,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: InputDecoration(
+                                    hintText: 'بحث باسم الموظف، الرمز، أو الهاتف...',
+                                    hintStyle: TextStyle(fontSize: 12.5, color: textSecondary),
+                                    prefixIcon: const Icon(Icons.search_rounded, size: 19),
+                                    suffixIcon: _searchQuery.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.close_rounded, size: 16),
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              setState(() => _searchQuery = '');
+                                            },
+                                          )
+                                        : null,
+                                    isDense: true,
+                                    filled: true,
+                                    fillColor: surface,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(color: borderColor),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: BorderSide(color: borderColor),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                      borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: FilledButton.icon(
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: const Color(0xFF10B981),
-                                        padding: const EdgeInsets.symmetric(vertical: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                      onPressed: record.remainingSalary <= 0
-                                          ? null
-                                          : () => _openRecordAdvanceDialog(
-                                                employee: emp,
-                                                isAdvance: false,
-                                                remaining: record.remainingSalary,
-                                              ),
-                                      icon: const Icon(Icons.price_check_rounded, size: 16),
-                                      label: const Text('صرف المتبقي', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold)),
-                                    ),
-                                  ),
-                                ],
+                                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                                ),
                               ),
                             ],
                           ),
-                        );
-                      },
-                      childCount: filteredRecords.length,
+                          const SizedBox(height: 8),
+                          // Quick Period Chips
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildFilterChip(
+                                  label: 'الشهر الحالي',
+                                  isSelected: _activePreset == 'current_month',
+                                  onTap: () => _setDatePreset('current_month'),
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(width: 8),
+                                _buildFilterChip(
+                                  label: 'الشهر السابق',
+                                  isSelected: _activePreset == 'prev_month',
+                                  onTap: () => _setDatePreset('prev_month'),
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(width: 8),
+                                _buildFilterChip(
+                                  label: 'آخر 3 أشهر',
+                                  isSelected: _activePreset == 'last_3_months',
+                                  onTap: () => _setDatePreset('last_3_months'),
+                                  isDark: isDark,
+                                ),
+                                const SizedBox(width: 8),
+                                _buildFilterChip(
+                                  label: _activePreset == 'custom'
+                                      ? 'فترة مخصصة: $periodLabel'
+                                      : 'فترة مخصصة...',
+                                  isSelected: _activePreset == 'custom',
+                                  icon: Icons.date_range_rounded,
+                                  onTap: _pickCustomDateRange,
+                                  isDark: isDark,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-            ],
+
+                  const SliverToBoxAdapter(child: SizedBox(height: 10)),
+
+                  // ── 4. Employees List (Clean Grid or List) ──
+                  if (filteredRecords.isEmpty)
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.badge_outlined,
+                                size: 48,
+                                color: textSecondary.withValues(alpha: 0.4),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                employees.isEmpty
+                                    ? 'لا يوجد موظفون مسجلون حالياً'
+                                    : 'لا توجد نتائج مطابقة للبحث',
+                                style: TextStyle(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: textSecondary,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              if (employees.isEmpty)
+                                FilledButton.icon(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.success,
+                                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  ),
+                                  onPressed: _openAddEmployeeDialog,
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('إضافة أول موظف الآن'),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isWide)
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 60),
+                      sliver: SliverGrid(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          mainAxisExtent: 200,
+                        ),
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => _buildEmployeeCard(
+                            record: filteredRecords[index],
+                            monthsCount: monthsCount,
+                            surface: surface,
+                            borderColor: borderColor,
+                            textPrimary: textPrimary,
+                            textSecondary: textSecondary,
+                            isDark: isDark,
+                            payments: payments,
+                          ),
+                          childCount: filteredRecords.length,
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.fromLTRB(isCompact ? 12 : 20, 4, isCompact ? 12 : 20, 60),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildEmployeeCard(
+                              record: filteredRecords[index],
+                              monthsCount: monthsCount,
+                              surface: surface,
+                              borderColor: borderColor,
+                              textPrimary: textPrimary,
+                              textSecondary: textSecondary,
+                              isDark: isDark,
+                              payments: payments,
+                            ),
+                          ),
+                          childCount: filteredRecords.length,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildPeriodChip(String label, VoidCallback onTap, bool isDark, {bool isHighlight = false}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: isHighlight
-              ? const Color(0xFF6366F1).withValues(alpha: 0.15)
-              : (isDark ? const Color(0xFF262A38) : const Color(0xFFF1F5F9)),
-          borderRadius: BorderRadius.circular(6),
-          border: isHighlight ? Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.4)) : null,
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10.5,
-            fontWeight: FontWeight.bold,
-            color: isHighlight ? const Color(0xFF6366F1) : null,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// 4 Dark KPI Cards
-  Widget _buildDarkKpiCard({
-    required String title,
-    required String value,
-    required bool isDark,
-    required Color color,
-    bool isSmallText = false,
+  Widget _buildHeaderTitle({
+    required int employeesCount,
+    required String periodLabel,
+    required Color textPrimary,
+    required Color textSecondary,
   }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E2024),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF9E9E9E),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: isSmallText ? 15 : 22,
-              fontWeight: FontWeight.w900,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 4 Quick Action Buttons
-  Widget _buildQuickActionButton({
-    required String title,
-    required IconData icon,
-    required bool isDark,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF111215),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF26282E)),
-        ),
-        child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            Icon(icon, color: Colors.white, size: 26),
-            const SizedBox(height: 10),
             Text(
-              title,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              'الموظفون والرواتب',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: textPrimary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                periodLabel,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'متابعة مستحقات الموظفين وصرف السلف وتصفية الرواتب بدقة ووضوح',
+          style: TextStyle(fontSize: 11.5, color: textSecondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricItem({
+    required String label,
+    required String value,
+    required Color valueColor,
+    required Color textSecondary,
+  }) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondary),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 14.5,
+            fontWeight: FontWeight.w900,
+            color: valueColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required bool isDark,
+    IconData? icon,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : (isDark ? AppColors.surfaceDark : Colors.white),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : (isDark ? AppColors.borderDark : AppColors.borderLight),
+            width: isSelected ? 1.4 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? AppColors.primary : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppColors.primary : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
               ),
             ),
           ],
@@ -793,12 +786,223 @@ class _EmployeesPayrollViewState extends ConsumerState<EmployeesPayrollView> {
     );
   }
 
-  Widget _buildPillColumn(String label, String value, Color labelColor, Color valueColor) {
+  Widget _buildEmployeeCard({
+    required EmployeePayrollRecord record,
+    required int monthsCount,
+    required Color surface,
+    required Color borderColor,
+    required Color textPrimary,
+    required Color textSecondary,
+    required bool isDark,
+    required List<Payment> payments,
+  }) {
+    final emp = record.employee;
+    final percent = record.basicSalary > 0
+        ? (record.totalAdvances / record.basicSalary).clamp(0.0, 1.0)
+        : 0.0;
+    final isFullyPaid = record.remainingSalary <= 0 && record.basicSalary > 0;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: borderColor),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // ── Row 1: Header (Avatar, Name, Code, Statement action) ──
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                child: Text(
+                  emp.firstName.isNotEmpty ? emp.firstName.characters.first : 'م',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${emp.firstName} ${emp.lastName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: textPrimary,
+                      ),
+                    ),
+                    Text(
+                      '${emp.employeeCode}${emp.phone != null && emp.phone!.isNotEmpty ? " • ${emp.phone}" : ""}',
+                      style: TextStyle(fontSize: 11, color: textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              // Statement Button
+              IconButton.filledTonal(
+                tooltip: 'عرض كشف الحساب والطباعة',
+                style: IconButton.styleFrom(
+                  backgroundColor: isDark ? AppColors.surfaceVariantDark : const Color(0xFFF1F5F9),
+                  foregroundColor: textPrimary,
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () {
+                  showDialog<void>(
+                    context: context,
+                    builder: (_) => EmployeeStatementDialog(
+                      initialRecord: record,
+                      initialStartDate: _startDate,
+                      initialEndDate: _endDate,
+                      allEmployeePayments: payments.where((p) {
+                        final isEmpContact = p.contactType == 'Employee' && p.contactId == emp.id;
+                        final isEmpNotes = p.notes?.contains(emp.firstName) ?? false;
+                        return isEmpContact || isEmpNotes;
+                      }).toList(),
+                      onDataChanged: () => ref.invalidate(paymentVouchersStreamProvider),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.receipt_long_rounded, size: 17),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Row 2: Metrics Strip (الأساسي، المسحوب، المتبقي) ──
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF131824) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: borderColor.withValues(alpha: 0.6)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildColumnData(
+                  label: monthsCount > 1 ? 'الراتب ($monthsCount أشهر)' : 'الراتب المستحق',
+                  val: '${_formatAmount(record.basicSalary)} ر.ي',
+                  valColor: textPrimary,
+                  textSecondary: textSecondary,
+                ),
+                Container(width: 1, height: 26, color: borderColor),
+                _buildColumnData(
+                  label: 'السلف المسحوبة',
+                  val: '${_formatAmount(record.totalAdvances)} ر.ي',
+                  valColor: AppColors.warning,
+                  textSecondary: textSecondary,
+                ),
+                Container(width: 1, height: 26, color: borderColor),
+                _buildColumnData(
+                  label: 'صافي المتبقي',
+                  val: '${_formatAmount(record.remainingSalary)} ر.ي',
+                  valColor: isFullyPaid ? textSecondary : AppColors.success,
+                  textSecondary: textSecondary,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // ── Row 3: Progress Bar ──
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: percent,
+              minHeight: 4,
+              backgroundColor: isDark ? AppColors.surfaceVariantDark : const Color(0xFFE2E8F0),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isFullyPaid
+                    ? AppColors.success
+                    : (percent > 0.85 ? AppColors.error : AppColors.warning),
+              ),
+            ),
+          ),
+
+          const Spacer(),
+
+          // ── Row 4: Action Buttons ──
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: textPrimary,
+                    side: BorderSide(color: borderColor),
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: () => _openRecordAdvanceDialog(
+                    employee: emp,
+                    remaining: record.remainingSalary,
+                  ),
+                  child: const Text(
+                    'تسجيل سلفة',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: isFullyPaid ? AppColors.surfaceVariantDark : AppColors.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: record.remainingSalary <= 0
+                      ? null
+                      : () => _openRecordAdvanceDialog(
+                            employee: emp,
+                            isAdvance: false,
+                            remaining: record.remainingSalary,
+                          ),
+                  child: Text(
+                    isFullyPaid ? 'مكتمل الصرف' : 'صرف المتبقي',
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildColumnData({
+    required String label,
+    required String val,
+    required Color valColor,
+    required Color textSecondary,
+  }) {
     return Column(
       children: [
-        Text(label, style: TextStyle(fontSize: 10, color: labelColor)),
+        Text(
+          label,
+          style: TextStyle(fontSize: 10, color: textSecondary, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 2),
-        Text(value, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: valueColor)),
+        Text(
+          val,
+          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w900, color: valColor),
+        ),
       ],
     );
   }
