@@ -5,7 +5,8 @@ import '../../../../shared/design_system/tokens/colors.dart';
 class UserCardWidget extends StatelessWidget {
   final AppUserModel user;
   final bool isCurrentActive;
-  final VoidCallback? onEdit;
+  final VoidCallback? onManagePermissions;
+  final VoidCallback? onEditBasic;
   final VoidCallback? onDelete;
   final ValueChanged<bool>? onToggleActive;
   final VoidCallback? onSwitchToUser;
@@ -14,7 +15,8 @@ class UserCardWidget extends StatelessWidget {
     required this.user,
     super.key,
     this.isCurrentActive = false,
-    this.onEdit,
+    this.onManagePermissions,
+    this.onEditBasic,
     this.onDelete,
     this.onToggleActive,
     this.onSwitchToUser,
@@ -58,7 +60,7 @@ class UserCardWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-    final border = isDark ? AppColors.borderDark : AppColors.borderLight;
+    final border = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
     final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
     final roleColor = _getRoleColor();
@@ -244,7 +246,7 @@ class UserCardWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                _buildPermissionsSummary(isDark, textPrimary, textSecondary),
+                _buildPermissionsSummary(isDark, textPrimary),
 
                 const SizedBox(height: 12),
                 Divider(color: border, height: 1),
@@ -255,46 +257,58 @@ class UserCardWidget extends StatelessWidget {
                   children: [
                     // Switch to User Button
                     if (!isCurrentActive && user.isActive && onSwitchToUser != null) ...[
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF6366F1),
-                            side: const BorderSide(color: Color(0xFF6366F1), width: 1.2),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          onPressed: onSwitchToUser,
-                          icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                          label: const Text(
-                            'تفعيل هذا الحساب',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF6366F1),
+                          side: const BorderSide(color: Color(0xFF6366F1), width: 1.2),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        onPressed: onSwitchToUser,
+                        icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                        label: const Text(
+                          'تفعيل حسابه',
+                          style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 8),
                     ],
 
-                    // Edit Button
+                    // Manage Permissions Button (Distinct & Prominent)
                     Expanded(
-                      child: FilledButton.tonalIcon(
+                      child: FilledButton.icon(
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.12),
-                          foregroundColor: const Color(0xFF6366F1),
+                          backgroundColor: const Color(0xFF6366F1),
+                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                         ),
-                        onPressed: onEdit,
-                        icon: const Icon(Icons.edit_rounded, size: 17),
+                        onPressed: onManagePermissions,
+                        icon: const Icon(Icons.shield_rounded, size: 17),
                         label: const Text(
-                          'تعديل الصلاحيات',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          'إدارة الصلاحيات',
+                          style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+
+                    // Edit Basic Info Button
+                    if (onEditBasic != null)
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark ? const Color(0xFF232836) : const Color(0xFFF1F5F9),
+                          foregroundColor: textPrimary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        tooltip: 'تعديل البيانات الأساسية',
+                        onPressed: onEditBasic,
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                      ),
 
                     // Delete Button (Disabled for main admin)
                     if (user.id != 'user_admin_001' && onDelete != null) ...[
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       IconButton(
                         style: IconButton.styleFrom(
                           backgroundColor: const Color(0xFFEF4444).withValues(alpha: 0.1),
@@ -316,7 +330,7 @@ class UserCardWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildPermissionsSummary(bool isDark, Color textPrimary, Color textSecondary) {
+  Widget _buildPermissionsSummary(bool isDark, Color textPrimary) {
     const modules = SystemModules.all;
     final List<Widget> moduleChips = [];
 

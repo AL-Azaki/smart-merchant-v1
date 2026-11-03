@@ -24,33 +24,252 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
     super.dispose();
   }
 
-  void _showUserFormModal({AppUserModel? existingUser}) {
-    final nameCtrl = TextEditingController(text: existingUser?.name ?? '');
-    final usernameCtrl = TextEditingController(text: existingUser?.username ?? '');
-    final phoneCtrl = TextEditingController(text: existingUser?.phone ?? '');
-    final passwordCtrl = TextEditingController(text: existingUser?.password ?? '');
-    String selectedPreset = existingUser?.rolePreset ?? 'cashier';
-    final String selectedBranch = existingUser?.branch ?? 'المركز الرئيسي';
+  // ── 1. Quick Add User Modal (Name, Username, Password ONLY) ──
+  void _showAddQuickUserModal() {
+    final nameCtrl = TextEditingController();
+    final usernameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
     bool isPasswordVisible = false;
 
-    // Initialize module permissions map
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final surface = isDark ? const Color(0xFF181B22) : Colors.white;
+            final border = isDark ? const Color(0xFF2C3242) : const Color(0xFFE2E8F0);
+            final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+            final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Header Bar
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.person_add_alt_1_rounded,
+                                color: Color(0xFF6366F1),
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'إضافة مستخدم جديد',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                    color: textPrimary,
+                                  ),
+                                ),
+                                Text(
+                                  'أنشئ حساب الدخول أولاً، وعيّن الصلاحيات لاحقاً بسهولة',
+                                  style: TextStyle(fontSize: 11, color: textSecondary),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor: isDark ? const Color(0xFF252A38) : const Color(0xFFF1F5F9),
+                          ),
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Full Name
+                    SettingsFormFieldWidget(
+                      label: 'الاسم الكامل',
+                      hint: 'مثال: فيصل الكاشير',
+                      isRequired: true,
+                      controller: nameCtrl,
+                      prefixIcon: Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Username
+                    SettingsFormFieldWidget(
+                      label: 'اسم الدخول (Username)',
+                      hint: 'faisal_cashier',
+                      isRequired: true,
+                      controller: usernameCtrl,
+                      prefixIcon: Icons.alternate_email_rounded,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Phone (Optional)
+                    SettingsFormFieldWidget(
+                      label: 'رقم الهاتف (اختياري)',
+                      hint: '77XXXXXXX',
+                      controller: phoneCtrl,
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Password
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'كلمة المرور *',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: passwordCtrl,
+                          obscureText: !isPasswordVisible,
+                          decoration: InputDecoration(
+                            hintText: 'كلمة مرور الدخول للمستخدم',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordVisible
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                setModalState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: border),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 20),
+
+                    // Create User Button
+                    PrimaryButton(
+                      text: 'إنشاء المستخدم الآن',
+                      icon: Icons.check_circle_rounded,
+                      onPressed: () async {
+                        final name = nameCtrl.text.trim();
+                        final username = usernameCtrl.text.trim();
+                        final phone = phoneCtrl.text.trim();
+                        final password = passwordCtrl.text.trim();
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(ctx);
+
+                        if (name.isEmpty) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('يرجى كتابة الاسم الكامل للمستخدم')),
+                          );
+                          return;
+                        }
+
+                        if (username.isEmpty) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('يرجى كتابة اسم الدخول للمستخدم')),
+                          );
+                          return;
+                        }
+
+                        // Create user with default safe cashier preset
+                        final newUser = AppUserModel(
+                          id: 'user_${DateTime.now().millisecondsSinceEpoch}',
+                          name: name,
+                          username: username,
+                          phone: phone.isNotEmpty ? phone : null,
+                          password: password.isNotEmpty ? password : '123',
+                          rolePreset: 'cashier',
+                          branch: 'المركز الرئيسي',
+                          isActive: true,
+                          createdAt: DateTime.now(),
+                          permissions: {
+                            SystemModules.sales: const ModuleActionPermission.viewAndAdd(),
+                            SystemModules.purchases: const ModuleActionPermission.none(),
+                            SystemModules.inventory: const ModuleActionPermission.viewOnly(),
+                            SystemModules.finance: const ModuleActionPermission.none(),
+                            SystemModules.hr: const ModuleActionPermission.none(),
+                            SystemModules.settings: const ModuleActionPermission.none(),
+                          },
+                        );
+
+                        await ref.read(usersListProvider.notifier).saveUser(newUser);
+
+                        navigator.pop();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: const Color(0xFF10B981),
+                            content: Text('تم إنشاء حساب (${newUser.name}) بنجاح'),
+                            action: SnackBarAction(
+                              label: '🛡️ ضبط الصلاحيات الآن',
+                              textColor: Colors.white,
+                              onPressed: () => _showPermissionsModal(newUser),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ── 2. Dedicated Permissions Modal (Presets + 4 Actions Matrix) ──
+  void _showPermissionsModal(AppUserModel user) {
+    String selectedPreset = user.rolePreset;
+
+    // Clone current permissions
     final Map<String, ModuleActionPermission> perms = {};
     for (final mod in SystemModules.all) {
-      if (existingUser != null && existingUser.permissions.containsKey(mod.id)) {
-        perms[mod.id] = existingUser.permissions[mod.id]!;
+      if (user.permissions.containsKey(mod.id)) {
+        perms[mod.id] = user.permissions[mod.id]!;
       } else {
-        // Defaults based on initial preset
-        if (selectedPreset == 'admin') {
-          perms[mod.id] = const ModuleActionPermission.all();
-        } else if (selectedPreset == 'cashier') {
-          perms[mod.id] = mod.id == SystemModules.sales
-              ? const ModuleActionPermission.viewAndAdd()
-              : (mod.id == SystemModules.inventory
-                  ? const ModuleActionPermission.viewOnly()
-                  : const ModuleActionPermission.none());
-        } else {
-          perms[mod.id] = const ModuleActionPermission.none();
-        }
+        perms[mod.id] = const ModuleActionPermission.none();
       }
     }
 
@@ -126,19 +345,15 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
 
             return Container(
               height: MediaQuery.of(context).size.height * 0.90,
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: surface,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Modal Header Bar ──
+                  // Modal Header Bar
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -151,7 +366,7 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: const Icon(
-                              Icons.security_rounded,
+                              Icons.shield_rounded,
                               color: Color(0xFF6366F1),
                               size: 22,
                             ),
@@ -161,9 +376,7 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                existingUser != null
-                                    ? 'تعديل المستخدم والصلاحيات'
-                                    : 'إضافة مستخدم جديد',
+                                'صلاحيات: ${user.name}',
                                 style: TextStyle(
                                   fontSize: 17,
                                   fontWeight: FontWeight.w900,
@@ -171,7 +384,7 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                                 ),
                               ),
                               Text(
-                                'حدد بيانات الحساب وصلاحيات الصفحات بدقة',
+                                'حدد العمليات المصرح بها (عرض، إضافة، تعديل، حذف)',
                                 style: TextStyle(fontSize: 11, color: textSecondary),
                               ),
                             ],
@@ -189,360 +402,238 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                   ),
                   const SizedBox(height: 14),
 
-                  // ── Scrollable Form Body ──
+                  // One-click Presets Bar
+                  Text(
+                    'قوالب الصلاحيات السريعة (بنقرة واحدة):',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: textSecondary),
+                  ),
+                  const SizedBox(height: 8),
+
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildPresetChip('👑 مدير كامل', 'admin', selectedPreset, () => applyPreset('admin', setModalState)),
+                        const SizedBox(width: 6),
+                        _buildPresetChip('🛒 كاشير مبيعات', 'cashier', selectedPreset, () => applyPreset('cashier', setModalState)),
+                        const SizedBox(width: 6),
+                        _buildPresetChip('📦 مسؤول مشتريات', 'purchaser', selectedPreset, () => applyPreset('purchaser', setModalState)),
+                        const SizedBox(width: 6),
+                        _buildPresetChip('🏬 أمين مخزن', 'inventory_keeper', selectedPreset, () => applyPreset('inventory_keeper', setModalState)),
+                        const SizedBox(width: 6),
+                        _buildPresetChip('💰 محاسب مالي', 'accountant', selectedPreset, () => applyPreset('accountant', setModalState)),
+                        const SizedBox(width: 6),
+                        _buildPresetChip('⚙️ مخصص', 'custom', selectedPreset, () => setModalState(() => selectedPreset = 'custom')),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 14),
+                  Divider(color: border, height: 1),
+                  const SizedBox(height: 10),
+
+                  // Scrollable Permissions Matrix Cards
                   Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // ── SECTION 1: User Account Details ──
-                          _buildSectionTitle('1. بيانات الحساب والدخول', isDark),
-                          const SizedBox(height: 10),
+                    child: ListView(
+                      children: SystemModules.all.map((mod) {
+                        final currentPerm = perms[mod.id] ?? const ModuleActionPermission.none();
 
-                          SettingsFormFieldWidget(
-                            label: 'الاسم الكامل للمستخدم',
-                            hint: 'مثال: محمد علي الكاشير',
-                            isRequired: true,
-                            controller: nameCtrl,
-                            prefixIcon: Icons.badge_outlined,
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 10),
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: currentPerm.canView ? mod.color.withValues(alpha: 0.4) : border,
+                            ),
                           ),
-                          const SizedBox(height: 10),
-
-                          Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Expanded(
-                                child: SettingsFormFieldWidget(
-                                  label: 'اسم الدخول',
-                                  hint: 'mohammed_cashier',
-                                  isRequired: true,
-                                  controller: usernameCtrl,
-                                  prefixIcon: Icons.alternate_email_rounded,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: SettingsFormFieldWidget(
-                                  label: 'رقم الهاتف',
-                                  hint: '77XXXXXXX',
-                                  controller: phoneCtrl,
-                                  prefixIcon: Icons.phone_outlined,
-                                  keyboardType: TextInputType.phone,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-
-                          // Password Field with Eye Toggle
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'كلمة المرور *',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: passwordCtrl,
-                                obscureText: !isPasswordVisible,
-                                decoration: InputDecoration(
-                                  hintText: 'كلمة مرور الدخول',
-                                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      isPasswordVisible
-                                          ? Icons.visibility_off_rounded
-                                          : Icons.visibility_rounded,
-                                      size: 18,
+                              // Module Header
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: mod.color.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(mod.icon, size: 16, color: mod.color),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          mod.title,
+                                          style: TextStyle(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.bold,
+                                            color: textPrimary,
+                                          ),
+                                        ),
+                                        Text(
+                                          mod.subtitle,
+                                          style: TextStyle(fontSize: 10, color: textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Quick Toggle All
+                                  TextButton(
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                     ),
                                     onPressed: () {
                                       setModalState(() {
-                                        isPasswordVisible = !isPasswordVisible;
+                                        selectedPreset = 'custom';
+                                        if (currentPerm.isFull) {
+                                          perms[mod.id] = const ModuleActionPermission.none();
+                                        } else {
+                                          perms[mod.id] = const ModuleActionPermission.all();
+                                        }
                                       });
                                     },
-                                  ),
-                                  filled: true,
-                                  fillColor: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                    borderSide: BorderSide(color: border),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          // ── SECTION 2: Role Preset Quick Selection ──
-                          _buildSectionTitle('2. قوالب الصلاحيات الجاهزة (بنقرة واحدة)', isDark),
-                          const SizedBox(height: 8),
-                          Text(
-                            'اختر قالباً سريعاً لملء الصلاحيات تلقائياً، أو خصص الصلاحيات يدوياً بالأسفل:',
-                            style: TextStyle(fontSize: 11, color: textSecondary),
-                          ),
-                          const SizedBox(height: 8),
-
-                          SingleChildScrollView(
-                            scrollDirection: Axis.horizontal,
-                            child: Row(
-                              children: [
-                                _buildPresetChip('👑 مدير كامل', 'admin', selectedPreset, () => applyPreset('admin', setModalState)),
-                                const SizedBox(width: 6),
-                                _buildPresetChip('🛒 كاشير مبيعات', 'cashier', selectedPreset, () => applyPreset('cashier', setModalState)),
-                                const SizedBox(width: 6),
-                                _buildPresetChip('📦 مسؤول مشتريات', 'purchaser', selectedPreset, () => applyPreset('purchaser', setModalState)),
-                                const SizedBox(width: 6),
-                                _buildPresetChip('🏬 أمين مخزن', 'inventory_keeper', selectedPreset, () => applyPreset('inventory_keeper', setModalState)),
-                                const SizedBox(width: 6),
-                                _buildPresetChip('💰 محاسب مالي', 'accountant', selectedPreset, () => applyPreset('accountant', setModalState)),
-                                const SizedBox(width: 6),
-                                _buildPresetChip('⚙️ مخصص', 'custom', selectedPreset, () => setModalState(() => selectedPreset = 'custom')),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 18),
-
-                          // ── SECTION 3: Granular Permissions Matrix ──
-                          _buildSectionTitle('3. تحديد صلاحيات الأقسام (عرض - إضافة - تعديل - حذف)', isDark),
-                          const SizedBox(height: 8),
-
-                          ...SystemModules.all.map((mod) {
-                            final currentPerm = perms[mod.id] ?? const ModuleActionPermission.none();
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: currentPerm.canView ? mod.color.withValues(alpha: 0.4) : border,
-                                ),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  // Module Header
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: mod.color.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Icon(mod.icon, size: 16, color: mod.color),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              mod.title,
-                                              style: TextStyle(
-                                                fontSize: 13.5,
-                                                fontWeight: FontWeight.bold,
-                                                color: textPrimary,
-                                              ),
-                                            ),
-                                            Text(
-                                              mod.subtitle,
-                                              style: TextStyle(fontSize: 10, color: textSecondary),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // Quick Toggle All for this module
-                                      TextButton(
-                                        style: TextButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          minimumSize: Size.zero,
-                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                        onPressed: () {
-                                          setModalState(() {
-                                            selectedPreset = 'custom';
-                                            if (currentPerm.isFull) {
-                                              perms[mod.id] = const ModuleActionPermission.none();
-                                            } else {
-                                              perms[mod.id] = const ModuleActionPermission.all();
-                                            }
-                                          });
-                                        },
-                                        child: Text(
-                                          currentPerm.isFull ? 'إلغاء الكل' : 'تحديد الكل',
-                                          style: TextStyle(fontSize: 11, color: mod.color, fontWeight: FontWeight.bold),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 10),
-
-                                  // Row of 4 Checkbox Action Chips
-                                  Row(
-                                    children: [
-                                      // 1. عرض (View)
-                                      Expanded(
-                                        child: _buildActionChip(
-                                          title: 'عرض',
-                                          icon: Icons.visibility_outlined,
-                                          isSelected: currentPerm.canView,
-                                          color: const Color(0xFF3B82F6),
-                                          isDark: isDark,
-                                          onTap: () {
-                                            setModalState(() {
-                                              selectedPreset = 'custom';
-                                              final nextView = !currentPerm.canView;
-                                              if (!nextView) {
-                                                // Turning off view turns off all sub-actions
-                                                perms[mod.id] = const ModuleActionPermission.none();
-                                              } else {
-                                                perms[mod.id] = currentPerm.copyWith(canView: true);
-                                              }
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-
-                                      // 2. إضافة (Add)
-                                      Expanded(
-                                        child: _buildActionChip(
-                                          title: 'إضافة',
-                                          icon: Icons.add_circle_outline_rounded,
-                                          isSelected: currentPerm.canAdd,
-                                          color: const Color(0xFF10B981),
-                                          isDark: isDark,
-                                          isEnabled: currentPerm.canView,
-                                          onTap: () {
-                                            setModalState(() {
-                                              selectedPreset = 'custom';
-                                              final nextAdd = !currentPerm.canAdd;
-                                              perms[mod.id] = currentPerm.copyWith(
-                                                canView: true,
-                                                canAdd: nextAdd,
-                                              );
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-
-                                      // 3. تعديل (Edit)
-                                      Expanded(
-                                        child: _buildActionChip(
-                                          title: 'تعديل',
-                                          icon: Icons.edit_note_rounded,
-                                          isSelected: currentPerm.canEdit,
-                                          color: const Color(0xFFF59E0B),
-                                          isDark: isDark,
-                                          isEnabled: currentPerm.canView,
-                                          onTap: () {
-                                            setModalState(() {
-                                              selectedPreset = 'custom';
-                                              final nextEdit = !currentPerm.canEdit;
-                                              perms[mod.id] = currentPerm.copyWith(
-                                                canView: true,
-                                                canEdit: nextEdit,
-                                              );
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-
-                                      // 4. حذف (Delete)
-                                      Expanded(
-                                        child: _buildActionChip(
-                                          title: 'حذف',
-                                          icon: Icons.delete_outline_rounded,
-                                          isSelected: currentPerm.canDelete,
-                                          color: const Color(0xFFEF4444),
-                                          isDark: isDark,
-                                          isEnabled: currentPerm.canView,
-                                          onTap: () {
-                                            setModalState(() {
-                                              selectedPreset = 'custom';
-                                              final nextDelete = !currentPerm.canDelete;
-                                              perms[mod.id] = currentPerm.copyWith(
-                                                canView: true,
-                                                canDelete: nextDelete,
-                                              );
-                                            });
-                                          },
-                                        ),
-                                      ),
-                                    ],
+                                    child: Text(
+                                      currentPerm.isFull ? 'إلغاء الكل' : 'تحديد الكل',
+                                      style: TextStyle(fontSize: 11, color: mod.color, fontWeight: FontWeight.bold),
+                                    ),
                                   ),
                                 ],
                               ),
-                            );
-                          }),
+                              const SizedBox(height: 10),
 
-                          const SizedBox(height: 20),
+                              // Row of 4 Checkbox Action Chips
+                              Row(
+                                children: [
+                                  // 1. عرض (View)
+                                  Expanded(
+                                    child: _buildActionChip(
+                                      title: 'عرض',
+                                      icon: Icons.visibility_outlined,
+                                      isSelected: currentPerm.canView,
+                                      color: const Color(0xFF3B82F6),
+                                      isDark: isDark,
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedPreset = 'custom';
+                                          final nextView = !currentPerm.canView;
+                                          if (!nextView) {
+                                            perms[mod.id] = const ModuleActionPermission.none();
+                                          } else {
+                                            perms[mod.id] = currentPerm.copyWith(canView: true);
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
 
-                          // ── Save Button ──
-                          PrimaryButton(
-                            text: existingUser != null ? 'حفظ تعديلات المستخدم والصلاحيات' : 'إضافة المستخدم واعتماد الصلاحيات',
-                            icon: Icons.check_circle_rounded,
-                            onPressed: () async {
-                              final name = nameCtrl.text.trim();
-                              final username = usernameCtrl.text.trim();
-                              final phone = phoneCtrl.text.trim();
-                              final password = passwordCtrl.text.trim();
-                              final messenger = ScaffoldMessenger.of(context);
-                              final navigator = Navigator.of(ctx);
+                                  // 2. إضافة (Add)
+                                  Expanded(
+                                    child: _buildActionChip(
+                                      title: 'إضافة',
+                                      icon: Icons.add_circle_outline_rounded,
+                                      isSelected: currentPerm.canAdd,
+                                      color: const Color(0xFF10B981),
+                                      isDark: isDark,
+                                      isEnabled: currentPerm.canView,
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedPreset = 'custom';
+                                          final nextAdd = !currentPerm.canAdd;
+                                          perms[mod.id] = currentPerm.copyWith(
+                                            canView: true,
+                                            canAdd: nextAdd,
+                                          );
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
 
-                              if (name.isEmpty) {
-                                messenger.showSnackBar(
-                                  const SnackBar(content: Text('يرجى إدخال اسم المستخدم الكامل')),
-                                );
-                                return;
-                              }
+                                  // 3. تعديل (Edit)
+                                  Expanded(
+                                    child: _buildActionChip(
+                                      title: 'تعديل',
+                                      icon: Icons.edit_note_rounded,
+                                      isSelected: currentPerm.canEdit,
+                                      color: const Color(0xFFF59E0B),
+                                      isDark: isDark,
+                                      isEnabled: currentPerm.canView,
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedPreset = 'custom';
+                                          final nextEdit = !currentPerm.canEdit;
+                                          perms[mod.id] = currentPerm.copyWith(
+                                            canView: true,
+                                            canEdit: nextEdit,
+                                          );
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
 
-                              if (username.isEmpty) {
-                                messenger.showSnackBar(
-                                  const SnackBar(content: Text('يرجى إدخال اسم المستخدم للدخول')),
-                                );
-                                return;
-                              }
-
-                              final userToSave = AppUserModel(
-                                id: existingUser?.id ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
-                                name: name,
-                                username: username,
-                                phone: phone.isNotEmpty ? phone : null,
-                                password: password.isNotEmpty ? password : (existingUser?.password ?? '123'),
-                                rolePreset: selectedPreset,
-                                branch: selectedBranch,
-                                isActive: existingUser?.isActive ?? true,
-                                createdAt: existingUser?.createdAt ?? DateTime.now(),
-                                permissions: perms,
-                              );
-
-                              await ref.read(usersListProvider.notifier).saveUser(userToSave);
-
-                              navigator.pop();
-                              messenger.showSnackBar(
-                                SnackBar(
-                                  backgroundColor: const Color(0xFF10B981),
-                                  content: Text('تم حفظ بيانات وصلاحيات (${userToSave.name}) بنجاح'),
-                                ),
-                              );
-                            },
+                                  // 4. حذف (Delete)
+                                  Expanded(
+                                    child: _buildActionChip(
+                                      title: 'حذف',
+                                      icon: Icons.delete_outline_rounded,
+                                      isSelected: currentPerm.canDelete,
+                                      color: const Color(0xFFEF4444),
+                                      isDark: isDark,
+                                      isEnabled: currentPerm.canView,
+                                      onTap: () {
+                                        setModalState(() {
+                                          selectedPreset = 'custom';
+                                          final nextDelete = !currentPerm.canDelete;
+                                          perms[mod.id] = currentPerm.copyWith(
+                                            canView: true,
+                                            canDelete: nextDelete,
+                                          );
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                        ],
-                      ),
+                        );
+                      }).toList(),
                     ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Save Permissions Button
+                  PrimaryButton(
+                    text: 'حفظ واعتماد الصلاحيات في قاعدة البيانات',
+                    icon: Icons.save_rounded,
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(ctx);
+
+                      await ref.read(usersListProvider.notifier).updatePermissions(
+                        userId: user.id,
+                        rolePreset: selectedPreset,
+                        permissions: perms,
+                      );
+
+                      navigator.pop();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF10B981),
+                          content: Text('تم تحديث صلاحيات (${user.name}) وحفظها بنجاح'),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -553,14 +644,174 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
     );
   }
 
-  Widget _buildSectionTitle(String title, bool isDark) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 13.5,
-        fontWeight: FontWeight.w900,
-        color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
-      ),
+  // ── 3. Edit User Basic Info Modal (Name, Phone, Password) ──
+  void _showEditUserBasicInfoModal(AppUserModel user) {
+    final nameCtrl = TextEditingController(text: user.name);
+    final usernameCtrl = TextEditingController(text: user.username);
+    final phoneCtrl = TextEditingController(text: user.phone ?? '');
+    final passwordCtrl = TextEditingController(text: user.password);
+    bool isPasswordVisible = false;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final surface = isDark ? const Color(0xFF181B22) : Colors.white;
+            final border = isDark ? const Color(0xFF2C3242) : const Color(0xFFE2E8F0);
+            final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              decoration: BoxDecoration(
+                color: surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'تعديل بيانات الحساب: ${user.name}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            color: textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+
+                    SettingsFormFieldWidget(
+                      label: 'الاسم الكامل',
+                      isRequired: true,
+                      controller: nameCtrl,
+                      prefixIcon: Icons.badge_outlined,
+                    ),
+                    const SizedBox(height: 10),
+
+                    SettingsFormFieldWidget(
+                      label: 'اسم الدخول',
+                      isRequired: true,
+                      controller: usernameCtrl,
+                      prefixIcon: Icons.alternate_email_rounded,
+                    ),
+                    const SizedBox(height: 10),
+
+                    SettingsFormFieldWidget(
+                      label: 'رقم الهاتف',
+                      controller: phoneCtrl,
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Password
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'كلمة المرور',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: passwordCtrl,
+                          obscureText: !isPasswordVisible,
+                          decoration: InputDecoration(
+                            hintText: 'كلمة المرور',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                isPasswordVisible
+                                    ? Icons.visibility_off_rounded
+                                    : Icons.visibility_rounded,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                setModalState(() {
+                                  isPasswordVisible = !isPasswordVisible;
+                                });
+                              },
+                            ),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(color: border),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    PrimaryButton(
+                      text: 'حفظ التعديلات',
+                      icon: Icons.check_circle_rounded,
+                      onPressed: () async {
+                        final name = nameCtrl.text.trim();
+                        final username = usernameCtrl.text.trim();
+                        final phone = phoneCtrl.text.trim();
+                        final password = passwordCtrl.text.trim();
+                        final messenger = ScaffoldMessenger.of(context);
+                        final navigator = Navigator.of(ctx);
+
+                        if (name.isEmpty || username.isEmpty) {
+                          messenger.showSnackBar(
+                            const SnackBar(content: Text('الاسم واسم الدخول مطلوبان')),
+                          );
+                          return;
+                        }
+
+                        final updated = user.copyWith(
+                          name: name,
+                          username: username,
+                          phone: phone.isNotEmpty ? phone : null,
+                          password: password.isNotEmpty ? password : user.password,
+                        );
+
+                        await ref.read(usersListProvider.notifier).saveUser(updated);
+
+                        navigator.pop();
+                        messenger.showSnackBar(
+                          SnackBar(
+                            backgroundColor: const Color(0xFF10B981),
+                            content: Text('تم تحديث بيانات (${updated.name}) بنجاح'),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -816,9 +1067,9 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
 
             // ── Add New User Button ──
             PrimaryButton(
-              text: 'إضافة مستخدم جديد وتحديد صلاحياته',
+              text: 'إضافة مستخدم جديد (سريع)',
               icon: Icons.person_add_alt_1_rounded,
-              onPressed: () => _showUserFormModal(),
+              onPressed: () => _showAddQuickUserModal(),
             ),
             const SizedBox(height: 16),
 
@@ -851,7 +1102,8 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                   return UserCardWidget(
                     user: user,
                     isCurrentActive: isCurrent,
-                    onEdit: () => _showUserFormModal(existingUser: user),
+                    onManagePermissions: () => _showPermissionsModal(user),
+                    onEditBasic: () => _showEditUserBasicInfoModal(user),
                     onToggleActive: (val) => ref.read(usersListProvider.notifier).toggleStatus(user.id),
                     onSwitchToUser: () async {
                       final messenger = ScaffoldMessenger.of(context);

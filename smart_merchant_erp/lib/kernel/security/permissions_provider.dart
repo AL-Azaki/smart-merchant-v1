@@ -74,9 +74,25 @@ class UsersListNotifier extends StateNotifier<List<AppUserModel>> {
   Future<void> saveUser(AppUserModel user) async {
     final updatedList = await UserPermissionsService.saveUser(user);
     state = updatedList;
-    // If the edited user is currently active, refresh active user state
     final activeId = await UserPermissionsService.getActiveUserId();
     if (activeId == user.id) {
+      await _ref.read(activeUserProvider.notifier).refresh();
+    }
+  }
+
+  Future<void> updatePermissions({
+    required String userId,
+    required String rolePreset,
+    required Map<String, ModuleActionPermission> permissions,
+  }) async {
+    final updatedList = await UserPermissionsService.updateUserPermissions(
+      userId: userId,
+      rolePreset: rolePreset,
+      permissions: permissions,
+    );
+    state = updatedList;
+    final activeId = await UserPermissionsService.getActiveUserId();
+    if (activeId == userId) {
       await _ref.read(activeUserProvider.notifier).refresh();
     }
   }
