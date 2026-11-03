@@ -1,46 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
 import '../widgets/settings_form_field_widget.dart';
-import '../widgets/settings_header_widget.dart';
 import '../widgets/user_card_widget.dart';
 
-class UsersManagementView extends StatefulWidget {
+class UsersManagementView extends ConsumerStatefulWidget {
   const UsersManagementView({super.key});
 
   @override
-  State<UsersManagementView> createState() => _UsersManagementViewState();
+  ConsumerState<UsersManagementView> createState() => _UsersManagementViewState();
 }
 
-class _UsersManagementViewState extends State<UsersManagementView> {
+class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
-
-  // Mock Users Data
-  late List<UserCardModel> _allUsers;
-
-  @override
-  void initState() {
-    super.initState();
-    _allUsers = const [
-      UserCardModel(
-        id: '1',
-        name: 'مدير النظام',
-        role: 'مدير النظام (Admin)',
-        branch: 'الفرع الرئيسي',
-        initialLetter: 'م',
-        isActive: true,
-        avatarColor: Color(0xFF6366F1),
-      ),
-    ];
-
-    _searchController.addListener(() {
-      setState(() {
-        _searchQuery = _searchController.text;
-      });
-    });
-  }
+  String _selectedRoleFilter = 'الكل';
 
   @override
   void dispose() {
@@ -48,404 +24,92 @@ class _UsersManagementViewState extends State<UsersManagementView> {
     super.dispose();
   }
 
-  List<UserCardModel> get _filteredUsers {
-    if (_searchQuery.trim().isEmpty) return _allUsers;
-    final q = _searchQuery.trim().toLowerCase();
-    return _allUsers.where((u) {
-      return u.name.toLowerCase().contains(q) ||
-          u.role.toLowerCase().contains(q) ||
-          u.branch.toLowerCase().contains(q);
-    }).toList();
-  }
+  void _showUserFormModal({AppUserModel? existingUser}) {
+    final nameCtrl = TextEditingController(text: existingUser?.name ?? '');
+    final usernameCtrl = TextEditingController(text: existingUser?.username ?? '');
+    final phoneCtrl = TextEditingController(text: existingUser?.phone ?? '');
+    final passwordCtrl = TextEditingController(text: existingUser?.password ?? '');
+    String selectedPreset = existingUser?.rolePreset ?? 'cashier';
+    final String selectedBranch = existingUser?.branch ?? 'المركز الرئيسي';
+    bool isPasswordVisible = false;
 
-  // 1. Modal: Add New User Modal (إضافة مستخدم جديد)
-  void _showAddUserModal() {
-    final nameCtrl = TextEditingController();
-    final usernameCtrl = TextEditingController();
-    final phoneCtrl = TextEditingController();
-    final passwordCtrl = TextEditingController();
-    String selectedRole = 'مدير النظام (Admin)';
-    String selectedBranch = 'الفرع الرئيسي';
-    bool isActive = true;
+    // Initialize module permissions map
+    final Map<String, ModuleActionPermission> perms = {};
+    for (final mod in SystemModules.all) {
+      if (existingUser != null && existingUser.permissions.containsKey(mod.id)) {
+        perms[mod.id] = existingUser.permissions[mod.id]!;
+      } else {
+        // Defaults based on initial preset
+        if (selectedPreset == 'admin') {
+          perms[mod.id] = const ModuleActionPermission.all();
+        } else if (selectedPreset == 'cashier') {
+          perms[mod.id] = mod.id == SystemModules.sales
+              ? const ModuleActionPermission.viewAndAdd()
+              : (mod.id == SystemModules.inventory
+                  ? const ModuleActionPermission.viewOnly()
+                  : const ModuleActionPermission.none());
+        } else {
+          perms[mod.id] = const ModuleActionPermission.none();
+        }
+      }
+    }
 
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            final surface = isDark
-                ? AppColors.surfaceDark
-                : AppColors.surfaceLight;
-            final border = isDark
-                ? AppColors.borderDark
-                : AppColors.borderLight;
-
-            return Container(
-              padding: EdgeInsets.only(
-                left: AppSpacing.lg,
-                right: AppSpacing.lg,
-                top: AppSpacing.lg,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
-              ),
-              decoration: BoxDecoration(
-                color: surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSpacing.radiusXl),
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Bar with Icon & Title & Close Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.sm),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  AppSpacing.radiusMd,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.person_add_alt_1_rounded,
-                                color: AppColors.primary,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm + 2),
-                            Text(
-                              'إضافة مستخدم جديد',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF374151)
-                                  : const Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, size: 18),
-                          ),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Full Name Field
-                    SettingsFormFieldWidget(
-                      label: 'الاسم الكامل',
-                      hint: 'مثال: أحمد محمد',
-                      isRequired: true,
-                      controller: nameCtrl,
-                      prefixIcon: Icons.person_outline_rounded,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Username Field
-                    SettingsFormFieldWidget(
-                      label: 'اسم المستخدم (للدخول)',
-                      hint: 'ahmed_m',
-                      isRequired: true,
-                      controller: usernameCtrl,
-                      prefixIcon: Icons.alternate_email_rounded,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Phone Number Field
-                    SettingsFormFieldWidget(
-                      label: 'رقم الهاتف',
-                      hint: '05XXXXXXXX',
-                      controller: phoneCtrl,
-                      prefixIcon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Password Field
-                    SettingsFormFieldWidget(
-                      label: 'كلمة المرور',
-                      hint: '*****',
-                      isRequired: true,
-                      controller: passwordCtrl,
-                      prefixIcon: Icons.lock_outline_rounded,
-                      keyboardType: TextInputType.visiblePassword,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Dropdowns Row: Role & Branch
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'دور المستخدم (الصلاحيات) *',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.md,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF1F2937)
-                                      : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusMd,
-                                  ),
-                                  border: Border.all(color: border, width: 1.5),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedRole,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimaryLight,
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'مدير النظام (Admin)',
-                                        child: Text('مدير النظام (Admin)'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'كاشير مبيعات (Cashier)',
-                                        child: Text('كاشير مبيعات (Cashier)'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'أمين مخزن (Inventory Manager)',
-                                        child: Text(
-                                          'أمين مخزن (Inventory Manager)',
-                                        ),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null)
-                                        setModalState(() => selectedRole = val);
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'الفرع المتاح *',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.md,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF1F2937)
-                                      : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusMd,
-                                  ),
-                                  border: Border.all(color: border, width: 1.5),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedBranch,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimaryLight,
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'الفرع الرئيسي',
-                                        child: Text('الفرع الرئيسي'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'فرع المعلا',
-                                        child: Text('فرع المعلا'),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null)
-                                        setModalState(
-                                          () => selectedBranch = val,
-                                        );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Active Status Checkbox Container
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1F2937)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusMd,
-                        ),
-                        border: Border.all(color: border, width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: isActive,
-                            activeColor: AppColors.primary,
-                            onChanged: (val) {
-                              if (val != null)
-                                setModalState(() => isActive = val);
-                            },
-                          ),
-                          Text(
-                            'حساب نشط',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Action Buttons Row: Cancel & Save
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PrimaryButton(
-                            text: 'حفظ البيانات',
-                            icon: Icons.check_rounded,
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: const Text(
-                                    'تم إضافة المستخدم بنجاح',
-                                  ),
-                                  backgroundColor: AppColors.success,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppSpacing.radiusMd,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: SizedBox(
-                            height: 52,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: border, width: 1.5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusLg,
-                                  ),
-                                ),
-                              ),
-                              onPressed: () => Navigator.pop(ctx),
-                              child: Text(
-                                'إلغاء',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // 2. Modal: Edit User Modal (تعديل المستخدم)
-  void _showEditUserModal(UserCardModel user) {
-    final nameCtrl = TextEditingController(text: user.name);
-    final usernameCtrl = TextEditingController(text: 'admin_user');
-    final phoneCtrl = TextEditingController(text: '771234567');
-    final passwordCtrl = TextEditingController();
-    String selectedRole = user.role.contains('Admin')
-        ? 'مدير النظام (Admin)'
-        : 'كاشير مبيعات (Cashier)';
-    String selectedBranch = user.branch;
-    bool isActive = user.isActive;
+    void applyPreset(String preset, void Function(void Function()) setModalState) {
+      setModalState(() {
+        selectedPreset = preset;
+        switch (preset) {
+          case 'admin':
+            for (final m in SystemModules.all) {
+              perms[m.id] = const ModuleActionPermission.all();
+            }
+            break;
+          case 'cashier':
+            for (final m in SystemModules.all) {
+              if (m.id == SystemModules.sales) {
+                perms[m.id] = const ModuleActionPermission.viewAndAdd();
+              } else if (m.id == SystemModules.inventory) {
+                perms[m.id] = const ModuleActionPermission.viewOnly();
+              } else {
+                perms[m.id] = const ModuleActionPermission.none();
+              }
+            }
+            break;
+          case 'purchaser':
+            for (final m in SystemModules.all) {
+              if (m.id == SystemModules.purchases) {
+                perms[m.id] = const ModuleActionPermission.viewAddEdit();
+              } else if (m.id == SystemModules.inventory) {
+                perms[m.id] = const ModuleActionPermission.viewOnly();
+              } else {
+                perms[m.id] = const ModuleActionPermission.none();
+              }
+            }
+            break;
+          case 'inventory_keeper':
+            for (final m in SystemModules.all) {
+              if (m.id == SystemModules.inventory) {
+                perms[m.id] = const ModuleActionPermission.viewAddEdit();
+              } else if (m.id == SystemModules.sales || m.id == SystemModules.purchases) {
+                perms[m.id] = const ModuleActionPermission.viewOnly();
+              } else {
+                perms[m.id] = const ModuleActionPermission.none();
+              }
+            }
+            break;
+          case 'accountant':
+            for (final m in SystemModules.all) {
+              if (m.id == SystemModules.finance) {
+                perms[m.id] = const ModuleActionPermission.viewAddEdit();
+              } else if (m.id == SystemModules.sales || m.id == SystemModules.purchases || m.id == SystemModules.inventory) {
+                perms[m.id] = const ModuleActionPermission.viewOnly();
+              } else {
+                perms[m.id] = const ModuleActionPermission.none();
+              }
+            }
+            break;
+        }
+      });
+    }
 
     showModalBottomSheet<void>(
       context: context,
@@ -455,770 +119,816 @@ class _UsersManagementViewState extends State<UsersManagementView> {
         return StatefulBuilder(
           builder: (context, setModalState) {
             final isDark = Theme.of(context).brightness == Brightness.dark;
-            final surface = isDark
-                ? AppColors.surfaceDark
-                : AppColors.surfaceLight;
-            final border = isDark
-                ? AppColors.borderDark
-                : AppColors.borderLight;
+            final surface = isDark ? const Color(0xFF181B22) : Colors.white;
+            final border = isDark ? const Color(0xFF2C3242) : const Color(0xFFE2E8F0);
+            final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+            final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
 
             return Container(
+              height: MediaQuery.of(context).size.height * 0.90,
               padding: EdgeInsets.only(
-                left: AppSpacing.lg,
-                right: AppSpacing.lg,
-                top: AppSpacing.lg,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom + AppSpacing.lg,
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
               ),
               decoration: BoxDecoration(
                 color: surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppSpacing.radiusXl),
-                ),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Header Bar with Icon & Title & Close Button
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(AppSpacing.sm),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(
-                                  alpha: 0.12,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  AppSpacing.radiusMd,
-                                ),
-                              ),
-                              child: const Icon(
-                                Icons.manage_accounts_rounded,
-                                color: AppColors.primary,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm + 2),
-                            Text(
-                              'تعديل المستخدم',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: isDark
-                                    ? AppColors.textPrimaryDark
-                                    : AppColors.textPrimaryLight,
-                              ),
-                            ),
-                          ],
-                        ),
-                        IconButton(
-                          icon: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: isDark
-                                  ? const Color(0xFF374151)
-                                  : const Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.close_rounded, size: 18),
-                          ),
-                          onPressed: () => Navigator.pop(ctx),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Full Name Field
-                    SettingsFormFieldWidget(
-                      label: 'الاسم الكامل',
-                      isRequired: true,
-                      controller: nameCtrl,
-                      prefixIcon: Icons.person_outline_rounded,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Username Field
-                    SettingsFormFieldWidget(
-                      label: 'اسم المستخدم (للدخول)',
-                      isRequired: true,
-                      controller: usernameCtrl,
-                      prefixIcon: Icons.alternate_email_rounded,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Phone Number Field
-                    SettingsFormFieldWidget(
-                      label: 'رقم الهاتف',
-                      controller: phoneCtrl,
-                      prefixIcon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Password Field (Optional on edit)
-                    SettingsFormFieldWidget(
-                      label: 'كلمة المرور',
-                      hint: 'اترك فارغاً لعدم التغيير',
-                      controller: passwordCtrl,
-                      prefixIcon: Icons.lock_outline_rounded,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Dropdowns Row: Role & Branch
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'دور المستخدم (الصلاحيات) *',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.md,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF1F2937)
-                                      : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusMd,
-                                  ),
-                                  border: Border.all(color: border, width: 1.5),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedRole,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimaryLight,
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'مدير النظام (Admin)',
-                                        child: Text('مدير النظام (Admin)'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'كاشير مبيعات (Cashier)',
-                                        child: Text('كاشير مبيعات (Cashier)'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'أمين مخزن (Inventory Manager)',
-                                        child: Text(
-                                          'أمين مخزن (Inventory Manager)',
-                                        ),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null)
-                                        setModalState(() => selectedRole = val);
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'الفرع المتاح *',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: AppSpacing.md,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: isDark
-                                      ? const Color(0xFF1F2937)
-                                      : const Color(0xFFF8FAFC),
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusMd,
-                                  ),
-                                  border: Border.all(color: border, width: 1.5),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: selectedBranch,
-                                    isExpanded: true,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: isDark
-                                          ? AppColors.textPrimaryDark
-                                          : AppColors.textPrimaryLight,
-                                    ),
-                                    items: const [
-                                      DropdownMenuItem(
-                                        value: 'الفرع الرئيسي',
-                                        child: Text('الفرع الرئيسي'),
-                                      ),
-                                      DropdownMenuItem(
-                                        value: 'فرع المعلا',
-                                        child: Text('فرع المعلا'),
-                                      ),
-                                    ],
-                                    onChanged: (val) {
-                                      if (val != null)
-                                        setModalState(
-                                          () => selectedBranch = val,
-                                        );
-                                    },
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-
-                    // Active Checkbox Tile
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1F2937)
-                            : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(
-                          AppSpacing.radiusMd,
-                        ),
-                        border: Border.all(color: border, width: 1.5),
-                      ),
-                      child: Row(
-                        children: [
-                          Checkbox(
-                            value: isActive,
-                            activeColor: AppColors.primary,
-                            onChanged: (val) {
-                              if (val != null)
-                                setModalState(() => isActive = val);
-                            },
-                          ),
-                          Text(
-                            'حساب نشط',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: AppSpacing.xl),
-
-                    // Action Buttons Row: Save & Cancel
-                    Row(
-                      children: [
-                        Expanded(
-                          child: PrimaryButton(
-                            text: 'حفظ البيانات',
-                            icon: Icons.check_rounded,
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'تم تحديث بيانات المستخدم (${user.name}) بنجاح',
-                                  ),
-                                  backgroundColor: AppColors.success,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(
-                                      AppSpacing.radiusMd,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: SizedBox(
-                            height: 52,
-                            child: OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: border, width: 1.5),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusLg,
-                                  ),
-                                ),
-                              ),
-                              onPressed: () => Navigator.pop(ctx),
-                              child: Text(
-                                'إلغاء',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  // 3. Modal: Confirm Delete User Modal (تأكيد الحذف)
-  void _showDeleteConfirmModal(UserCardModel user) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
-        final border = isDark ? AppColors.borderDark : AppColors.borderLight;
-
-        return Dialog(
-          backgroundColor: surface,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSpacing.radiusXl),
-            side: BorderSide(color: border, width: 1.5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xl),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Red Warning Icon Container
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.warning_amber_rounded,
-                    color: AppColors.error,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.md),
-
-                // Dialog Title
-                Text(
-                  'تأكيد الحذف',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                    color: isDark
-                        ? AppColors.textPrimaryDark
-                        : AppColors.textPrimaryLight,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
-
-                // Dialog Warning Message Body
-                Text(
-                  'هل أنت متأكد من أنك تريد حذف "${user.name}"؟ لا يمكن التراجع عن هذا الإجراء.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: isDark
-                        ? AppColors.textSecondaryDark
-                        : AppColors.textSecondaryLight,
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.xl),
-
-                // Action Buttons Row: Red Delete Button & Cancel Button
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSpacing.radiusLg,
-                              ),
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            setState(() {
-                              _allUsers.removeWhere((u) => u.id == user.id);
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('تم حذف المستخدم (${user.name})'),
-                                backgroundColor: AppColors.error,
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    AppSpacing.radiusMd,
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'حذف نهائي',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: SizedBox(
-                        height: 48,
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: border, width: 1.5),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppSpacing.radiusLg,
-                              ),
-                            ),
-                          ),
-                          onPressed: () => Navigator.pop(ctx),
-                          child: Text(
-                            'إلغاء',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: isDark
-                                  ? AppColors.textPrimaryDark
-                                  : AppColors.textPrimaryLight,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final filtered = _filteredUsers;
-
-    return Scaffold(
-      backgroundColor: isDark
-          ? AppColors.backgroundDark
-          : AppColors.backgroundLight,
-      body: Column(
-        children: [
-          // Header Bar
-          SettingsHeaderWidget(
-            title: 'إدارة المستخدمين',
-            description: 'إدارة حسابات الموظفين وصلاحيات الوصول والربط بالفروع',
-            onBackTap: () => Navigator.of(context).pop(),
-          ),
-
-          // Main Scrollable Area
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1100),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Column(
+                children: [
+                  // ── Modal Header Bar ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Top Action Bar: Header Info + "+ إضافة مستخدم" Button
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isMobile = constraints.maxWidth < 600;
-
-                          if (isMobile) {
-                            return Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(
-                                        AppSpacing.sm + 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.primary.withValues(
-                                          alpha: 0.12,
-                                        ),
-                                        borderRadius: BorderRadius.circular(
-                                          AppSpacing.radiusMd,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.people_alt_rounded,
-                                        color: AppColors.primary,
-                                        size: 24,
-                                      ),
-                                    ),
-                                    const SizedBox(width: AppSpacing.md),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'إدارة المستخدمين',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w900,
-                                            color: isDark
-                                                ? AppColors.textPrimaryDark
-                                                : AppColors.textPrimaryLight,
-                                          ),
-                                        ),
-                                        Text(
-                                          '${_allUsers.length} مستخدم',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            color: isDark
-                                                ? AppColors.textSecondaryDark
-                                                : AppColors.textSecondaryLight,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                                PrimaryButton(
-                                  text: 'إضافة مستخدم',
-                                  icon: Icons.add_rounded,
-                                  onPressed: _showAddUserModal,
-                                ),
-                              ],
-                            );
-                          }
-
-                          return Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(
+                              Icons.security_rounded,
+                              color: Color(0xFF6366F1),
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(
-                                      AppSpacing.sm + 2,
+                              Text(
+                                existingUser != null
+                                    ? 'تعديل المستخدم والصلاحيات'
+                                    : 'إضافة مستخدم جديد',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w900,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              Text(
+                                'حدد بيانات الحساب وصلاحيات الصفحات بدقة',
+                                style: TextStyle(fontSize: 11, color: textSecondary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        style: IconButton.styleFrom(
+                          backgroundColor: isDark ? const Color(0xFF252A38) : const Color(0xFFF1F5F9),
+                        ),
+                        icon: const Icon(Icons.close_rounded, size: 20),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // ── Scrollable Form Body ──
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // ── SECTION 1: User Account Details ──
+                          _buildSectionTitle('1. بيانات الحساب والدخول', isDark),
+                          const SizedBox(height: 10),
+
+                          SettingsFormFieldWidget(
+                            label: 'الاسم الكامل للمستخدم',
+                            hint: 'مثال: محمد علي الكاشير',
+                            isRequired: true,
+                            controller: nameCtrl,
+                            prefixIcon: Icons.badge_outlined,
+                          ),
+                          const SizedBox(height: 10),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: SettingsFormFieldWidget(
+                                  label: 'اسم الدخول',
+                                  hint: 'mohammed_cashier',
+                                  isRequired: true,
+                                  controller: usernameCtrl,
+                                  prefixIcon: Icons.alternate_email_rounded,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: SettingsFormFieldWidget(
+                                  label: 'رقم الهاتف',
+                                  hint: '77XXXXXXX',
+                                  controller: phoneCtrl,
+                                  prefixIcon: Icons.phone_outlined,
+                                  keyboardType: TextInputType.phone,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+
+                          // Password Field with Eye Toggle
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'كلمة المرور *',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              TextField(
+                                controller: passwordCtrl,
+                                obscureText: !isPasswordVisible,
+                                decoration: InputDecoration(
+                                  hintText: 'كلمة مرور الدخول',
+                                  prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18),
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      isPasswordVisible
+                                          ? Icons.visibility_off_rounded
+                                          : Icons.visibility_rounded,
+                                      size: 18,
                                     ),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(
-                                        AppSpacing.radiusMd,
-                                      ),
-                                    ),
-                                    child: const Icon(
-                                      Icons.people_alt_rounded,
-                                      color: AppColors.primary,
-                                      size: 24,
-                                    ),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        isPasswordVisible = !isPasswordVisible;
+                                      });
+                                    },
                                   ),
-                                  const SizedBox(width: AppSpacing.md),
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  filled: true,
+                                  fillColor: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                    borderSide: BorderSide(color: border),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // ── SECTION 2: Role Preset Quick Selection ──
+                          _buildSectionTitle('2. قوالب الصلاحيات الجاهزة (بنقرة واحدة)', isDark),
+                          const SizedBox(height: 8),
+                          Text(
+                            'اختر قالباً سريعاً لملء الصلاحيات تلقائياً، أو خصص الصلاحيات يدوياً بالأسفل:',
+                            style: TextStyle(fontSize: 11, color: textSecondary),
+                          ),
+                          const SizedBox(height: 8),
+
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: [
+                                _buildPresetChip('👑 مدير كامل', 'admin', selectedPreset, () => applyPreset('admin', setModalState)),
+                                const SizedBox(width: 6),
+                                _buildPresetChip('🛒 كاشير مبيعات', 'cashier', selectedPreset, () => applyPreset('cashier', setModalState)),
+                                const SizedBox(width: 6),
+                                _buildPresetChip('📦 مسؤول مشتريات', 'purchaser', selectedPreset, () => applyPreset('purchaser', setModalState)),
+                                const SizedBox(width: 6),
+                                _buildPresetChip('🏬 أمين مخزن', 'inventory_keeper', selectedPreset, () => applyPreset('inventory_keeper', setModalState)),
+                                const SizedBox(width: 6),
+                                _buildPresetChip('💰 محاسب مالي', 'accountant', selectedPreset, () => applyPreset('accountant', setModalState)),
+                                const SizedBox(width: 6),
+                                _buildPresetChip('⚙️ مخصص', 'custom', selectedPreset, () => setModalState(() => selectedPreset = 'custom')),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 18),
+
+                          // ── SECTION 3: Granular Permissions Matrix ──
+                          _buildSectionTitle('3. تحديد صلاحيات الأقسام (عرض - إضافة - تعديل - حذف)', isDark),
+                          const SizedBox(height: 8),
+
+                          ...SystemModules.all.map((mod) {
+                            final currentPerm = perms[mod.id] ?? const ModuleActionPermission.none();
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E222D) : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: currentPerm.canView ? mod.color.withValues(alpha: 0.4) : border,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  // Module Header
+                                  Row(
                                     children: [
-                                      Text(
-                                        'إدارة المستخدمين',
-                                        style: TextStyle(
-                                          fontSize: 19,
-                                          fontWeight: FontWeight.w900,
-                                          color: isDark
-                                              ? AppColors.textPrimaryDark
-                                              : AppColors.textPrimaryLight,
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: mod.color.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Icon(mod.icon, size: 16, color: mod.color),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              mod.title,
+                                              style: TextStyle(
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.bold,
+                                                color: textPrimary,
+                                              ),
+                                            ),
+                                            Text(
+                                              mod.subtitle,
+                                              style: TextStyle(fontSize: 10, color: textSecondary),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      Text(
-                                        '${_allUsers.length} مستخدم',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: isDark
-                                              ? AppColors.textSecondaryDark
-                                              : AppColors.textSecondaryLight,
+                                      // Quick Toggle All for this module
+                                      TextButton(
+                                        style: TextButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          minimumSize: Size.zero,
+                                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        ),
+                                        onPressed: () {
+                                          setModalState(() {
+                                            selectedPreset = 'custom';
+                                            if (currentPerm.isFull) {
+                                              perms[mod.id] = const ModuleActionPermission.none();
+                                            } else {
+                                              perms[mod.id] = const ModuleActionPermission.all();
+                                            }
+                                          });
+                                        },
+                                        child: Text(
+                                          currentPerm.isFull ? 'إلغاء الكل' : 'تحديد الكل',
+                                          style: TextStyle(fontSize: 11, color: mod.color, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+
+                                  // Row of 4 Checkbox Action Chips
+                                  Row(
+                                    children: [
+                                      // 1. عرض (View)
+                                      Expanded(
+                                        child: _buildActionChip(
+                                          title: 'عرض',
+                                          icon: Icons.visibility_outlined,
+                                          isSelected: currentPerm.canView,
+                                          color: const Color(0xFF3B82F6),
+                                          isDark: isDark,
+                                          onTap: () {
+                                            setModalState(() {
+                                              selectedPreset = 'custom';
+                                              final nextView = !currentPerm.canView;
+                                              if (!nextView) {
+                                                // Turning off view turns off all sub-actions
+                                                perms[mod.id] = const ModuleActionPermission.none();
+                                              } else {
+                                                perms[mod.id] = currentPerm.copyWith(canView: true);
+                                              }
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+
+                                      // 2. إضافة (Add)
+                                      Expanded(
+                                        child: _buildActionChip(
+                                          title: 'إضافة',
+                                          icon: Icons.add_circle_outline_rounded,
+                                          isSelected: currentPerm.canAdd,
+                                          color: const Color(0xFF10B981),
+                                          isDark: isDark,
+                                          isEnabled: currentPerm.canView,
+                                          onTap: () {
+                                            setModalState(() {
+                                              selectedPreset = 'custom';
+                                              final nextAdd = !currentPerm.canAdd;
+                                              perms[mod.id] = currentPerm.copyWith(
+                                                canView: true,
+                                                canAdd: nextAdd,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+
+                                      // 3. تعديل (Edit)
+                                      Expanded(
+                                        child: _buildActionChip(
+                                          title: 'تعديل',
+                                          icon: Icons.edit_note_rounded,
+                                          isSelected: currentPerm.canEdit,
+                                          color: const Color(0xFFF59E0B),
+                                          isDark: isDark,
+                                          isEnabled: currentPerm.canView,
+                                          onTap: () {
+                                            setModalState(() {
+                                              selectedPreset = 'custom';
+                                              final nextEdit = !currentPerm.canEdit;
+                                              perms[mod.id] = currentPerm.copyWith(
+                                                canView: true,
+                                                canEdit: nextEdit,
+                                              );
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+
+                                      // 4. حذف (Delete)
+                                      Expanded(
+                                        child: _buildActionChip(
+                                          title: 'حذف',
+                                          icon: Icons.delete_outline_rounded,
+                                          isSelected: currentPerm.canDelete,
+                                          color: const Color(0xFFEF4444),
+                                          isDark: isDark,
+                                          isEnabled: currentPerm.canView,
+                                          onTap: () {
+                                            setModalState(() {
+                                              selectedPreset = 'custom';
+                                              final nextDelete = !currentPerm.canDelete;
+                                              perms[mod.id] = currentPerm.copyWith(
+                                                canView: true,
+                                                canDelete: nextDelete,
+                                              );
+                                            });
+                                          },
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              SizedBox(
-                                width: 180,
-                                child: PrimaryButton(
-                                  text: 'إضافة مستخدم',
-                                  icon: Icons.add_rounded,
-                                  onPressed: _showAddUserModal,
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-
-                      const SizedBox(height: AppSpacing.lg),
-
-                      // Search Input Field
-                      SettingsFormFieldWidget(
-                        label: '',
-                        hint: 'ابحث بالإسم، الإيميل، أو اسم المستخدم...',
-                        controller: _searchController,
-                        prefixIcon: Icons.search_rounded,
-                      ),
-
-                      const SizedBox(height: AppSpacing.xl),
-
-                      // User Cards Grid or Empty Search View
-                      if (filtered.isEmpty) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(AppSpacing.xxl),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColors.surfaceDark
-                                : AppColors.surfaceLight,
-                            borderRadius: BorderRadius.circular(
-                              AppSpacing.radiusXl,
-                            ),
-                            border: Border.all(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.borderLight,
-                            ),
-                          ),
-                          child: Column(
-                            children: [
-                              Icon(
-                                Icons.search_off_rounded,
-                                size: 48,
-                                color: isDark
-                                    ? AppColors.textSecondaryDark
-                                    : AppColors.textSecondaryLight,
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                              Text(
-                                'لا توجد نتائج مطابقة للبحث',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: isDark
-                                      ? AppColors.textPrimaryDark
-                                      : AppColors.textPrimaryLight,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else ...[
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            if (constraints.maxWidth <= 700) {
-                              return ListView.separated(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: filtered.length,
-                                separatorBuilder: (context, index) =>
-                                    const SizedBox(height: AppSpacing.lg),
-                                itemBuilder: (context, index) {
-                                  final userItem = filtered[index];
-                                  return UserCardWidget(
-                                    user: userItem,
-                                    onEdit: () => _showEditUserModal(userItem),
-                                    onDelete: () =>
-                                        _showDeleteConfirmModal(userItem),
-                                  );
-                                },
-                              );
-                            }
-
-                            return GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: filtered.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    crossAxisSpacing: AppSpacing.lg,
-                                    mainAxisSpacing: AppSpacing.lg,
-                                    mainAxisExtent: 240,
-                                  ),
-                              itemBuilder: (context, index) {
-                                final userItem = filtered[index];
-                                return UserCardWidget(
-                                  user: userItem,
-                                  onEdit: () => _showEditUserModal(userItem),
-                                  onDelete: () =>
-                                      _showDeleteConfirmModal(userItem),
-                                );
-                              },
                             );
-                          },
+                          }),
+
+                          const SizedBox(height: 20),
+
+                          // ── Save Button ──
+                          PrimaryButton(
+                            text: existingUser != null ? 'حفظ تعديلات المستخدم والصلاحيات' : 'إضافة المستخدم واعتماد الصلاحيات',
+                            icon: Icons.check_circle_rounded,
+                            onPressed: () async {
+                              final name = nameCtrl.text.trim();
+                              final username = usernameCtrl.text.trim();
+                              final phone = phoneCtrl.text.trim();
+                              final password = passwordCtrl.text.trim();
+                              final messenger = ScaffoldMessenger.of(context);
+                              final navigator = Navigator.of(ctx);
+
+                              if (name.isEmpty) {
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('يرجى إدخال اسم المستخدم الكامل')),
+                                );
+                                return;
+                              }
+
+                              if (username.isEmpty) {
+                                messenger.showSnackBar(
+                                  const SnackBar(content: Text('يرجى إدخال اسم المستخدم للدخول')),
+                                );
+                                return;
+                              }
+
+                              final userToSave = AppUserModel(
+                                id: existingUser?.id ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
+                                name: name,
+                                username: username,
+                                phone: phone.isNotEmpty ? phone : null,
+                                password: password.isNotEmpty ? password : (existingUser?.password ?? '123'),
+                                rolePreset: selectedPreset,
+                                branch: selectedBranch,
+                                isActive: existingUser?.isActive ?? true,
+                                createdAt: existingUser?.createdAt ?? DateTime.now(),
+                                permissions: perms,
+                              );
+
+                              await ref.read(usersListProvider.notifier).saveUser(userToSave);
+
+                              navigator.pop();
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  content: Text('تم حفظ بيانات وصلاحيات (${userToSave.name}) بنجاح'),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionTitle(String title, bool isDark) {
+    return Text(
+      title,
+      style: TextStyle(
+        fontSize: 13.5,
+        fontWeight: FontWeight.w900,
+        color: isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB),
+      ),
+    );
+  }
+
+  Widget _buildPresetChip(String title, String presetKey, String selectedPreset, VoidCallback onTap) {
+    final isSelected = selectedPreset == presetKey;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF6366F1) : const Color(0xFF6366F1).withValues(alpha: 0.3),
+          ),
+        ),
+        child: Text(
+          title,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF6366F1),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionChip({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required Color color,
+    required bool isDark,
+    required VoidCallback onTap,
+    bool isEnabled = true,
+  }) {
+    final effectiveColor = isEnabled ? color : Colors.grey;
+    final effectiveSelected = isEnabled && isSelected;
+
+    return InkWell(
+      onTap: isEnabled ? onTap : null,
+      borderRadius: BorderRadius.circular(8),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+        decoration: BoxDecoration(
+          color: effectiveSelected
+              ? effectiveColor.withValues(alpha: isDark ? 0.25 : 0.12)
+              : (isDark ? const Color(0xFF141720) : Colors.white),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: effectiveSelected ? effectiveColor : (isDark ? const Color(0xFF2B3040) : const Color(0xFFE2E8F0)),
+            width: effectiveSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              effectiveSelected ? Icons.check_circle_rounded : icon,
+              size: 13,
+              color: effectiveSelected ? effectiveColor : (isDark ? Colors.grey[500] : Colors.grey[400]),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: effectiveSelected ? FontWeight.bold : FontWeight.normal,
+                color: effectiveSelected
+                    ? effectiveColor
+                    : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surface = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight;
+    final border = isDark ? AppColors.borderDark : const Color(0xFFE2E8F0);
+
+    final users = ref.watch(usersListProvider);
+    final currentActiveUser = ref.watch(activeUserProvider);
+
+    // Filter users
+    final filteredUsers = users.where((u) {
+      if (_selectedRoleFilter != 'الكل') {
+        if (_selectedRoleFilter == 'المدراء' && u.rolePreset != 'admin') {
+          return false;
+        }
+        if (_selectedRoleFilter == 'الكاشير' && u.rolePreset != 'cashier') {
+          return false;
+        }
+        if (_selectedRoleFilter == 'المخزن' && u.rolePreset != 'inventory_keeper') {
+          return false;
+        }
+        if (_selectedRoleFilter == 'نشط' && !u.isActive) {
+          return false;
+        }
+        if (_selectedRoleFilter == 'معطل' && u.isActive) {
+          return false;
+        }
+      }
+
+      final q = _searchQuery.trim().toLowerCase();
+      if (q.isEmpty) {
+        return true;
+      }
+      return u.name.toLowerCase().contains(q) ||
+          u.username.toLowerCase().contains(q) ||
+          (u.phone?.contains(q) ?? false);
+    }).toList();
+
+    return Scaffold(
+      backgroundColor: isDark ? const Color(0xFF0F1117) : const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        backgroundColor: surface,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        title: Text(
+          'المستخدمون والصلاحيات',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            color: textPrimary,
+          ),
+        ),
+        centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: 'تحديث القائمة',
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: () => ref.read(usersListProvider.notifier).load(),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // ── Current Active User Banner ──
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2433) : const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF6366F1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.person_pin_rounded, color: Colors.white, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Text(
+                              'الحساب الفعّال حالياً: ',
+                              style: TextStyle(fontSize: 11, color: Color(0xFF6366F1), fontWeight: FontWeight.bold),
+                            ),
+                            Text(
+                              currentActiveUser.name,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: textPrimary),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'الدور: ${currentActiveUser.roleTitle} (@${currentActiveUser.username})',
+                          style: TextStyle(fontSize: 11, color: textSecondary),
                         ),
                       ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── Search & Filter Controls ──
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'بحث باسم المستخدم أو رمزه أو هاتفه...',
+                      hintStyle: TextStyle(fontSize: 12, color: textSecondary),
+                      prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const Icon(Icons.close_rounded, size: 16),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                      filled: true,
+                      fillColor: surface,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: border),
+                      ),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+
+            // Filter Chips
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildFilterTab('الكل', isDark),
+                  const SizedBox(width: 6),
+                  _buildFilterTab('المدراء', isDark),
+                  const SizedBox(width: 6),
+                  _buildFilterTab('الكاشير', isDark),
+                  const SizedBox(width: 6),
+                  _buildFilterTab('المخزن', isDark),
+                  const SizedBox(width: 6),
+                  _buildFilterTab('نشط', isDark),
+                  const SizedBox(width: 6),
+                  _buildFilterTab('معطل', isDark),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── Add New User Button ──
+            PrimaryButton(
+              text: 'إضافة مستخدم جديد وتحديد صلاحياته',
+              icon: Icons.person_add_alt_1_rounded,
+              onPressed: () => _showUserFormModal(),
+            ),
+            const SizedBox(height: 16),
+
+            // ── Users List ──
+            if (filteredUsers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 40),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.people_outline_rounded, size: 48, color: textSecondary.withValues(alpha: 0.4)),
+                      const SizedBox(height: 10),
+                      Text(
+                        users.isEmpty ? 'لا يوجد مستخدمون مسجلون بعد' : 'لا توجد نتائج مطابقة للبحث',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textSecondary),
+                      ),
                     ],
                   ),
                 ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: filteredUsers.length,
+                itemBuilder: (ctx, index) {
+                  final user = filteredUsers[index];
+                  final isCurrent = user.id == currentActiveUser.id;
+
+                  return UserCardWidget(
+                    user: user,
+                    isCurrentActive: isCurrent,
+                    onEdit: () => _showUserFormModal(existingUser: user),
+                    onToggleActive: (val) => ref.read(usersListProvider.notifier).toggleStatus(user.id),
+                    onSwitchToUser: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      await ref.read(activeUserProvider.notifier).switchUser(user.id);
+                      messenger.showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF6366F1),
+                          content: Text('تم تفعيل حساب (${user.name}) كمستخدم حالي للنظام'),
+                        ),
+                      );
+                    },
+                    onDelete: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (dCtx) => AlertDialog(
+                          title: const Row(
+                            children: [
+                              Icon(Icons.warning_amber_rounded, color: Colors.red),
+                              SizedBox(width: 8),
+                              Text('حذف المستخدم'),
+                            ],
+                          ),
+                          content: Text('هل أنت متأكد من حذف حساب (${user.name}) نهائياً؟'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dCtx, false),
+                              child: const Text('إلغاء'),
+                            ),
+                            FilledButton(
+                              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () => Navigator.pop(dCtx, true),
+                              child: const Text('تأكيد الحذف'),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (confirm == true) {
+                        await ref.read(usersListProvider.notifier).deleteUser(user.id);
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('تم حذف حساب (${user.name}) بنجاح')),
+                        );
+                      }
+                    },
+                  );
+                },
               ),
-            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterTab(String label, bool isDark) {
+    final isSelected = _selectedRoleFilter == label;
+    return InkWell(
+      onTap: () => setState(() => _selectedRoleFilter = label),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6366F1)
+              : (isDark ? const Color(0xFF1E222D) : const Color(0xFFF1F5F9)),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            color: isSelected
+                ? Colors.white
+                : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
           ),
-        ],
+        ),
       ),
     );
   }

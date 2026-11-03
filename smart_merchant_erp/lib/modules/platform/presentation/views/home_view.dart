@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../kernel/storage/app_database.dart' show SalesInvoice;
 import '../../../../shared/design_system/tokens/colors.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 import '../../../accounting/presentation/widgets/payment_voucher_dialog.dart';
 import '../../../accounting/presentation/widgets/receipt_voucher_dialog.dart';
 import '../../../purchasing/presentation/providers/purchasing_provider.dart';
@@ -692,7 +693,19 @@ class _HomeViewState extends ConsumerState<HomeView> {
             iconColor: const Color(0xFF3B82F6),
             bgColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF),
             borderColor: isDark ? const Color(0xFF1E40AF) : const Color(0xFFBFDBFE),
-            onTap: () => context.go('/sales'),
+            onTap: () {
+              final activeUser = ref.read(activeUserProvider);
+              if (!activeUser.canAdd(SystemModules.sales)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('عفواً، ليس لديك صلاحية إنشاء فواتير مبيعات'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+              context.go('/sales');
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -705,10 +718,22 @@ class _HomeViewState extends ConsumerState<HomeView> {
             iconColor: const Color(0xFF8B5CF6),
             bgColor: isDark ? const Color(0xFF5B21B6).withValues(alpha: 0.3) : const Color(0xFFF3E8FF),
             borderColor: isDark ? const Color(0xFF6D28D9) : const Color(0xFFDDD6FE),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (_) => const PurchaseInvoiceModal(),
-            ),
+            onTap: () {
+              final activeUser = ref.read(activeUserProvider);
+              if (!activeUser.canAdd(SystemModules.purchases)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('عفواً، ليس لديك صلاحية إنشاء فواتير مشتريات'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+              showDialog<void>(
+                context: context,
+                builder: (_) => const PurchaseInvoiceModal(),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -721,10 +746,22 @@ class _HomeViewState extends ConsumerState<HomeView> {
             iconColor: const Color(0xFFEF4444),
             bgColor: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
             borderColor: isDark ? const Color(0xFF991B1B) : const Color(0xFFFECACA),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (_) => const PaymentVoucherDialog(),
-            ),
+            onTap: () {
+              final activeUser = ref.read(activeUserProvider);
+              if (!activeUser.canAdd(SystemModules.finance)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('عفواً، ليس لديك صلاحية تسجيل سندات صرف'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+              showDialog<void>(
+                context: context,
+                builder: (_) => const PaymentVoucherDialog(),
+              );
+            },
           ),
         ),
         const SizedBox(width: 8),
@@ -737,10 +774,22 @@ class _HomeViewState extends ConsumerState<HomeView> {
             iconColor: const Color(0xFF10B981),
             bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
             borderColor: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
-            onTap: () => showDialog<void>(
-              context: context,
-              builder: (_) => const ReceiptVoucherDialog(),
-            ),
+            onTap: () {
+              final activeUser = ref.read(activeUserProvider);
+              if (!activeUser.canAdd(SystemModules.finance)) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('عفواً، ليس لديك صلاحية تسجيل سندات قبض'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+              showDialog<void>(
+                context: context,
+                builder: (_) => const ReceiptVoucherDialog(),
+              );
+            },
           ),
         ),
       ],

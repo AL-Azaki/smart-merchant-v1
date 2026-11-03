@@ -71,23 +71,34 @@ class MainLayout extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // User Profile Avatar "B" (Right on RTL)
-              Container(
-                width: 42,
-                height: 42,
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEDE9FE),
-                  shape: BoxShape.circle,
-                ),
-                alignment: Alignment.center,
-                child: const Text(
-                  'B',
-                  style: TextStyle(
-                    color: Color(0xFF7C3AED),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
+              // User Profile Avatar with active user initial (Right on RTL)
+              Consumer(
+                builder: (context, ref, _) {
+                  final activeUser = ref.watch(activeUserProvider);
+                  final initial = activeUser.name.trim().isNotEmpty
+                      ? activeUser.name.trim().substring(0, 1)
+                      : 'م';
+                  return Tooltip(
+                    message: '${activeUser.name} (${activeUser.roleTitle})',
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEDE9FE),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        initial,
+                        style: const TextStyle(
+                          color: Color(0xFF7C3AED),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
 
               // Center Brand Title & Connectivity Status
@@ -319,6 +330,7 @@ class MainLayout extends ConsumerWidget {
                 child: Consumer(
                   builder: (context, ref, child) {
                     final activeModules = ref.watch(modulesNotifierProvider);
+                    final currentUser = ref.watch(activeUserProvider);
                     // In Flutter, Row automatically reverses order if Directionality is RTL.
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -330,7 +342,7 @@ class MainLayout extends ConsumerWidget {
                           loc.home,
                           isDark,
                         ),
-                        if (activeModules.contains(ErpModule.sales))
+                        if (activeModules.contains(ErpModule.sales) && currentUser.canView(SystemModules.sales))
                           _buildNavItem(
                             context,
                             1,
@@ -338,7 +350,7 @@ class MainLayout extends ConsumerWidget {
                             loc.sales,
                             isDark,
                           ),
-                        if (activeModules.contains(ErpModule.inventory))
+                        if (activeModules.contains(ErpModule.inventory) && currentUser.canView(SystemModules.inventory))
                           _buildNavItem(
                             context,
                             2,
@@ -346,7 +358,7 @@ class MainLayout extends ConsumerWidget {
                             loc.inventory,
                             isDark,
                           ),
-                        if (activeModules.contains(ErpModule.accounting))
+                        if (activeModules.contains(ErpModule.accounting) && currentUser.canView(SystemModules.finance))
                           _buildNavItem(
                             context,
                             3,
@@ -354,7 +366,7 @@ class MainLayout extends ConsumerWidget {
                             loc.accounting,
                             isDark,
                           ),
-                        if (activeModules.contains(ErpModule.settings))
+                        if (activeModules.contains(ErpModule.settings) && currentUser.canView(SystemModules.settings))
                           _buildNavItem(
                             context,
                             4,
