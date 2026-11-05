@@ -15,6 +15,7 @@ import '../../../../database/seeders/demo_data_seeder_service.dart';
 import 'package:drift/drift.dart' as drift;
 import '../../../../kernel/security/subscription_lease_guard.dart';
 import '../../../../kernel/security/time_integrity_guard.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 
 part 'auth_provider.g.dart';
 
@@ -143,6 +144,23 @@ class AuthNotifier extends _$AuthNotifier {
   }
 
   /// Full login flow: authenticate → store token → bootstrap → register device.
+    /// Direct login using a local offline user (for cashiers, accountants, and offline ERP users)
+  Future<LoginResult> loginWithLocalUser({
+    required AppUserModel user,
+  }) async {
+    state = AuthStatus.authenticating;
+    try {
+      await enterOfflineMode(storeName: user.name);
+      await UserPermissionsService.setActiveUserId(user.id);
+      await ref.read(activeUserProvider.notifier).switchUser(user.id);
+      state = AuthStatus.authenticated;
+      return const LoginResult.success();
+    } catch (e) {
+      state = AuthStatus.unauthenticated;
+      return LoginResult.failure('تعذر تسجيل الدخول بالمستخدم المحلي: $e');
+    }
+  }
+
   Future<LoginResult> loginWithLaravel({
     required String email,
     required String password,
@@ -656,7 +674,7 @@ class LoginResult {
   final String? errorMessage;
   final BootstrapResponseDto? bootstrap;
 
-  const LoginResult.success(this.bootstrap)
+  const LoginResult.success([this.bootstrap])
     : isSuccess = true,
       isDeviceRevokedResult = false,
       errorMessage = null;

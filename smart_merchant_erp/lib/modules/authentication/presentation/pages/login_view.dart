@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 
 class LoginView extends ConsumerStatefulWidget {
   const LoginView({super.key});
@@ -24,23 +25,88 @@ class _LoginViewState extends ConsumerState<LoginView> {
   }
 
   Future<void> _handleLogin() async {
-    final email = _emailController.text.trim();
+    final identifier = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (identifier.isEmpty || password.isEmpty) {
       setState(
-        () => _errorMessage = 'يرجى إدخال رقم الهاتف أو البريد الإلكتروني وكلمة المرور',
+        () => _errorMessage = 'يرجى إدخال اسم المستخدم أو رقم الهاتف وكلمة المرور',
       );
       return;
     }
 
     setState(() => _errorMessage = null);
 
+    // 1. Check local users first (Offline-First ERP local accounts)
+    try {
+      final localUsers = await UserPermissionsService.loadUsers();
+      final cleanIdent = identifier.toLowerCase();
+      final identDigits = identifier.replaceAll(RegExp(r'\D'), '');
+
+      final matchedUser = localUsers.where((u) {
+        final uUsername = u.username.trim().toLowerCase();
+        final uName = u.name.trim().toLowerCase();
+        final uPhone = (u.phone ?? '').trim();
+        final uPhoneDigits = uPhone.replaceAll(RegExp(r'\D'), '');
+
+        if (uUsername == cleanIdent || uName == cleanIdent) {
+          return true;
+        }
+        if (uPhone.isNotEmpty && uPhone == identifier) {
+          return true;
+        }
+        if (identDigits.length >= 6 && uPhoneDigits.isNotEmpty) {
+          if (uPhoneDigits.endsWith(identDigits) || identDigits.endsWith(uPhoneDigits)) {
+            return true;
+          }
+        }
+        return false;
+      }).firstOrNull;
+
+      if (matchedUser != null) {
+        if (matchedUser.password != password.trim()) {
+          if (mounted) {
+            setState(
+              () => _errorMessage = 'كلمة المرور غير صحيحة لحساب (${matchedUser.name})',
+            );
+          }
+          return;
+        }
+
+        if (!matchedUser.isActive) {
+          if (mounted) {
+            setState(
+              () => _errorMessage = 'هذا الحساب معطل حالياً من قبل المسؤول',
+            );
+          }
+          return;
+        }
+
+        final result = await ref
+            .read(authNotifierProvider.notifier)
+            .loginWithLocalUser(user: matchedUser);
+
+        if (result.isSuccess && mounted) {
+          context.go('/');
+        } else if (!result.isSuccess && mounted) {
+          setState(
+            () => _errorMessage = result.errorMessage ?? 'حدث خطأ أثناء تسجيل الدخول',
+          );
+        }
+        return;
+      }
+    } catch (e) {
+      debugPrint('Local auth check notice: $e');
+    }
+
+    // 2. If no matching local user, proceed to cloud Laravel login
     final result = await ref
         .read(authNotifierProvider.notifier)
-        .loginWithLaravel(email: email, password: password);
+        .loginWithLaravel(email: identifier, password: password);
 
-    if (!result.isSuccess) {
+    if (result.isSuccess && mounted) {
+      context.go('/');
+    } else if (!result.isSuccess && mounted) {
       if (mounted) {
         setState(
           () => _errorMessage =
@@ -291,7 +357,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
 
                       // Field: Identifier (Phone or Email)
                       Text(
-                        'رقم الهاتف أو البريد الإلكتروني',
+                        'اسم المستخدم، رقم الهاتف أو البريد',
                         style: TextStyle(
                           color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
                           fontSize: 12.5,
@@ -309,7 +375,7 @@ class _LoginViewState extends ConsumerState<LoginView> {
                           fontSize: 14,
                         ),
                         decoration: InputDecoration(
-                          hintText: '771234567 أو البريد الإلكتروني',
+                          hintText: 'اسم المستخدم (مثال: 712785191 أو أحمد)',
                           hintStyle: TextStyle(
                             color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
                             fontSize: 13,
