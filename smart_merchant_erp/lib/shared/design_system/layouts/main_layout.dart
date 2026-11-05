@@ -8,6 +8,7 @@ import '../../../kernel/security/permissions_provider.dart';
 import '../../../kernel/sync/coordinator/sync_coordinator.dart';
 import '../../../modules/platform/presentation/providers/sync_provider.dart';
 import '../../../modules/authentication/presentation/providers/session_provider.dart';
+import '../../../modules/authentication/presentation/providers/auth_provider.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 import '../widgets/subscription_warning_banner.dart';
@@ -52,13 +53,13 @@ class MainLayout extends ConsumerWidget {
 
       // 1. Premium Top Bar
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80),
+        preferredSize: const Size.fromHeight(88),
         child: Container(
           padding: const EdgeInsets.only(
-            top: 40,
+            top: 32,
             left: AppSpacing.lg,
             right: AppSpacing.lg,
-            bottom: AppSpacing.md,
+            bottom: 10,
           ),
           decoration: BoxDecoration(
             color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -71,7 +72,7 @@ class MainLayout extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // User Profile Avatar with active user initial (Right on RTL)
+              // User Profile Avatar with active user initial & Quick Menu (Right on RTL)
               Consumer(
                 builder: (context, ref, _) {
                   final activeUser = ref.watch(activeUserProvider);
@@ -79,21 +80,69 @@ class MainLayout extends ConsumerWidget {
                       ? activeUser.name.trim().substring(0, 1)
                       : 'م';
                   return Tooltip(
-                    message: '${activeUser.name} (${activeUser.roleTitle})',
-                    child: Container(
-                      width: 42,
-                      height: 42,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFEDE9FE),
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        initial,
-                        style: const TextStyle(
-                          color: Color(0xFF7C3AED),
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
+                    message: '${activeUser.name} (${activeUser.roleTitle}) - اضغط للتبديل أو تسجيل الخروج',
+                    child: InkWell(
+                      onTap: () => _showUserAccountMenu(context, ref),
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 34,
+                              height: 34,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFEDE9FE),
+                                shape: BoxShape.circle,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                initial,
+                                style: const TextStyle(
+                                  color: Color(0xFF7C3AED),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  activeUser.name.split(' ').first,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                Text(
+                                  activeUser.roleTitle,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    color: Color(0xFF7C3AED),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(
+                              Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: Color(0xFF7C3AED),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -228,7 +277,7 @@ class MainLayout extends ConsumerWidget {
                     },
                   ),
 
-                  // Notification Bell (Left on RTL)
+                  // Notification Bell
                   Container(
                     width: 42,
                     height: 42,
@@ -244,6 +293,26 @@ class MainLayout extends ConsumerWidget {
                       onPressed: () {},
                       color: isDark ? Colors.white : const Color(0xFF1E293B),
                       tooltip: 'الإشعارات',
+                    ),
+                  ),
+
+                  // Dedicated Logout Button (Prominent & Clear)
+                  Container(
+                    width: 42,
+                    height: 42,
+                    margin: const EdgeInsets.only(right: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2D1515) : const Color(0xFFFEF2F2),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFCA5A5),
+                      ),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.logout_rounded, size: 20),
+                      onPressed: () => _confirmLogout(context, ref),
+                      color: const Color(0xFFDC2626),
+                      tooltip: 'تسجيل الخروج',
                     ),
                   ),
                 ],
@@ -424,4 +493,272 @@ class MainLayout extends ConsumerWidget {
       ),
     );
   }
+
+  Future<void> _confirmLogout(BuildContext context, WidgetRef ref) async {
+    final activeUser = ref.read(activeUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.logout_rounded, color: Color(0xFFDC2626)),
+            SizedBox(width: 10),
+            Text('تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          'هل تريد تسجيل الخروج من حساب (${activeUser.name}) والعودة لشاشة الدخول؟',
+          style: TextStyle(
+            fontSize: 14,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('تأكيد الخروج'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(authNotifierProvider.notifier).logout();
+      if (context.mounted) {
+        context.go('/login');
+      }
+    }
+  }
+
+  void _showUserAccountMenu(BuildContext context, WidgetRef ref) {
+    final activeUser = ref.read(activeUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white24 : Colors.black12,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 18),
+
+                // User Info Header
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEDE9FE),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        activeUser.name.isNotEmpty ? activeUser.name.substring(0, 1) : 'م',
+                        style: const TextStyle(
+                          color: Color(0xFF7C3AED),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                activeUser.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  activeUser.roleTitle,
+                                  style: const TextStyle(
+                                    color: Color(0xFF2563EB),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '@${activeUser.username} • ${activeUser.branch}',
+                            style: TextStyle(
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              fontSize: 12.5,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(),
+                const SizedBox(height: 10),
+
+                // Switch user section
+                Text(
+                  'تبديل سريع للمستخدم',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                FutureBuilder<List<AppUserModel>>(
+                  future: UserPermissionsService.loadUsers(),
+                  builder: (context, snapshot) {
+                    final users = snapshot.data ?? [];
+                    if (users.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Column(
+                      children: users.map((u) {
+                        final isCurrent = u.id == activeUser.id;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isCurrent
+                                ? (isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF))
+                                : (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isCurrent
+                                  ? const Color(0xFF3B82F6)
+                                  : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                            ),
+                          ),
+                          child: ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: isCurrent ? const Color(0xFF3B82F6) : const Color(0xFF94A3B8),
+                              child: Text(
+                                u.name.isNotEmpty ? u.name.substring(0, 1) : 'م',
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            title: Text(
+                              u.name,
+                              style: TextStyle(
+                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.w500,
+                                fontSize: 13.5,
+                              ),
+                            ),
+                            subtitle: Text('${u.roleTitle} (@${u.username})', style: const TextStyle(fontSize: 11)),
+                            trailing: isCurrent
+                                ? Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Text('الحالي', style: TextStyle(fontSize: 10, color: Color(0xFF2563EB), fontWeight: FontWeight.bold)),
+                                  )
+                                : TextButton(
+                                    onPressed: () async {
+                                      Navigator.of(ctx).pop();
+                                      await ref.read(activeUserProvider.notifier).switchUser(u.id);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('تم التبديل إلى المستخدم: ${u.name} (${u.roleTitle})'),
+                                            backgroundColor: const Color(0xFF10B981),
+                                          ),
+                                        );
+                                        if (!u.can(SystemModules.settings, 'view')) {
+                                          context.go('/');
+                                        }
+                                      }
+                                    },
+                                    child: const Text('تبديل'),
+                                  ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+                // Logout button
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _confirmLogout(context, ref);
+                  },
+                  icon: const Icon(Icons.logout_rounded, size: 20),
+                  label: const Text('تسجيل الخروج والعودة لشاشة الدخول', style: TextStyle(fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
 }

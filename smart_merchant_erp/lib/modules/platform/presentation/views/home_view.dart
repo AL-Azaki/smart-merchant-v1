@@ -681,11 +681,19 @@ class _HomeViewState extends ConsumerState<HomeView> {
     );
   }
 
-  // 6. صف أزرار العمليات السريعة الأربعة
+  // 6. صف أزرار العمليات السريعة (تظهر فقط العمليات المسموح بها للمستخدم الحالي)
   Widget _buildQuickActionButtons(BuildContext context, bool isDark) {
-    return Row(
-      children: [
-        // فاتورة مبيعات
+    final activeUser = ref.watch(activeUserProvider);
+    final canSales = activeUser.canAdd(SystemModules.sales);
+    final canPurchases = activeUser.canAdd(SystemModules.purchases);
+    final canDisbursement = activeUser.canAdd(SystemModules.finance);
+    final canReceipt = activeUser.canAdd(SystemModules.finance);
+
+    final actions = <Widget>[];
+
+    // فاتورة مبيعات
+    if (canSales) {
+      actions.add(
         Expanded(
           child: _buildActionTile(
             title: 'فاتورة مبيعات',
@@ -693,24 +701,16 @@ class _HomeViewState extends ConsumerState<HomeView> {
             iconColor: const Color(0xFF3B82F6),
             bgColor: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFEFF6FF),
             borderColor: isDark ? const Color(0xFF1E40AF) : const Color(0xFFBFDBFE),
-            onTap: () {
-              final activeUser = ref.read(activeUserProvider);
-              if (!activeUser.canAdd(SystemModules.sales)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('عفواً، ليس لديك صلاحية إنشاء فواتير مبيعات'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
-              }
-              context.go('/sales');
-            },
+            onTap: () => context.go('/sales'),
           ),
         ),
-        const SizedBox(width: 8),
+      );
+    }
 
-        // فاتورة مشتريات
+    // فاتورة مشتريات
+    if (canPurchases) {
+      if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+      actions.add(
         Expanded(
           child: _buildActionTile(
             title: 'فاتورة مشتريات',
@@ -719,16 +719,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
             bgColor: isDark ? const Color(0xFF5B21B6).withValues(alpha: 0.3) : const Color(0xFFF3E8FF),
             borderColor: isDark ? const Color(0xFF6D28D9) : const Color(0xFFDDD6FE),
             onTap: () {
-              final activeUser = ref.read(activeUserProvider);
-              if (!activeUser.canAdd(SystemModules.purchases)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('عفواً، ليس لديك صلاحية إنشاء فواتير مشتريات'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
-              }
               showDialog<void>(
                 context: context,
                 builder: (_) => const PurchaseInvoiceModal(),
@@ -736,9 +726,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+      );
+    }
 
-        // سند صرف
+    // سند صرف
+    if (canDisbursement) {
+      if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+      actions.add(
         Expanded(
           child: _buildActionTile(
             title: 'سند صرف',
@@ -747,16 +741,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
             bgColor: isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2),
             borderColor: isDark ? const Color(0xFF991B1B) : const Color(0xFFFECACA),
             onTap: () {
-              final activeUser = ref.read(activeUserProvider);
-              if (!activeUser.canAdd(SystemModules.finance)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('عفواً، ليس لديك صلاحية تسجيل سندات صرف'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
-              }
               showDialog<void>(
                 context: context,
                 builder: (_) => const PaymentVoucherDialog(),
@@ -764,9 +748,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
             },
           ),
         ),
-        const SizedBox(width: 8),
+      );
+    }
 
-        // سند قبض
+    // سند قبض
+    if (canReceipt) {
+      if (actions.isNotEmpty) actions.add(const SizedBox(width: 8));
+      actions.add(
         Expanded(
           child: _buildActionTile(
             title: 'سند قبض',
@@ -775,16 +763,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
             bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5),
             borderColor: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
             onTap: () {
-              final activeUser = ref.read(activeUserProvider);
-              if (!activeUser.canAdd(SystemModules.finance)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('عفواً، ليس لديك صلاحية تسجيل سندات قبض'),
-                    backgroundColor: Colors.redAccent,
-                  ),
-                );
-                return;
-              }
               showDialog<void>(
                 context: context,
                 builder: (_) => const ReceiptVoucherDialog(),
@@ -792,8 +770,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
             },
           ),
         ),
-      ],
-    );
+      );
+    }
+
+    if (actions.isEmpty) return const SizedBox.shrink();
+
+    return Row(children: actions);
   }
 
   Widget _buildActionTile({

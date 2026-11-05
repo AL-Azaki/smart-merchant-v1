@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../kernel/security/permissions_provider.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
@@ -1114,6 +1115,9 @@ class _UsersManagementViewState extends ConsumerState<UsersManagementView> {
                           content: Text('تم تفعيل حساب (${user.name}) كمستخدم حالي للنظام'),
                         ),
                       );
+                      if (!user.can(SystemModules.settings, 'view') && context.mounted) {
+                        context.go('/');
+                      }
                     },
                     onDelete: () async {
                       final messenger = ScaffoldMessenger.of(context);

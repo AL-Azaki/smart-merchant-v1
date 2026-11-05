@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../authentication/presentation/providers/auth_provider.dart';
@@ -183,6 +185,21 @@ class SettingsControlCenterView extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeUser = ref.watch(activeUserProvider);
+    final canViewSettings = activeUser.can(SystemModules.settings, 'view');
+    if (!canViewSettings) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (context.mounted) {
+          context.go('/');
+        }
+      });
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final groups = _getSettingsGroups();
 

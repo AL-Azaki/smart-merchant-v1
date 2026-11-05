@@ -9,7 +9,7 @@ void showProductDetailsDialog(
   String categoryName,
   String Function(String) unitNameResolver,
   bool isDark,
-  VoidCallback onEdit,
+  VoidCallback? onEdit,
   String currency,
 ) {
   String price(double value) => formatCatalogPrice(value, currency);
@@ -241,7 +241,7 @@ void showProductDetailsDialog(
                   label: const Text('تعديل المنتج والوحدات'),
                   onPressed: () {
                     Navigator.pop(ctx);
-                    onEdit();
+                    onEdit?.call();
                   },
                 ),
               ),

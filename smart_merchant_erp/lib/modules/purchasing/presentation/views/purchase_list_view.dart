@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
@@ -117,6 +118,10 @@ class _PurchaseListViewState extends ConsumerState<PurchaseListView> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 500;
+              final activeUser = ref.watch(activeUserProvider);
+              if (!activeUser.canAdd(SystemModules.purchases)) {
+                return const SizedBox.shrink();
+              }
               return Align(
                 alignment: isNarrow
                     ? Alignment.center

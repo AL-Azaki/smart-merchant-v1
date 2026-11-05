@@ -13,6 +13,7 @@ import 'widgets/product_form_sheet.dart';
 import 'widgets/product_details_dialog.dart';
 import 'widgets/products_table.dart';
 import 'widgets/catalog_formatters.dart';
+import '../../../../kernel/security/permissions_provider.dart';
 import '../../../platform/presentation/providers/sync_provider.dart';
 import '../../../../kernel/sync/coordinator/sync_coordinator.dart' show SyncStatus;
 import '../../../settings/presentation/providers/storefront_settings_provider.dart';
@@ -51,6 +52,10 @@ class _ProductsViewState extends ConsumerState<ProductsView>
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
+    final activeUser = ref.watch(activeUserProvider);
+    final canAddProduct = activeUser.can(SystemModules.inventory, 'add');
+    final canEditProduct = activeUser.can(SystemModules.inventory, 'edit');
+    final canDeleteProduct = activeUser.can(SystemModules.inventory, 'delete');
     final categories = ref.watch(categoriesNotifierProvider).valueOrNull ?? [];
     final units = ref.watch(unitsNotifierProvider).valueOrNull ?? [];
     final currencies =
@@ -198,23 +203,25 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      FilledButton.icon(
-                        onPressed: () => _openProductFormSheet(context),
-                        icon: const Icon(Icons.add_rounded, size: 20),
-                        label: Text(
-                          MediaQuery.sizeOf(context).width < 420
-                              ? 'إضافة'
-                              : 'إضافة منتج',
-                        ),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 48),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(13),
+                      if (canAddProduct) ...[
+                        const SizedBox(width: 8),
+                        FilledButton.icon(
+                          onPressed: () => _openProductFormSheet(context),
+                          icon: const Icon(Icons.add_rounded, size: 20),
+                          label: Text(
+                            MediaQuery.sizeOf(context).width < 420
+                                ? 'إضافة'
+                                : 'إضافة منتج',
+                          ),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(13),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -393,6 +400,8 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                               ),
                               sort: _sort,
                               onSort: (sort) => setState(() => _sort = sort),
+                              canEdit: canEditProduct,
+                              canDelete: canDeleteProduct,
                               onAction: (item, action) {
                                 switch (action) {
                                   case ProductAction.details:
@@ -403,13 +412,24 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                                           'غير مصنف',
                                       unitName,
                                       theme.brightness == Brightness.dark,
-                                      () => _openProductFormSheet(
-                                        context,
-                                        item: item,
-                                      ),
+                                      canEditProduct
+                                          ? () => _openProductFormSheet(
+                                                context,
+                                                item: item,
+                                              )
+                                          : null,
                                       currency(item),
                                     );
                                   case ProductAction.edit:
+                                    if (!canEditProduct) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('ليس لديك صلاحية لتعديل بيانات المنتج'),
+                                          backgroundColor: Color(0xFFDC2626),
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     _openProductFormSheet(context, item: item);
                                   case ProductAction.stock:
                                     ProductStockCardDialog.show(
@@ -419,6 +439,15 @@ class _ProductsViewState extends ConsumerState<ProductsView>
                                       productCode: item.product.productCode,
                                     );
                                   case ProductAction.delete:
+                                    if (!canDeleteProduct) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('ليس لديك صلاحية لحذف المنتج'),
+                                          backgroundColor: Color(0xFFDC2626),
+                                        ),
+                                      );
+                                      return;
+                                    }
                                     _confirmDeleteProduct(context, item);
                                 }
                               },
@@ -510,7 +539,9 @@ class _ProductsViewState extends ConsumerState<ProductsView>
     ),
   );
 
-  Widget _empty(bool noProducts) => Center(
+  Widget _empty(bool noProducts) {
+    final canAdd = ref.watch(activeUserProvider).can(SystemModules.inventory, 'add');
+    return Center(
     child: SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -534,7 +565,7 @@ class _ProductsViewState extends ConsumerState<ProductsView>
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          if (noProducts)
+          if (noProducts && canAdd)
             FilledButton.icon(
               onPressed: () => _openProductFormSheet(context),
               icon: const Icon(Icons.add),
@@ -557,8 +588,36 @@ class _ProductsViewState extends ConsumerState<ProductsView>
       ),
     ),
   );
+  }
 
   void _openProductFormSheet(BuildContext context, {CatalogProductItem? item}) {
+    final activeUser = ref.read(activeUserProvider);
+    final isNew = item == null;
+    final isAllowed = isNew
+        ? activeUser.can(SystemModules.inventory, 'add')
+        : activeUser.can(SystemModules.inventory, 'edit');
+
+    if (!isAllowed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.lock_rounded, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isNew
+                      ? 'ليس لديك صلاحية لإضافة منتجات جديدة إلى المخزون'
+                      : 'ليس لديك صلاحية لتعديل بيانات هذا المنتج',
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: const Color(0xFFDC2626),
+        ),
+      );
+      return;
+    }
     showDialog<void>(
       context: context,
       barrierDismissible: false,

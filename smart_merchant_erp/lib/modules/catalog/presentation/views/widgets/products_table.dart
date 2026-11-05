@@ -13,6 +13,8 @@ class ProductsTable extends StatefulWidget {
   final void Function(CatalogProductItem, ProductAction) onAction;
   final ProductSort sort;
   final ValueChanged<ProductSort> onSort;
+  final bool canEdit;
+  final bool canDelete;
 
   const ProductsTable({
     required this.products,
@@ -22,6 +24,8 @@ class ProductsTable extends StatefulWidget {
     required this.onAction,
     required this.sort,
     required this.onSort,
+    this.canEdit = true,
+    this.canDelete = true,
     super.key,
   });
   @override
@@ -286,31 +290,33 @@ class _ProductsTableState extends State<ProductsTable> {
             actions: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                IconButton(
-                  tooltip: 'تعديل المنتج',
-                  onPressed: () => widget.onAction(item, ProductAction.edit),
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 20,
-                    color: theme.colorScheme.primary,
+                if (widget.canEdit)
+                  IconButton(
+                    tooltip: 'تعديل المنتج',
+                    onPressed: () => widget.onAction(item, ProductAction.edit),
+                    icon: Icon(
+                      Icons.edit_outlined,
+                      size: 20,
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
-                ),
                 PopupMenuButton<ProductAction>(
                   tooltip: 'خيارات المنتج',
                   onSelected: (action) => widget.onAction(item, action),
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
                       value: ProductAction.details,
                       child: _MenuLabel(Icons.info_outline, 'تفاصيل المنتج'),
                     ),
-                    PopupMenuItem(
+                    const PopupMenuItem(
                       value: ProductAction.stock,
                       child: _MenuLabel(Icons.history_rounded, 'حركة المخزون'),
                     ),
-                    PopupMenuItem(
-                      value: ProductAction.delete,
-                      child: _MenuLabel(Icons.delete_outline, 'حذف المنتج'),
-                    ),
+                    if (widget.canDelete)
+                      const PopupMenuItem(
+                        value: ProductAction.delete,
+                        child: _MenuLabel(Icons.delete_outline, 'حذف المنتج'),
+                      ),
                   ],
                 ),
               ],

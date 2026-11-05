@@ -69,6 +69,13 @@ GoRouter appRouter(AppRouterRef ref) {
 
           // --- SECURITY: Module-Level URL Guards ---
           final activeModules = ref.read(modulesNotifierProvider);
+          final activeUser = ref.read(activeUserProvider);
+
+          if (state.matchedLocation.startsWith('/settings') &&
+              !activeUser.can(SystemModules.settings, 'view')) {
+            return '/';
+          }
+
           if (state.matchedLocation.startsWith('/sales') &&
               !activeModules.contains(ErpModule.sales)) {
             return '/'; // Deny access and send home
