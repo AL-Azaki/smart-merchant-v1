@@ -66,6 +66,19 @@ class BackupFileItem {
   });
 }
 
+/// Statistics for smart merge execution
+class SmartMergeStats {
+  final int tablesCount;
+  final int insertedRows;
+  final int updatedRows;
+
+  const SmartMergeStats({
+    required this.tablesCount,
+    this.insertedRows = 0,
+    this.updatedRows = 0,
+  });
+}
+
 /// Service handling military-grade encrypted local backups and safe restores.
 class LocalBackupService {
   static const String fileExtension = '.smbak';
@@ -321,25 +334,286 @@ class LocalBackupService {
         await getIt.unregister<AppDatabase>();
       }
 
-      // 7. Overwrite database file atomically
+      // 7. Overwrite database file directly (without deleting file to avoid Windows errno 32)
       if (await activeDbFile.exists()) {
-        await activeDbFile.delete();
+        await activeDbFile.writeAsBytes(rawDbBytes, flush: true);
+      } else {
+        await tempRestoredFile.copy(activeDbFile.path);
       }
 
-      // Also remove old WAL and SHM files if present
+      // Also clean old WAL and SHM files if present
       final walFile = File('${activeDbFile.path}-wal');
       final shmFile = File('${activeDbFile.path}-shm');
       if (await walFile.exists()) {
-        await walFile.delete();
+        try {
+          await walFile.writeAsBytes([], flush: true);
+        } catch (_) {}
       }
       if (await shmFile.exists()) {
-        await shmFile.delete();
+        try {
+          await shmFile.writeAsBytes([], flush: true);
+        } catch (_) {}
       }
-
-      await tempRestoredFile.copy(activeDbFile.path);
 
       // 8. Re-register AppDatabase in GetIt
       getIt.registerLazySingleton<AppDatabase>(() => AppDatabase());
+    } finally {
+      if (await tempRestoredFile.exists()) {
+        await tempRestoredFile.delete();
+      }
+    }
+  }
+
+  /// Perform Smart Incremental Merge:
+  /// - New records in active DB: Kept intact.
+  /// - Missing records from backup: Inserted into active DB.
+  /// - Shared records: Compared via updated_at; latest is kept.
+  static Future<SmartMergeStats> smartMergeBackup({
+    required File backupFile,
+    required String password,
+  }) async {
+    if (!await backupFile.exists()) {
+      throw ArgumentError('ملف النسخة الاحتياطية غير موجود.');
+    }
+
+    final rawString = await backupFile.readAsString();
+    final container = jsonDecode(rawString) as Map<String, dynamic>;
+
+    if (container['magic'] != fileMagic) {
+      throw const FormatException('تنسيق ملف النسخة الاحتياطية غير معروف أو تالف.');
+    }
+
+    final salt = base64Decode(container['salt'] as String);
+    final nonce = base64Decode(container['nonce'] as String);
+    final macBytes = base64Decode(container['mac'] as String);
+    final cipherBytes = base64Decode(container['payload'] as String);
+    final metaMap = container['metadata'] as Map<String, dynamic>;
+    final metadata = BackupMetadata.fromJson(metaMap);
+
+    if (metadata.schemaVersion > 7) {
+      throw FormatException(
+        'هذه النسخة أُنشئت بإصدار أحدث من التطبيق (إصدار المخطط ${metadata.schemaVersion}). يرجى تحديث التطبيق أولاً.',
+      );
+    }
+
+    // 1. Derive key via Argon2id
+    final argon2id = Argon2id(
+      parallelism: 1,
+      memory: 19 * 1024,
+      iterations: 2,
+      hashLength: 32,
+    );
+
+    final secretKey = await argon2id.deriveKeyFromPassword(
+      password: password,
+      nonce: salt,
+    );
+
+    // 2. Decrypt & Authenticate via AES-256-GCM
+    final aesGcm = AesGcm.with256bits();
+    final secretBox = SecretBox(
+      cipherBytes,
+      nonce: nonce,
+      mac: Mac(macBytes),
+    );
+
+    final aadBytes = utf8.encode(jsonEncode(metaMap));
+
+    Uint8List decryptedCompressed;
+    try {
+      final decrypted = await aesGcm.decrypt(
+        secretBox,
+        secretKey: secretKey,
+        aad: aadBytes,
+      );
+      decryptedCompressed = Uint8List.fromList(decrypted);
+    } catch (e) {
+      throw const FormatException('كلمة المرور غير صحيحة، أو أن ملف النسخة قد تم التعديل عليه.');
+    }
+
+    // 3. Decompress SQLite database bytes
+    final rawDbBytes = Uint8List.fromList(const GZipDecoder().decodeBytes(decryptedCompressed));
+
+    // 4. Write to temp file and verify PRAGMA integrity_check
+    final tempDir = await getTemporaryDirectory();
+    final tempRestoredDbPath = p.join(
+      tempDir.path,
+      'verify_merge_${DateTime.now().millisecondsSinceEpoch}.sqlite',
+    );
+    final tempRestoredFile = File(tempRestoredDbPath);
+
+    try {
+      await tempRestoredFile.writeAsBytes(rawDbBytes, flush: true);
+
+      final testDb = sqlite.sqlite3.open(tempRestoredDbPath);
+      final checkResult = testDb.select('PRAGMA integrity_check;');
+      testDb.dispose();
+
+      if (checkResult.isEmpty || checkResult.first.values.first != 'ok') {
+        throw const FormatException('فشل فحص سلامة قاعدة البيانات؛ الملف تالف.');
+      }
+
+      // 5. Automatic safety snapshot of current active DB before merge
+      final activeDbFile = await getActiveDatabaseFile();
+      if (await activeDbFile.exists()) {
+        final backupFolder = await getBackupsDirectory();
+        final safetyFileName = 'PreMerge_Safety_${DateTime.now().millisecondsSinceEpoch}.sqlite';
+        await activeDbFile.copy(p.join(backupFolder.path, safetyFileName));
+      }
+
+      // 6. Execute merge using sqlite3 or Drift
+      final escapedBackupPath = tempRestoredDbPath.replaceAll("'", "''");
+      int processedTables = 0;
+
+      if (getIt.isRegistered<AppDatabase>()) {
+        final db = getIt<AppDatabase>();
+        await db.customStatement('PRAGMA foreign_keys = OFF;');
+        await db.customStatement("ATTACH DATABASE '$escapedBackupPath' AS backup_db;");
+
+        try {
+          final tablesResult = await db.customSelect(
+            "SELECT name FROM backup_db.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'android_%' AND name NOT LIKE '_drift_%';",
+          ).get();
+
+          for (final tableRow in tablesResult) {
+            final tableName = tableRow.read<String>('name');
+            final mainExists = await db.customSelect(
+              "SELECT name FROM main.sqlite_master WHERE type='table' AND name = '$tableName';",
+            ).get();
+
+            if (mainExists.isEmpty) {
+              continue;
+            }
+
+            final tableInfo = await db.customSelect('PRAGMA main.table_info("$tableName");').get();
+            final cols = <String>[];
+            final pks = <String>[];
+            bool hasUpdatedAt = false;
+
+            for (final colRow in tableInfo) {
+              final colName = colRow.read<String>('name');
+              final isPk = colRow.read<int>('pk') > 0;
+              cols.add(colName);
+              if (isPk) {
+                pks.add(colName);
+              }
+              if (colName.toLowerCase() == 'updated_at') {
+                hasUpdatedAt = true;
+              }
+            }
+
+            if (cols.isEmpty || pks.isEmpty) {
+              continue;
+            }
+
+            final colsStr = cols.map((c) => '"$c"').join(', ');
+            final pkJoin = pks.map((pk) => 'main."$tableName"."$pk" = backup_db."$tableName"."$pk"').join(' AND ');
+
+            // Step 1: Insert missing records from backup
+            await db.customStatement('''
+              INSERT INTO main."$tableName" ($colsStr)
+              SELECT $colsStr
+              FROM backup_db."$tableName"
+              WHERE NOT EXISTS (
+                SELECT 1 FROM main."$tableName" WHERE $pkJoin
+              );
+            ''');
+
+            // Step 2: Update shared records where backup is newer
+            final nonPkCols = cols.where((c) => !pks.contains(c)).toList();
+            if (hasUpdatedAt && nonPkCols.isNotEmpty) {
+              final setClause = nonPkCols.map((c) => '"$c" = (SELECT b."$c" FROM backup_db."$tableName" b WHERE ${pks.map((pk) => 'b."$pk" = main."$tableName"."$pk"').join(' AND ')})').join(', ');
+
+              await db.customStatement('''
+                UPDATE main."$tableName"
+                SET $setClause
+                WHERE EXISTS (
+                  SELECT 1 FROM backup_db."$tableName" b
+                  WHERE ${pks.map((pk) => 'b."$pk" = main."$tableName"."$pk"').join(' AND ')}
+                    AND b."updated_at" > main."$tableName"."updated_at"
+                );
+              ''');
+            }
+
+            processedTables++;
+          }
+        } finally {
+          await db.customStatement("DETACH DATABASE backup_db;");
+          await db.customStatement('PRAGMA foreign_keys = ON;');
+        }
+      } else {
+        // Fallback to direct sqlite3 connection
+        final mainDb = sqlite.sqlite3.open(activeDbFile.path);
+        try {
+          mainDb.execute('PRAGMA foreign_keys = OFF;');
+          mainDb.execute("ATTACH DATABASE '$escapedBackupPath' AS backup_db;");
+
+          final tables = mainDb.select("SELECT name FROM backup_db.sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE 'android_%' AND name NOT LIKE '_drift_%';");
+          for (final row in tables) {
+            final tableName = row['name'] as String;
+            final mainCheck = mainDb.select('SELECT name FROM main.sqlite_master WHERE type=\'table\' AND name = ?;', [tableName]);
+            if (mainCheck.isEmpty) {
+              continue;
+            }
+
+            final info = mainDb.select('PRAGMA main.table_info("$tableName");');
+            final cols = <String>[];
+            final pks = <String>[];
+            bool hasUpdatedAt = false;
+
+            for (final col in info) {
+              final colName = col['name'] as String;
+              final isPk = (col['pk'] as int) > 0;
+              cols.add(colName);
+              if (isPk) {
+                pks.add(colName);
+              }
+              if (colName.toLowerCase() == 'updated_at') {
+                hasUpdatedAt = true;
+              }
+            }
+
+            if (cols.isEmpty || pks.isEmpty) {
+              continue;
+            }
+
+            final colsStr = cols.map((c) => '"$c"').join(', ');
+            final pkJoin = pks.map((pk) => 'main."$tableName"."$pk" = backup_db."$tableName"."$pk"').join(' AND ');
+
+            mainDb.execute('''
+              INSERT INTO main."$tableName" ($colsStr)
+              SELECT $colsStr
+              FROM backup_db."$tableName"
+              WHERE NOT EXISTS (
+                SELECT 1 FROM main."$tableName" WHERE $pkJoin
+              );
+            ''');
+
+            final nonPkCols = cols.where((c) => !pks.contains(c)).toList();
+            if (hasUpdatedAt && nonPkCols.isNotEmpty) {
+              final setClause = nonPkCols.map((c) => '"$c" = (SELECT b."$c" FROM backup_db."$tableName" b WHERE ${pks.map((pk) => 'b."$pk" = main."$tableName"."$pk"').join(' AND ')})').join(', ');
+
+              mainDb.execute('''
+                UPDATE main."$tableName"
+                SET $setClause
+                WHERE EXISTS (
+                  SELECT 1 FROM backup_db."$tableName" b
+                  WHERE ${pks.map((pk) => 'b."$pk" = main."$tableName"."$pk"').join(' AND ')}
+                    AND b."updated_at" > main."$tableName"."updated_at"
+                );
+              ''');
+            }
+
+            processedTables++;
+          }
+          mainDb.execute("DETACH DATABASE backup_db;");
+          mainDb.execute('PRAGMA foreign_keys = ON;');
+        } finally {
+          mainDb.dispose();
+        }
+      }
+
+      return SmartMergeStats(tablesCount: processedTables);
     } finally {
       if (await tempRestoredFile.exists()) {
         await tempRestoredFile.delete();

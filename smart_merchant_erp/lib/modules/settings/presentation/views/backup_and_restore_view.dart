@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -221,6 +222,7 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
   Future<void> _handleRestoreBackup(File backupFile, {BackupMetadata? metadata}) async {
     _restorePasswordController.clear();
     _obscureRestorePassword = true;
+    bool isSmartMerge = true;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -231,9 +233,9 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             title: const Row(
               children: [
-                Icon(Icons.settings_backup_restore_rounded, color: Colors.orange, size: 28),
+                Icon(Icons.settings_backup_restore_rounded, color: Colors.blue, size: 28),
                 SizedBox(width: 10),
-                Text('استعادة نسخة احتياطية'),
+                Text('استعادة أو دمج نسخة احتياطية'),
               ],
             ),
             content: SingleChildScrollView(
@@ -251,8 +253,10 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('الملف: ${backupFile.path.split(Platform.pathSeparator).last}',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text(
+                          'الملف: ${backupFile.path.split(Platform.pathSeparator).last}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                        ),
                         if (metadata != null) ...[
                           const SizedBox(height: 6),
                           Text(
@@ -266,27 +270,111 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: const Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.shield_outlined, color: Colors.red, size: 20),
-                        SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'تحذير أمان: سيتم استبدال قاعدة البيانات الحالية بمحتوى النسخة. سيقوم النظام تلقائياً بإنشاء نسخة أمان احتياطية قبل الاستبدال.',
-                            style: TextStyle(fontSize: 12, color: Colors.black87),
-                          ),
+
+                  const Text(
+                    'اختر طريقة المعالجة:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Option 1: Smart Merge
+                  InkWell(
+                    onTap: () => setDialogState(() => isSmartMerge = true),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSmartMerge ? const Color(0xFF10B981).withValues(alpha: 0.1) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSmartMerge ? const Color(0xFF10B981) : Colors.grey.shade300,
+                          width: isSmartMerge ? 2 : 1,
                         ),
-                      ],
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Radio<bool>(
+                            value: true,
+                            groupValue: isSmartMerge,
+                            activeColor: const Color(0xFF10B981),
+                            onChanged: (val) => setDialogState(() => isSmartMerge = val ?? true),
+                          ),
+                          const SizedBox(width: 4),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      'دمج ذكي تراكمي (موصى به)',
+                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF047857)),
+                                    ),
+                                    SizedBox(width: 6),
+                                    Icon(Icons.auto_awesome_rounded, color: Color(0xFF10B981), size: 16),
+                                  ],
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'يحافظ على بيانات وفواتير اليوم دون حذف، ويضيف كل ما هو مفقود من النسخة، ويحدث المشترك للأحدث.',
+                                  style: TextStyle(fontSize: 11.5, height: 1.4, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+
+                  const SizedBox(height: 10),
+
+                  // Option 2: Full Overwrite
+                  InkWell(
+                    onTap: () => setDialogState(() => isSmartMerge = false),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: !isSmartMerge ? Colors.red.shade50 : Colors.transparent,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: !isSmartMerge ? Colors.red.shade400 : Colors.grey.shade300,
+                          width: !isSmartMerge ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Radio<bool>(
+                            value: false,
+                            groupValue: isSmartMerge,
+                            activeColor: Colors.red.shade700,
+                            onChanged: (val) => setDialogState(() => isSmartMerge = val ?? false),
+                          ),
+                          const SizedBox(width: 4),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'استبدال كامل شامل',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.red),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'إرجاع قاعدة البيانات بالكامل لتطابق النسخة تماماً (سيتم أخذ نسخة أمان تلقائية لقاعدتك الحالية).',
+                                  style: TextStyle(fontSize: 11.5, height: 1.4, color: Colors.black87),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 16),
                   const Text(
                     'أدخل كلمة المرور التي تم تشفير النسخة بها:',
@@ -320,11 +408,11 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
+                  backgroundColor: isSmartMerge ? const Color(0xFF10B981) : Colors.orange.shade700,
                   foregroundColor: Colors.white,
                 ),
-                icon: const Icon(Icons.restore_rounded),
-                label: const Text('تأكيد الاستعادة والفك'),
+                icon: Icon(isSmartMerge ? Icons.auto_awesome_rounded : Icons.restore_rounded),
+                label: Text(isSmartMerge ? 'بدء الدمج الذكي' : 'تأكيد الاستبدال الكامل'),
                 onPressed: () {
                   if (_restorePasswordController.text.trim().isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -351,63 +439,113 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
     if (!mounted) {
       return;
     }
-    showDialog<void>(
+    unawaited(showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => const PopScope(
+      builder: (ctx) => PopScope(
         canPop: false,
         child: AlertDialog(
           content: Row(
             children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
+              const CircularProgressIndicator(),
+              const SizedBox(width: 20),
               Expanded(
-                child: Text('جاري فك التشفير والتحقق من سلامة البيانات والاستعادة...'),
+                child: Text(
+                  isSmartMerge
+                      ? 'جاري فك التشفير ومقارنة السجلات وتنفيذ الدمج الذكي...'
+                      : 'جاري فك التشفير والتحقق من سلامة البيانات والاستبدال...',
+                ),
               ),
             ],
           ),
         ),
       ),
-    );
+    ));
 
     try {
-      await LocalBackupService.restoreBackup(
-        backupFile: backupFile,
-        password: password,
-      );
+      if (isSmartMerge) {
+        final stats = await LocalBackupService.smartMergeBackup(
+          backupFile: backupFile,
+          password: password,
+        );
 
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
 
-      await _loadBackups();
+        await _loadBackups();
 
-      if (!mounted) {
-        return;
-      }
-      await showDialog<void>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Row(
-            children: [
-              Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
-              SizedBox(width: 10),
-              Text('تمت الاستعادة بنجاح!'),
+        if (!mounted) {
+          return;
+        }
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                SizedBox(width: 10),
+                Text('تم الدمج الذكي بنجاح!'),
+              ],
+            ),
+            content: Text(
+              'تم فك التشفير ودمج البيانات التراكمي بنجاح:\n\n'
+              '✓ تم الحفاظ على كافة حركات وفواتير اليوم الحديثة دون حذفها.\n'
+              '✓ تم استيراد السجلات القديمة المفقودة من النسخة الاحتياطية.\n'
+              '✓ تم تحديث السجلات المشتركة للأحدث.\n'
+              'عدد الجداول المعالجة: ${stats.tablesCount} جدول.\n\n'
+              'تم حفظ نسخة أمان لقاعدتك قبل الدمج في مجلد النسخ الاحتياطية.',
+              style: const TextStyle(height: 1.5),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('موافق'),
+              ),
             ],
           ),
-          content: const Text(
-            'تم فك التشفير بنجاح، واجتازت قاعدة البيانات فحص السلامة (Integrity Check)، وتم استبدال البيانات بالكامل بأمان.\n\nينصح بإعادة تشغيل التطبيق أو الانتقال للشاشات لرؤية البيانات المستعادة.',
-          ),
-          actions: [
-            ElevatedButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('موافق'),
+        );
+      } else {
+        await LocalBackupService.restoreBackup(
+          backupFile: backupFile,
+          password: password,
+        );
+
+        if (!mounted) {
+          return;
+        }
+        Navigator.of(context, rootNavigator: true).pop(); // dismiss loading
+
+        await _loadBackups();
+
+        if (!mounted) {
+          return;
+        }
+        await showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle_rounded, color: Colors.green, size: 28),
+                SizedBox(width: 10),
+                Text('تمت الاستعادة بنجاح!'),
+              ],
             ),
-          ],
-        ),
-      );
+            content: const Text(
+              'تم فك التشفير بنجاح، واجتازت قاعدة البيانات فحص السلامة (Integrity Check)، وتم استبدال البيانات بالكامل بأمان.\n\nينصح بإعادة تشغيل التطبيق أو الانتقال للشاشات لرؤية البيانات المستعادة.',
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('موافق'),
+              ),
+            ],
+          ),
+        );
+      }
     } catch (e) {
       if (!mounted) {
         return;
