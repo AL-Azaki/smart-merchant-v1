@@ -144,11 +144,11 @@ class SettingsControlCenterView extends ConsumerWidget {
           ),
           SettingsCardItemModel(
             id: 'backup',
-            title: 'النسخ الاحتياطي',
+            title: 'النسخ الاحتياطي والاستعادة',
             description: 'أخذ نسخة احتياطية من البيانات واستعادتها عند الحاجة',
             icon: Icons.cloud_sync_rounded,
             color: Color(0xFF10B981),
-            stats: ['تلقائي يومياً', 'آخر نسخة: اليوم'],
+            stats: ['محلي مشفر', 'Argon2id + AES'],
             destinationView: BackupAndRestoreView(),
           ),
           SettingsCardItemModel(

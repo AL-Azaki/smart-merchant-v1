@@ -35,6 +35,8 @@ dependencies:
 
   # --- Secure Storage ---
   flutter_secure_storage: ^9.2.2
+  cryptography: 2.9.0
+  archive: ^4.0.2
 
   # --- Data Models & Functional Programming ---
   dartz: ^0.10.1
