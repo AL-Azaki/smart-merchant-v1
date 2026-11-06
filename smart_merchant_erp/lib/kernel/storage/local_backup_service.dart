@@ -104,6 +104,7 @@ class LocalBackupService {
   static Future<File> createBackup({
     required String password,
     String? notes,
+    String fileNamePrefix = 'SmartMerchant_Backup_',
   }) async {
     if (password.trim().isEmpty) {
       throw ArgumentError('كلمة المرور مطلوبة لتشفير النسخة الاحتياطية.');
@@ -197,7 +198,7 @@ class LocalBackupService {
 
       final outputFolder = await getBackupsDirectory();
       final timestampStr = DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first;
-      final finalFileName = 'SmartMerchant_Backup_$timestampStr$fileExtension';
+      final finalFileName = '$fileNamePrefix$timestampStr$fileExtension';
       final finalFile = File(p.join(outputFolder.path, finalFileName));
 
       await finalFile.writeAsString(jsonEncode(container), flush: true);

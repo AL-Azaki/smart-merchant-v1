@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../kernel/storage/auto_backup_service.dart';
 import 'di/injection.dart';
 
 Future<void> bootstrap(Widget Function() builder) async {
@@ -14,7 +15,7 @@ Future<void> bootstrap(Widget Function() builder) async {
   FlutterError.onError = (details) {
     if (kReleaseMode) {
       // In production, log securely to a service (e.g., Sentry)
-      debugPrint('Secure Log: \${details.exceptionAsString()}');
+      debugPrint('Secure Log: ${details.exceptionAsString()}');
     } else {
       FlutterError.presentError(details);
     }
@@ -28,6 +29,9 @@ Future<void> bootstrap(Widget Function() builder) async {
 
   // 3. Initialize Dependency Injection (GetIt)
   await configureDependencies();
+
+  // 3.5. Background Auto-Backup check (Non-blocking)
+  unawaited(AutoBackupService.checkAndRunAutoBackup());
 
   // 4. Run the app wrapped in Riverpod's ProviderScope
   runApp(ProviderScope(child: builder()));

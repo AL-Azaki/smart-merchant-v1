@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../kernel/storage/auto_backup_service.dart';
 import '../../../../kernel/storage/local_backup_service.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../widgets/settings_header_widget.dart';
@@ -23,19 +24,31 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
   final _notesController = TextEditingController();
   final _restorePasswordController = TextEditingController();
   final _externalPathController = TextEditingController();
+  final _autoPasswordController = TextEditingController();
+  final _autoConfirmPasswordController = TextEditingController();
 
   bool _obscureCreatePassword = true;
   bool _obscureConfirmPassword = true;
   bool _obscureRestorePassword = true;
+  bool _obscureAutoPassword = true;
   bool _isCreatingBackup = false;
   bool _isLoadingList = false;
   List<BackupFileItem> _backupsList = [];
   String? _backupDirectoryPath;
 
+  // Auto-backup state
+  bool _isAutoBackupEnabled = false;
+  String _autoBackupFrequency = 'daily';
+  int _autoBackupRetention = 7;
+  DateTime? _lastAutoBackupRun;
+  bool _hasAutoBackupPassword = false;
+  bool _isRunningAutoBackupNow = false;
+
   @override
   void initState() {
     super.initState();
     _loadBackups();
+    _loadAutoBackupSettings();
   }
 
   @override
@@ -45,6 +58,8 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
     _notesController.dispose();
     _restorePasswordController.dispose();
     _externalPathController.dispose();
+    _autoPasswordController.dispose();
+    _autoConfirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -70,6 +85,28 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _loadAutoBackupSettings() async {
+    try {
+      final enabled = await AutoBackupService.isEnabled();
+      final freq = await AutoBackupService.getFrequency();
+      final retention = await AutoBackupService.getRetentionLimit();
+      final lastRun = await AutoBackupService.getLastRunTime();
+      final hasPwd = await AutoBackupService.hasPassword();
+
+      if (mounted) {
+        setState(() {
+          _isAutoBackupEnabled = enabled;
+          _autoBackupFrequency = freq;
+          _autoBackupRetention = retention;
+          _lastAutoBackupRun = lastRun;
+          _hasAutoBackupPassword = hasPwd;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading auto-backup settings: $e');
     }
   }
 
@@ -219,6 +256,176 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
     }
   }
 
+  Future<void> _handleSetAutoBackupPasswordDialog({bool isInitialSetup = false}) async {
+    _autoPasswordController.clear();
+    _autoConfirmPasswordController.clear();
+    _obscureAutoPassword = true;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Row(
+            children: [
+              const Icon(Icons.lock_clock_rounded, color: Color(0xFF6366F1), size: 28),
+              const SizedBox(width: 10),
+              Text(isInitialSetup ? 'تعيين كلمة مرور النسخ التلقائي' : 'تغيير كلمة مرور النسخ التلقائي'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'تُحفظ كلمة المرور في خزينة النظام المشفرة بأمان لاستخدامها عند أخذ النسخ التلقائية في الخلفية. تذكرها لاستعادة النسخ لاحقاً.',
+                style: TextStyle(fontSize: 12.5, height: 1.4),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _autoPasswordController,
+                obscureText: _obscureAutoPassword,
+                decoration: InputDecoration(
+                  labelText: 'كلمة مرور النسخ التلقائي *',
+                  prefixIcon: const Icon(Icons.key_rounded),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureAutoPassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setDialogState(() => _obscureAutoPassword = !_obscureAutoPassword),
+                  ),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _autoConfirmPasswordController,
+                obscureText: _obscureAutoPassword,
+                decoration: InputDecoration(
+                  labelText: 'تأكيد كلمة المرور *',
+                  prefixIcon: const Icon(Icons.lock_reset_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                final p1 = _autoPasswordController.text.trim();
+                final p2 = _autoConfirmPasswordController.text.trim();
+                if (p1.isEmpty || p1.length < 4) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('كلمة المرور يجب ألا تقل عن 4 خانات')),
+                  );
+                  return;
+                }
+                if (p1 != p2) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('كلمتا المرور غير متطابقتين')),
+                  );
+                  return;
+                }
+                Navigator.of(ctx).pop(true);
+              },
+              child: const Text('حفظ واعتماد'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      await AutoBackupService.setPassword(_autoPasswordController.text.trim());
+      await _loadAutoBackupSettings();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم حفظ كلمة مرور النسخ التلقائي بأمان'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleToggleAutoBackup(bool value) async {
+    if (value) {
+      if (!_hasAutoBackupPassword) {
+        await _handleSetAutoBackupPasswordDialog(isInitialSetup: true);
+        if (!_hasAutoBackupPassword) {
+          return; // User cancelled
+        }
+      }
+      await AutoBackupService.setEnabled(true);
+      setState(() => _isAutoBackupEnabled = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تفعيل النسخ الاحتياطي التلقائي المجدول بنجاح'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } else {
+      await AutoBackupService.setEnabled(false);
+      setState(() => _isAutoBackupEnabled = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إيقاف النسخ الاحتياطي التلقائي'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleRunAutoBackupNow() async {
+    if (!_hasAutoBackupPassword) {
+      await _handleSetAutoBackupPasswordDialog(isInitialSetup: true);
+      if (!_hasAutoBackupPassword) {
+        return;
+      }
+    }
+
+    setState(() => _isRunningAutoBackupNow = true);
+    try {
+      final file = await AutoBackupService.checkAndRunAutoBackup(force: true);
+      await _loadBackups();
+      await _loadAutoBackupSettings();
+
+      if (!mounted) {
+        return;
+      }
+      if (file != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تم أخذ النسخة التلقائية بنجاح: ${file.path.split(Platform.pathSeparator).last}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('فشل تشغيل النسخ التلقائي: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isRunningAutoBackupNow = false);
+      }
+    }
+  }
+
   Future<void> _handleRestoreBackup(File backupFile, {BackupMetadata? metadata}) async {
     _restorePasswordController.clear();
     _obscureRestorePassword = true;
@@ -294,13 +501,12 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Radio<bool>(
-                            value: true,
-                            groupValue: isSmartMerge,
-                            activeColor: const Color(0xFF10B981),
-                            onChanged: (val) => setDialogState(() => isSmartMerge = val ?? true),
+                          Icon(
+                            isSmartMerge ? Icons.radio_button_checked : Icons.radio_button_off,
+                            color: isSmartMerge ? const Color(0xFF10B981) : Colors.grey,
+                            size: 20,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,13 +553,12 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Radio<bool>(
-                            value: false,
-                            groupValue: isSmartMerge,
-                            activeColor: Colors.red.shade700,
-                            onChanged: (val) => setDialogState(() => isSmartMerge = val ?? false),
+                          Icon(
+                            !isSmartMerge ? Icons.radio_button_checked : Icons.radio_button_off,
+                            color: !isSmartMerge ? Colors.red.shade700 : Colors.grey,
+                            size: 20,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 8),
                           const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -700,7 +905,7 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
           children: [
             SettingsHeaderWidget(
               title: 'النسخ الاحتياطي والاستعادة',
-              description: 'تشفير محلي متقدم (Argon2id + AES-256-GCM) بدون انترنت مع حماية كاملة',
+              description: 'تشفير محلي متقدم (Argon2id + AES-256-GCM) مع نسخ تلقائي وحماية تامة',
               onBackTap: () => Navigator.of(context).pop(),
             ),
             Expanded(
@@ -734,7 +939,7 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'يتم تشفير النسخة الاحتياطية بالكامل وحزمها في ملف مشفر وموثق (.smbak). النسخة غير مقيدة بجهاز معين ويمكن نقلها واستعادتها على أي جهاز آخر باستخدام كلمة المرور نفسها.',
+                                'يتم تشفير النسخة الاحتياطية بالكامل وحزمها في ملف مشفر وموثق (.smbak). النسخة غير مقيدة بجهاز معين ويمكن نقلها ومشاركتها واستعادتها على أي جهاز آخر باستخدام كلمة المرور نفسها.',
                                 style: TextStyle(
                                   fontSize: 12.5,
                                   height: 1.5,
@@ -875,6 +1080,195 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                     ),
                   ),
 
+                  const SizedBox(height: 20),
+
+                  // Card 2: Auto Backup
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: borderColor),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.update_rounded, color: Color(0xFF6366F1)),
+                                ),
+                                const SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'النسخ الاحتياطي التلقائي المجدول',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                        color: textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'حفظ لقطة مشفرة في الخلفية تلقائياً دون مقاطعة العمل',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? Colors.white60 : Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Switch(
+                              value: _isAutoBackupEnabled,
+                              activeColor: const Color(0xFF6366F1),
+                              onChanged: _handleToggleAutoBackup,
+                            ),
+                          ],
+                        ),
+
+                        if (_isAutoBackupEnabled) ...[
+                          const SizedBox(height: 16),
+                          const Divider(height: 1),
+                          const SizedBox(height: 16),
+
+                          // Frequency options
+                          Row(
+                            children: [
+                              Text(
+                                'تكرار النسخ:',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                              ),
+                              const SizedBox(width: 16),
+                              ChoiceChip(
+                                label: const Text('يومياً (كل 24 ساعة)'),
+                                selected: _autoBackupFrequency == 'daily',
+                                onSelected: (sel) async {
+                                  if (sel) {
+                                    setState(() => _autoBackupFrequency = 'daily');
+                                    await AutoBackupService.setFrequency('daily');
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ChoiceChip(
+                                label: const Text('أسبوعياً (كل 7 أيام)'),
+                                selected: _autoBackupFrequency == 'weekly',
+                                onSelected: (sel) async {
+                                  if (sel) {
+                                    setState(() => _autoBackupFrequency = 'weekly');
+                                    await AutoBackupService.setFrequency('weekly');
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Retention policy
+                          Row(
+                            children: [
+                              Text(
+                                'الاحتفاظ بآخر:',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textPrimary),
+                              ),
+                              const SizedBox(width: 12),
+                              DropdownButton<int>(
+                                value: _autoBackupRetention,
+                                underline: const SizedBox(),
+                                items: const [3, 5, 7, 14, 30].map((count) {
+                                  return DropdownMenuItem<int>(
+                                    value: count,
+                                    child: Text('$count نسخ (مع حذف الأقدم تلقائياً)'),
+                                  );
+                                }).toList(),
+                                onChanged: (val) async {
+                                  if (val != null) {
+                                    setState(() => _autoBackupRetention = val);
+                                    await AutoBackupService.setRetentionLimit(val);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 12),
+
+                          // Last run info
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white10 : const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF6366F1)),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _lastAutoBackupRun != null
+                                        ? 'آخر نسخة تلقائية نُفذت: ${DateFormat('yyyy/MM/dd - hh:mm a').format(_lastAutoBackupRun!)}'
+                                        : 'لم يتم تنفيذ أي نسخة تلقائية حتى الآن (ستعمل تلقائياً)',
+                                    style: TextStyle(fontSize: 12, color: textPrimary.withValues(alpha: 0.8)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Action Buttons
+                          Row(
+                            children: [
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.password_rounded, size: 18),
+                                label: const Text('تغيير كلمة مرور التلقائي'),
+                                onPressed: () => _handleSetAutoBackupPasswordDialog(isInitialSetup: false),
+                              ),
+                              const Spacer(),
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF6366F1),
+                                  foregroundColor: Colors.white,
+                                ),
+                                icon: _isRunningAutoBackupNow
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      )
+                                    : const Icon(Icons.play_circle_outline_rounded, size: 18),
+                                label: const Text('تشغيل النسخ التلقائي الآن'),
+                                onPressed: _isRunningAutoBackupNow ? null : _handleRunAutoBackupNow,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
                   const SizedBox(height: 24),
 
                   // Header of list
@@ -982,13 +1376,17 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                   else
                     ..._backupsList.map((item) {
                       final meta = item.metadata;
+                      final isAuto = item.fileName.startsWith('AutoBackup_');
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: surface,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: borderColor),
+                          border: Border.all(
+                            color: isAuto ? const Color(0xFF6366F1).withValues(alpha: 0.3) : borderColor,
+                          ),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
@@ -1005,12 +1403,12 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    color: (isAuto ? const Color(0xFF6366F1) : const Color(0xFF10B981)).withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
-                                  child: const Icon(
-                                    Icons.lock_clock_rounded,
-                                    color: Color(0xFF10B981),
+                                  child: Icon(
+                                    isAuto ? Icons.auto_mode_rounded : Icons.lock_clock_rounded,
+                                    color: isAuto ? const Color(0xFF6366F1) : const Color(0xFF10B981),
                                     size: 22,
                                   ),
                                 ),
@@ -1019,14 +1417,36 @@ class _BackupAndRestoreViewState extends ConsumerState<BackupAndRestoreView> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        item.fileName,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: textPrimary,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              item.fileName,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: textPrimary,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: (isAuto ? const Color(0xFF6366F1) : const Color(0xFF10B981)).withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              isAuto ? 'تلقائية ⏱️' : 'يدوية 👤',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11,
+                                                color: isAuto ? const Color(0xFF6366F1) : const Color(0xFF10B981),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                       const SizedBox(height: 4),
                                       Row(
