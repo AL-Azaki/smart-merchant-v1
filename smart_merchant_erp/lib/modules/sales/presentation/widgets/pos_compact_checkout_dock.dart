@@ -145,6 +145,40 @@ class PosCompactCheckoutDock extends ConsumerWidget {
               onPressed: (!hasItems || posState.isSubmitting)
                   ? null
                   : () {
+                      final demandByProduct = <String, double>{};
+                      final stockByProduct = <String, double>{};
+                      final nameByProduct = <String, String>{};
+
+                      for (final item in posState.cart) {
+                        final factor = item.conversionFactor > 0 ? item.conversionFactor : 1.0;
+                        demandByProduct[item.id] = (demandByProduct[item.id] ?? 0.0) + (item.quantity * factor);
+                        stockByProduct[item.id] = item.totalBaseStock;
+                        nameByProduct[item.id] = item.name;
+                      }
+
+                      final overstockErrors = <String>[];
+                      for (final entry in demandByProduct.entries) {
+                        final stock = stockByProduct[entry.key] ?? double.infinity;
+                        if (stock.isFinite && entry.value > (stock + 0.0001)) {
+                          overstockErrors.add(
+                            '• ${nameByProduct[entry.key]}: المطلوب ${entry.value.toInt()} حبة، المتوفر ${stock.toInt()} حبة',
+                          );
+                        }
+                      }
+
+                      if (overstockErrors.isNotEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'لا يمكن إتمام البيع! الكميات تتجاوز المخزون المتوفر:\n${overstockErrors.join('\n')}',
+                            ),
+                            backgroundColor: AppColors.error,
+                            duration: const Duration(seconds: 4),
+                          ),
+                        );
+                        return;
+                      }
+
                       showDialog<void>(
                         context: context,
                         builder: (_) => const PaymentModal(),

@@ -1,3 +1,8 @@
+import '../providers/product_unit_provider.dart';
+import '../providers/pos_provider.dart';
+import '../../../../kernel/storage/app_database.dart';
+import '../../../catalog/domain/models/catalog_product_item.dart';
+import '../../../catalog/presentation/providers/catalog_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
@@ -6,7 +11,7 @@ import 'returns_modal.dart';
 import 'voucher_modal.dart';
 
 /// Top minimal action bar for POS.
-/// Houses the POS brand pill, smooth expandable search bar (saving catalog space),
+/// Houses the POS brand pill, permanently complete full search & barcode input,
 /// and quick access to vouchers and returns.
 class PosTopBar extends ConsumerStatefulWidget {
   const PosTopBar({super.key});
@@ -16,7 +21,6 @@ class PosTopBar extends ConsumerStatefulWidget {
 }
 
 class _PosTopBarState extends ConsumerState<PosTopBar> {
-  bool _isSearchExpanded = false;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
 
@@ -27,20 +31,56 @@ class _PosTopBarState extends ConsumerState<PosTopBar> {
     super.dispose();
   }
 
-  void _collapseSearch() {
-    setState(() {
-      _isSearchExpanded = false;
-    });
-    _searchController.clear();
-    ref.read(posSearchQueryProvider.notifier).clear();
-    _searchFocusNode.unfocus();
-  }
+  void _handleBarcodeSubmit(String code) {
+    final query = code.trim().toLowerCase();
+    if (query.isEmpty) return;
 
-  void _expandSearch() {
-    setState(() {
-      _isSearchExpanded = true;
-    });
-    _searchFocusNode.requestFocus();
+    final products = ref.read(posProductsNotifierProvider).value ?? [];
+    CatalogProductItem? matchedProduct;
+    ProductUnit? matchedUnit;
+
+    for (final p in products) {
+      final u = p.findUnitByBarcodeOrSku(query);
+      if (u != null) {
+        matchedProduct = p;
+        matchedUnit = u;
+        break;
+      }
+    }
+
+    if (matchedProduct != null && matchedUnit != null) {
+      if (matchedProduct.stockQuantity <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('نفد المخزون: لا توجد كمية متوفرة من "${matchedProduct.product.productName}".'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
+
+      final unitsDef = ref.read(unitsNotifierProvider).value ?? [];
+      final unitDef = unitsDef.where((u) => u.id == matchedUnit!.unitId).firstOrNull;
+      final unitName = matchedUnit.isBaseUnit
+          ? (unitDef?.unitName ?? 'حبة')
+          : '${unitDef?.unitName ?? 'كرتون'} (${matchedUnit.conversionFactor.toInt()})';
+
+      ref.read(posNotifierProvider.notifier).addProduct(
+            id: matchedProduct.product.id,
+            name: matchedProduct.product.productName,
+            price: matchedUnit.sellingPrice,
+            productUnitId: matchedUnit.id,
+            unitName: unitName,
+            conversionFactor: matchedUnit.conversionFactor,
+            availableUnits: matchedProduct.units,
+            totalBaseStock: matchedProduct.stockQuantity,
+          );
+
+      _searchController.clear();
+      setState(() {});
+      ref.read(posSearchQueryProvider.notifier).clear();
+      _searchFocusNode.requestFocus();
+    }
   }
 
   @override
@@ -63,102 +103,6 @@ class _PosTopBarState extends ConsumerState<PosTopBar> {
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 700;
           final isNarrow = constraints.maxWidth < 500;
-
-          // If search is expanded on narrow mobile, give the entire row to search
-          if (_isSearchExpanded && isNarrow) {
-            return Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.backgroundDark
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.6),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.search_rounded,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            autofocus: true,
-                            style: TextStyle(fontSize: 13, color: textColor),
-                            decoration: InputDecoration(
-                              hintText: 'ابحث عن صنف أو باركود...',
-                              hintStyle: TextStyle(
-                                fontSize: 12,
-                                color: textSecondary,
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                            onChanged: (val) {
-                              ref
-                                  .read(posSearchQueryProvider.notifier)
-                                  .update(val);
-                            },
-                          ),
-                        ),
-                        if (_searchController.text.isNotEmpty)
-                          InkWell(
-                            onTap: () {
-                              _searchController.clear();
-                              ref.read(posSearchQueryProvider.notifier).clear();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.clear_rounded,
-                                size: 16,
-                                color: textSecondary,
-                              ),
-                            ),
-                          ),
-                        InkWell(
-                          onTap: _collapseSearch,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'إلغاء',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.error,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
 
           return Row(
             children: [
@@ -195,144 +139,100 @@ class _PosTopBarState extends ConsumerState<PosTopBar> {
                 ),
               ),
 
-              const SizedBox(width: 6),
+              const SizedBox(width: 10),
 
-              // 2. Smooth Expandable Search Bar (Right beside POS button as requested)
-              if (_isSearchExpanded)
-                Expanded(
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    curve: Curves.easeOutCubic,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? AppColors.backgroundDark
-                          : const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.6),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.search_rounded,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            style: TextStyle(fontSize: 13, color: textColor),
-                            decoration: InputDecoration(
-                              hintText: 'ابحث عن صنف أو باركود...',
-                              hintStyle: TextStyle(
-                                fontSize: 12,
-                                color: textSecondary,
-                              ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 8),
-                            ),
-                            onChanged: (val) {
-                              ref
-                                  .read(posSearchQueryProvider.notifier)
-                                  .update(val);
-                            },
-                          ),
-                        ),
-                        if (_searchController.text.isNotEmpty)
-                          InkWell(
-                            onTap: () {
-                              _searchController.clear();
-                              ref.read(posSearchQueryProvider.notifier).clear();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6),
-                              child: Icon(
-                                Icons.clear_rounded,
-                                size: 16,
-                                color: textSecondary,
-                              ),
-                            ),
-                          ),
-                        InkWell(
-                          onTap: _collapseSearch,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'إلغاء',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.error,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+              // 2. Permanently Complete & Open Search & Barcode Input
+              Expanded(
+                child: Container(
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.backgroundDark
+                        : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.5),
+                      width: 1.2,
                     ),
                   ),
-                )
-              else
-                Tooltip(
-                  message: 'بحث عن صنف',
-                  child: InkWell(
-                    onTap: _expandSearch,
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      height: 36,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isWide ? 10 : 8,
-                        vertical: 6,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      const Icon(
+                        Icons.search_rounded,
+                        size: 18,
+                        color: AppColors.primary,
                       ),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? AppColors.backgroundDark
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: borderColor),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.search_rounded,
-                            size: 18,
-                            color: textSecondary,
-                          ),
-                          if (isWide) ...[
-                            const SizedBox(width: 6),
-                            Text(
-                              'بحث عن صنف...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          style: TextStyle(fontSize: 13, color: textColor),
+                          decoration: InputDecoration(
+                            hintText: isNarrow
+                                ? 'ابحث عن صنف أو باركود...'
+                                : 'ابحث عن صنف بالاسم أو امسح الباركود مباشرة...',
+                            hintStyle: TextStyle(
+                              fontSize: 12,
+                              color: textSecondary,
                             ),
-                          ],
-                        ],
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding:
+                                const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            setState(() {});
+                            ref
+                                .read(posSearchQueryProvider.notifier)
+                                .update(val);
+                          },
+                          onSubmitted: _handleBarcodeSubmit,
+                        ),
                       ),
-                    ),
+                      if (_searchController.text.isNotEmpty)
+                        InkWell(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                            ref.read(posSearchQueryProvider.notifier).clear();
+                            _searchFocusNode.requestFocus();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: Icon(
+                              Icons.clear_rounded,
+                              size: 16,
+                              color: textSecondary,
+                            ),
+                          ),
+                        ),
+                      Tooltip(
+                        message: 'قارئ الباركود نشط ومستعد للمسح الفوري',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 4,
+                          ),
+                          margin: const EdgeInsets.only(left: 4, right: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_scanner_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
 
-              const Spacer(),
+              const SizedBox(width: 10),
 
               // 3. Voucher & Discount Bond (سند وقسائم)
               Tooltip(
@@ -441,7 +341,6 @@ class _PosTopBarState extends ConsumerState<PosTopBar> {
           );
         },
       ),
-
     );
   }
 }

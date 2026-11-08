@@ -1,3 +1,4 @@
+import '../../../catalog/presentation/providers/catalog_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
@@ -255,6 +256,18 @@ class PosCartPanel extends ConsumerWidget {
                               .updateItemDiscount(
                                 item.productUnitId ?? item.id,
                                 discount,
+                              );
+                        },
+                        onSwitchUnit: (newUnit) {
+                          final unitsDef = ref.read(unitsNotifierProvider).value ?? [];
+                          final unitDef = unitsDef.where((u) => u.id == newUnit.unitId).firstOrNull;
+                          final unitName = newUnit.isBaseUnit
+                              ? (unitDef?.unitName ?? 'حبة')
+                              : '${unitDef?.unitName ?? 'كرتون'} (${newUnit.conversionFactor.toInt()})';
+                          ref.read(posNotifierProvider.notifier).switchCartItemUnit(
+                                item.productUnitId ?? item.id,
+                                newUnit,
+                                unitName,
                               );
                         },
                       );

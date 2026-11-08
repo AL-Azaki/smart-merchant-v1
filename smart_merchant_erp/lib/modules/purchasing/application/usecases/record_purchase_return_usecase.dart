@@ -341,9 +341,27 @@ class RecordPurchaseReturnUseCase
             final updatedQty = PrecisionMath.roundQty(
               inventory.quantity - baseQuantity,
             );
+            final returnUnitCostInBase = unitInfo != null
+                ? unitInfo.toBaseUnitCost(
+                    unitCost: item.unitPrice,
+                    exchangeRate: params.exchangeRate,
+                  )
+                : PrecisionMath.toBaseAmount(
+                    foreignAmount: item.unitPrice,
+                    exchangeRate: params.exchangeRate,
+                    decimals: 4,
+                  );
+            final currentTotalCost = inventory.quantity * inventory.averageCost;
+            final returnTotalCost = baseQuantity * returnUnitCostInBase;
+            final newTotalCost = currentTotalCost - returnTotalCost;
+            final updatedAvgCost = updatedQty > 0 && newTotalCost > 0
+                ? PrecisionMath.roundMoney(newTotalCost / updatedQty)
+                : inventory.averageCost;
+
             await _inventoryRepository.updateInventory(
               inventory.toCompanion(false).copyWith(
                 quantity: drift.Value(updatedQty),
+                averageCost: drift.Value(updatedAvgCost),
               ),
             );
           }

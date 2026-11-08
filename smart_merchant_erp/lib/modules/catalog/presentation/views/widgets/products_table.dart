@@ -1,3 +1,4 @@
+import '../../../domain/services/unit_quantity_formatter.dart';
 import 'package:flutter/material.dart';
 import '../../../domain/models/catalog_product_item.dart';
 import '../../providers/product_list_filters.dart';
@@ -242,13 +243,29 @@ class _ProductsTableState extends State<ProductsTable> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$quantity $unit',
+                  item.units.length > 1
+                      ? UnitQuantityFormatter.formatBreakdown(
+                          baseQuantity: item.stockQuantity,
+                          units: item.units,
+                          unitNameResolver: widget.unitName,
+                        )
+                      : '$quantity $unit',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
+                if (item.units.length > 1) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    '($quantity $unit)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 5),
                 Container(
                   padding: const EdgeInsets.symmetric(

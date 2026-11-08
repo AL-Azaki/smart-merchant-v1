@@ -1,3 +1,5 @@
+import '../../../catalog/domain/models/catalog_product_item.dart';
+import '../../../catalog/presentation/providers/catalog_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
@@ -7,7 +9,7 @@ import '../providers/purchasing_provider.dart';
 import '../../../sales/presentation/providers/product_unit_provider.dart'
     show posProductsNotifierProvider, PosProductItem;
 import '../../../../kernel/storage/app_database.dart'
-    show Supplier, Warehouse, CurrencyEntity;
+    show Supplier, Warehouse, CurrencyEntity, ProductUnit, Unit;
 import '../../../../app/di/getit_instance.dart';
 import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
 import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
@@ -51,6 +53,7 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
 
     final suppliersAsync = ref.watch(suppliersNotifierProvider);
     final productsAsync = ref.watch(posProductsNotifierProvider);
+    final unitsAsync = ref.watch(unitsNotifierProvider);
     final warehousesAsync = ref.watch(activeWarehousesStreamProvider);
     final currenciesAsync = ref.watch(availableCurrenciesFutureProvider);
 
@@ -330,7 +333,7 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                   const SizedBox(width: 8),
                                   _headerCell('التصنيف', 140),
                                   const SizedBox(width: 8),
-                                  _headerCell('الوحدة', 100),
+                                  _headerCell('الوحدة', 130),
                                   const SizedBox(width: 8),
                                   _headerCell('الكمية', 100),
                                   const SizedBox(width: 8),
@@ -376,29 +379,32 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                               barcode: v,
                                             );
                                             productsAsync.whenData((products) {
-                                              final match = products
-                                                  .where(
-                                                    (p) =>
-                                                        p.baseUnit.barcode ==
-                                                            v ||
-                                                        p.baseUnit.sku == v,
-                                                  )
-                                                  .firstOrNull;
-                                              if (match != null) {
+                                              CatalogProductItem? matchedProduct;
+                                              ProductUnit? matchedUnit;
+                                              for (final p in products) {
+                                                final u = p.findUnitByBarcodeOrSku(v);
+                                                if (u != null) {
+                                                  matchedProduct = p;
+                                                  matchedUnit = u;
+                                                  break;
+                                                }
+                                              }
+                                              if (matchedProduct != null && matchedUnit != null) {
+                                                final unit = unitsAsync.value
+                                                    ?.where((u) => u.id == matchedUnit!.unitId)
+                                                    .firstOrNull;
+                                                final resolvedUnitName = unit?.unitName ?? 'حبة';
                                                 newRow = newRow.copyWith(
-                                                  productUnitId:
-                                                      match.baseUnit.id,
-                                                  productId: match.product.id,
-                                                  categoryId:
-                                                      match.product.categoryId,
-                                                  productName:
-                                                      match.product.productName,
-                                                  purchasePrice: match
-                                                      .baseUnit
-                                                      .purchasePrice,
-                                                  sellingPrice: match
-                                                      .baseUnit
-                                                      .sellingPrice,
+                                                  productUnitId: matchedUnit.id,
+                                                  productId: matchedProduct.product.id,
+                                                  categoryId: matchedProduct.product.categoryId,
+                                                  productName: matchedProduct.product.productName,
+                                                  unitId: resolvedUnitName,
+                                                  purchasePrice: matchedUnit.purchasePrice,
+                                                  sellingPrice: matchedUnit.sellingPrice,
+                                                  availableUnits: matchedProduct.units,
+                                                  conversionFactor: matchedUnit.conversionFactor,
+                                                  currentBaseWac: matchedProduct.baseAverageCost,
                                                 );
                                               }
                                             });
@@ -434,6 +440,11 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                             );
                                           },
                                           onSelected: (option) {
+                                            final unit = unitsAsync.value
+                                                ?.where((u) => u.id == option.baseUnit.unitId)
+                                                .firstOrNull;
+                                            final resolvedUnitName = unit?.unitName ?? 'حبة';
+
                                             notifier.updateRow(
                                               row.id,
                                               row.copyWith(
@@ -444,12 +455,16 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                                 productId: option.product.id,
                                                 categoryId:
                                                     option.product.categoryId,
+                                                unitId: resolvedUnitName,
                                                 purchasePrice: option
                                                     .baseUnit
                                                     .purchasePrice,
                                                 sellingPrice: option
                                                     .baseUnit
                                                     .sellingPrice,
+                                                availableUnits: option.units,
+                                                conversionFactor: option.baseUnit.conversionFactor,
+                                                currentBaseWac: option.baseAverageCost,
                                               ),
                                             );
                                           },
@@ -607,14 +622,11 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
                                       const SizedBox(width: 8),
                                       // Unit
                                       SizedBox(
-                                        width: 100,
-                                        child: _buildInput(
-                                          value: row.unitId,
-                                          hint: 'الوحدة',
-                                          onChanged: (v) => notifier.updateRow(
-                                            row.id,
-                                            row.copyWith(unitId: v),
-                                          ),
+                                        width: 130,
+                                        child: _buildUnitDropdown(
+                                          row: row,
+                                          notifier: notifier,
+                                          unitsAsync: unitsAsync,
                                         ),
                                       ),
                                       const SizedBox(width: 8),
@@ -915,6 +927,119 @@ class _NewPurchaseViewState extends ConsumerState<NewPurchaseView> {
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
     );
+  }
+
+  Widget _buildUnitDropdown({
+    required PurchaseItemState row,
+    required PurchasingNotifier notifier,
+    required AsyncValue<List<Unit>> unitsAsync,
+  }) {
+    final systemUnits = unitsAsync.value ?? <Unit>[];
+    final hasConfiguredUnits = row.availableUnits.isNotEmpty;
+
+    if (hasConfiguredUnits) {
+      final effectiveValue = (row.productUnitId != null &&
+              row.availableUnits.any((u) => u.id == row.productUnitId))
+          ? row.productUnitId
+          : row.availableUnits.first.id;
+
+      return Container(
+        height: 42,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonFormField<String>(
+          key: ValueKey('${row.id}_unit_${effectiveValue}'),
+          value: effectiveValue,
+          isDense: true,
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 20),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+            ),
+          ),
+          items: row.availableUnits.map((u) {
+            final unit = systemUnits.where((un) => un.id == u.unitId).firstOrNull;
+            final name = unit?.unitName ?? 'وحدة';
+            final label = u.isBaseUnit ? '$name (أساسية)' : '$name (×${u.conversionFactor.toInt()})';
+            return DropdownMenuItem<String>(
+              value: u.id,
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: u.isBaseUnit ? FontWeight.bold : FontWeight.normal,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (newUnitId) {
+            if (newUnitId != null) {
+              final selectedUnit = row.availableUnits.where((u) => u.id == newUnitId).firstOrNull;
+              if (selectedUnit != null) {
+                final unit = systemUnits.where((un) => un.id == selectedUnit.unitId).firstOrNull;
+                final name = unit?.unitName ?? 'وحدة';
+                notifier.changeRowUnit(row.id, selectedUnit, name);
+              }
+            }
+          },
+        ),
+      );
+    } else {
+      final displayUnits = systemUnits.isNotEmpty
+          ? systemUnits.map((u) => u.unitName).toList()
+          : const ['حبة', 'كرتون', 'درزن', 'كيلو', 'باكت', 'قطعة', 'علبة', 'كيس'];
+
+      final defaultUnit = displayUnits.contains('حبة')
+          ? 'حبة'
+          : (displayUnits.contains('قطعة') ? 'قطعة' : displayUnits.first);
+
+      final effectiveValue = (row.unitId.isNotEmpty && displayUnits.contains(row.unitId))
+          ? row.unitId
+          : defaultUnit;
+
+      return Container(
+        height: 42,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonFormField<String>(
+          key: ValueKey('${row.id}_sysunit_${effectiveValue}'),
+          value: effectiveValue,
+          isDense: true,
+          isExpanded: true,
+          icon: const Icon(Icons.arrow_drop_down_rounded, color: AppColors.primary, size: 20),
+          decoration: InputDecoration(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.3)),
+            ),
+          ),
+          items: displayUnits.map((name) {
+            return DropdownMenuItem<String>(
+              value: name,
+              child: Text(
+                name,
+                style: const TextStyle(fontSize: 12),
+                overflow: TextOverflow.ellipsis,
+              ),
+            );
+          }).toList(),
+          onChanged: (newUnitName) {
+            if (newUnitName != null) {
+              notifier.updateRow(row.id, row.copyWith(unitId: newUnitName));
+            }
+          },
+        ),
+      );
+    }
   }
 
   Widget _buildInput({

@@ -209,7 +209,7 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton(() => CustomerApplicationService(getIt(), getIt()));
   getIt.registerLazySingleton(() => OnlineOrderService(getIt(), getIt(), getIt<OrderStatusFeedbackService>()));
   getIt.registerLazySingleton(() => CompleteSaleUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
-  getIt.registerLazySingleton(() => ProcessSalesReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt()));
+  getIt.registerLazySingleton(() => ProcessSalesReturnUseCase(getIt(), getIt(), getIt(), getIt(), getIt(), getIt(), unitResolver: getIt()));
 
   // Purchasing
   getIt.registerLazySingleton(() => SupplierApplicationService(getIt(), getIt()));

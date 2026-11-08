@@ -17,12 +17,14 @@ class StockAdjustmentItemCommand {
   final double countedQuantity;
   final double expectedQuantity;
   final double difference;
+  final double? unitCost;
 
   const StockAdjustmentItemCommand({
     required this.productUnitId,
     required this.countedQuantity,
     required this.expectedQuantity,
     required this.difference,
+    this.unitCost,
   });
 }
 
@@ -165,6 +167,7 @@ class ProcessStockAdjustmentUseCase
                 warehouseId: params.warehouseId,
                 productUnitId: item.productUnitId,
                 quantity: drift.Value(item.countedQuantity),
+                averageCost: drift.Value(item.unitCost ?? 0.0),
               ),
             );
           }

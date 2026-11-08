@@ -46,11 +46,15 @@ CatalogProductItem _catalogItem(ProductCatalogEntry entry) {
             version: 1,
           ),
   );
+  final effectiveCost = entry.baseAverageCost > 0
+      ? entry.baseAverageCost
+      : (base.purchasePrice > 0 ? base.purchasePrice : 0.0);
   return CatalogProductItem(
     product: product,
     baseUnit: base,
     sellingPrice: base.sellingPrice,
     units: entry.units.isEmpty ? [base] : entry.units,
     stockQuantity: entry.quantitiesByUnit[base.id] ?? 0,
+    baseAverageCost: effectiveCost,
   );
 }

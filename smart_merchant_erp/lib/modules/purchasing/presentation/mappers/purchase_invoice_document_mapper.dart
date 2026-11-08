@@ -76,12 +76,19 @@ class PurchaseInvoiceDocumentMapper {
       String description = 'منتج غير معروف';
       String? barcode = productUnit?.barcode;
 
+      String? unitLabel;
       if (productUnit != null) {
         final product = await _catalogDao.getProductById(
           productUnit.productId,
           businessId,
         );
         description = product?.productName ?? description;
+        final unitEntity = await _catalogDao.getUnitById(productUnit.unitId, businessId);
+        if (unitEntity != null) {
+          unitLabel = productUnit.isBaseUnit
+              ? unitEntity.unitName
+              : '${unitEntity.unitName} (${productUnit.conversionFactor.toInt()})';
+        }
       }
 
       documentLines.add(
@@ -89,7 +96,7 @@ class PurchaseInvoiceDocumentMapper {
           description: description,
           sku: productUnit?.sku,
           barcode: barcode,
-          unitName: null, // Optional: look up from units table
+          unitName: unitLabel,
           quantity: item.quantity,
           unitPrice: item.unitPrice, // Purchase uses unitPrice in drift table
           discount: item.discount,

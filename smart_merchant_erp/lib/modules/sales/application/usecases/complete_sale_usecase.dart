@@ -377,6 +377,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
     // We will augment the items with their authoritative cost for later use
     final itemsWithCost = <Map<String, dynamic>>[];
     final validatedWarehouses = <String>{};
+    final demandedBaseQtyByUnitAndWh = <String, double>{};
 
     for (final item in params.items) {
       if (item.quantity <= 0)
@@ -422,7 +423,11 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
           ? unitInfo.toBaseQuantity(item.quantity)
           : PrecisionMath.roundQty(item.quantity);
 
-      // Stock Check against Base Unit
+      // Stock Check against Base Unit with cumulative demand tracking
+      final demandedKey = '${item.warehouseId}_$targetUnitId';
+      final currentDemanded = demandedBaseQtyByUnitAndWh[demandedKey] ?? 0.0;
+      final totalDemanded = currentDemanded + baseQuantity;
+
       final inventory = await _inventoryRepository
           .getInventoryByUnitAndWarehouse(
             businessId,
@@ -430,11 +435,14 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
             targetUnitId,
           );
 
-      if (inventory == null || inventory.quantity < baseQuantity) {
-        return const Left(ValidationFailure('Insufficient stock for product.'));
+      if (inventory == null || inventory.quantity < totalDemanded) {
+        return const Left(ValidationFailure('الكمية المطلوبة تتجاوز الرصيد المتوفر في المخزن.'));
       }
+      demandedBaseQtyByUnitAndWh[demandedKey] = totalDemanded;
 
       final itemCost = inventory.averageCost; // Authoritative Cost in Base Currency
+      final conversionFactor = unitInfo?.conversionFactor ?? 1.0;
+      final costPriceForSoldUnit = PrecisionMath.roundMoney(itemCost * conversionFactor);
       final lineCogsBase = PrecisionMath.roundMoney(baseQuantity * itemCost);
 
       subTotal += (item.quantity * item.unitPrice);
@@ -444,7 +452,7 @@ class CompleteSaleUseCase implements UseCase<String, CompleteSaleCommand> {
 
       itemsWithCost.add({
         'command': item,
-        'costPrice': itemCost,
+        'costPrice': costPriceForSoldUnit,
         'baseQuantity': baseQuantity,
         'lineCogsBase': lineCogsBase,
         'inventory': inventory,

@@ -6,7 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 import 'package:path/path.dart' as p;
 import '../../../../../app/di/getit_providers.dart';
-import '../../../../../kernel/storage/app_database.dart' show Category;
+import '../../../../../kernel/storage/app_database.dart' show Category, Unit;
 import '../../../../../shared/design_system/tokens/colors.dart';
 import '../../../../../shared/design_system/widgets/app_modal_sheet.dart';
 import '../../../../../shared/design_system/widgets/app_text_field.dart';
@@ -41,6 +41,45 @@ class ProductFormSheet extends ConsumerStatefulWidget {
   ConsumerState<ProductFormSheet> createState() => _ProductFormSheetState();
 }
 
+
+class _AdditionalUnitRow {
+  final String? id;
+  String unitId;
+  final TextEditingController factorController;
+  final TextEditingController barcodeController;
+  final TextEditingController purchasePriceController;
+  final TextEditingController sellingPriceController;
+
+  _AdditionalUnitRow({
+    required this.unitId,
+    required double factor,
+    this.id,
+    String? barcode,
+    double purchasePrice = 0.0,
+    double sellingPrice = 0.0,
+  })  : factorController = TextEditingController(
+          text: factor > 0
+              ? (factor % 1 == 0
+                  ? factor.toInt().toString()
+                  : factor.toString())
+              : '1',
+        ),
+        barcodeController = TextEditingController(text: barcode ?? ''),
+        purchasePriceController = TextEditingController(
+          text: purchasePrice > 0 ? purchasePrice.toString() : '',
+        ),
+        sellingPriceController = TextEditingController(
+          text: sellingPrice > 0 ? sellingPrice.toString() : '',
+        );
+
+  void dispose() {
+    factorController.dispose();
+    barcodeController.dispose();
+    purchasePriceController.dispose();
+    sellingPriceController.dispose();
+  }
+}
+
 class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
@@ -69,6 +108,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   int _savedCount = 0;
   final _nameFocus = FocusNode();
   final _nameFieldKey = GlobalKey();
+  final List<_AdditionalUnitRow> _additionalUnits = [];
 
   @override
   void initState() {
@@ -154,6 +194,23 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
         _barcodeController.text = baseUnit.barcode ?? '';
         _purchasePriceController.text = baseUnit.purchasePrice.toString();
         _sellingPriceController.text = baseUnit.sellingPrice.toString();
+
+        for (final row in _additionalUnits) {
+          row.dispose();
+        }
+        _additionalUnits.clear();
+        for (final u in units.where((u) => !u.isBaseUnit)) {
+          _additionalUnits.add(
+            _AdditionalUnitRow(
+              id: u.id,
+              unitId: u.unitId,
+              factor: u.conversionFactor,
+              barcode: u.barcode,
+              purchasePrice: u.purchasePrice,
+              sellingPrice: u.sellingPrice,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -176,6 +233,9 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
     _purchasePriceController.dispose();
     _sellingPriceController.dispose();
     _openingQuantityController.dispose();
+    for (final row in _additionalUnits) {
+      row.dispose();
+    }
     super.dispose();
   }
 
@@ -363,6 +423,24 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
         'opening_quantity': widget.hideOpeningStock
             ? '0'
             : _openingQuantityController.text,
+        'additional_units': _additionalUnits
+            .where((u) => u.unitId.isNotEmpty)
+            .map((u) => {
+                  'id': u.id,
+                  'unit_id': u.unitId,
+                  'conversion_factor':
+                      double.tryParse(u.factorController.text.trim()) ?? 1.0,
+                  'barcode': u.barcodeController.text.trim().isEmpty
+                      ? null
+                      : u.barcodeController.text.trim(),
+                  'purchase_price':
+                      double.tryParse(u.purchasePriceController.text.trim()) ??
+                          0.0,
+                  'selling_price':
+                      double.tryParse(u.sellingPriceController.text.trim()) ??
+                          0.0,
+                })
+            .toList(),
       };
       await (addAnother ? widget.onSaveAndAdd!(data) : widget.onSave(data));
       if (!mounted) {
@@ -386,6 +464,10 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
           _originalImagePath = null;
           _isActive = true;
           _showInStore = true;
+          for (final row in _additionalUnits) {
+            row.dispose();
+          }
+          _additionalUnits.clear();
         });
         _nameFocus.requestFocus();
         final fieldContext = _nameFieldKey.currentContext;
@@ -411,6 +493,161 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
         setState(() => _isSaving = false);
       }
     }
+  }
+
+
+  void _addAdditionalUnit(List<Unit> allUnits) {
+    final usedUnitIds = {
+      _unitId,
+      ..._additionalUnits.map((u) => u.unitId),
+    };
+    final available = allUnits.where((u) => !usedUnitIds.contains(u.id)).toList();
+    final selectedUnitId = available.isNotEmpty ? available.first.id : (allUnits.isNotEmpty ? allUnits.first.id : '');
+    final basePurchase = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    final baseSelling = double.tryParse(_sellingPriceController.text.trim()) ?? 0.0;
+    const factor = 12.0;
+
+    setState(() {
+      _additionalUnits.add(
+        _AdditionalUnitRow(
+          unitId: selectedUnitId.toString(),
+          factor: factor,
+          purchasePrice: basePurchase * factor,
+          sellingPrice: baseSelling * factor,
+        ),
+      );
+    });
+  }
+
+  void _removeAdditionalUnit(int index) {
+    setState(() {
+      final row = _additionalUnits.removeAt(index);
+      row.dispose();
+    });
+  }
+
+  void _generateBarcodeForUnit(_AdditionalUnitRow row) {
+    final now = DateTime.now().millisecondsSinceEpoch.toString();
+    final generated = '29${now.substring(now.length - 10)}';
+    setState(() {
+      row.barcodeController.text = generated;
+    });
+  }
+
+  void _recomputeRowPrices(_AdditionalUnitRow row) {
+    final factor = double.tryParse(row.factorController.text.trim()) ?? 1.0;
+    final basePurchase = double.tryParse(_purchasePriceController.text.trim()) ?? 0.0;
+    final baseSelling = double.tryParse(_sellingPriceController.text.trim()) ?? 0.0;
+    setState(() {
+      if (basePurchase > 0) {
+        row.purchasePriceController.text = (basePurchase * factor).toStringAsFixed(2);
+      }
+      if (baseSelling > 0) {
+        row.sellingPriceController.text = (baseSelling * factor).toStringAsFixed(2);
+      }
+    });
+  }
+
+  Widget _buildAdditionalUnitCard(
+    int index,
+    _AdditionalUnitRow row,
+    List<Unit> units,
+    ThemeData theme,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'وحدة تعبئة #${index + 1}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: () => _recomputeRowPrices(row),
+                icon: const Icon(Icons.calculate_outlined, size: 16),
+                label: const Text('حساب الأسعار تلقائياً', style: TextStyle(fontSize: 12)),
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 20),
+                tooltip: 'حذف هذه الوحدة',
+                onPressed: () => _removeAdditionalUnit(index),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _fields([
+            _select(
+              label: 'نوع الوحدة *',
+              value: row.unitId.isNotEmpty ? row.unitId : null,
+              options: {for (final u in units) u.id.toString(): u.unitName.toString()},
+              validator: (v) => v == null ? 'اختر الوحدة' : null,
+              onChanged: (v) => setState(() => row.unitId = v ?? ''),
+            ),
+            AppNumberField(
+              label: 'معامل التحويل (كم حبة تحتوي؟) *',
+              controller: row.factorController,
+              hint: 'مثال: 12 أو 24',
+              validator: (v) {
+                final d = double.tryParse(v ?? '');
+                if (d == null || d <= 0) {
+                  return 'أدخل معامل تحويل أكبر من 0';
+                }
+                return null;
+              },
+            ),
+          ]),
+          const SizedBox(height: 10),
+          _fields([
+            AppTextField(
+              label: 'باركود هذه الوحدة',
+              controller: row.barcodeController,
+              hint: 'امسح أو ولّد باركود الكرتون',
+              suffixIcon: IconButton(
+                icon: const Icon(Icons.qr_code_2_rounded, size: 20),
+                tooltip: 'توليد باركود تلقائي',
+                onPressed: () => _generateBarcodeForUnit(row),
+              ),
+            ),
+            AppNumberField(
+              label: 'سعر شراء هذه الوحدة',
+              controller: row.purchasePriceController,
+              hint: 'اختياري',
+              validator: (v) => _validateAmount(v),
+            ),
+          ]),
+          const SizedBox(height: 10),
+          AppNumberField(
+            label: 'سعر بيع هذه الوحدة *',
+            controller: row.sellingPriceController,
+            hint: 'سعر البيع للعميل',
+            validator: (v) => _validateAmount(v, required: true),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _fields(List<Widget> children, {int columns = 2}) {
@@ -720,6 +957,68 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
                                 setState(() => _openingWarehouseId = v),
                           ),
                       ]),
+                      const SizedBox(height: 16),
+                      // Multi-Unit / Packaging Section
+                      Container(
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.inventory_rounded,
+                                      size: 20,
+                                      color: theme.colorScheme.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'وحدات التعبئة والتجزئة الإضافية (كرتون، باكت...)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                FilledButton.tonalIcon(
+                                  onPressed: () => _addAdditionalUnit(units),
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('إضافة وحدة أخرى'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'الوحدة الأساسية الحالية هي أصغر وحدة تباع بها السلعة. يمكنك هنا إضافة عبوات كبرى (مثل كرتون أو درزن) مع تحديد كم حبة تحتوي عليها وسعرها وباركود خاص بها.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            if (_additionalUnits.isNotEmpty) ...[
+                              const SizedBox(height: 10),
+                              for (int i = 0; i < _additionalUnits.length; i++)
+                                _buildAdditionalUnitCard(
+                                  i,
+                                  _additionalUnits[i],
+                                  units,
+                                  theme,
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(

@@ -1,3 +1,6 @@
+import '../../../catalog/domain/repositories/catalog_repository.dart';
+import '../../../../core/utils/precision_math.dart';
+import '../../../catalog/application/services/product_unit_resolver.dart';
 import 'package:dartz/dartz.dart';
 import 'package:drift/drift.dart' as drift;
 import 'package:injectable/injectable.dart';
@@ -60,6 +63,7 @@ class ProcessSalesReturnUseCase
   final AccountingApplicationService _accountingService;
   final ApplicationContext _context;
   final ApplicationTransactionRunner _transactionRunner;
+  final ProductUnitResolver? _unitResolver;
   final Uuid _uuid = const Uuid();
 
   ProcessSalesReturnUseCase(
@@ -68,8 +72,13 @@ class ProcessSalesReturnUseCase
     this._accountingRepository,
     this._accountingService,
     this._context,
-    this._transactionRunner,
-  );
+    this._transactionRunner, {
+    ProductUnitResolver? unitResolver,
+    CatalogRepository? catalogRepository,
+  }) : _unitResolver = unitResolver ??
+            (catalogRepository != null
+                ? ProductUnitResolver(catalogRepository)
+                : null);
 
   @override
   Future<Either<Failure, String>> call(ProcessSalesReturnCommand params) async {
@@ -432,16 +441,30 @@ class ProcessSalesReturnUseCase
           lines: inventoryLineCompanions,
         );
 
-        // Restock Inventory Quantities
+        // Restock Inventory Quantities (Properly mapped to Base Unit)
         for (final item in params.items) {
+          ResolvedUnitInfo? unitInfo;
+          if (_unitResolver != null) {
+            try {
+              unitInfo = await _unitResolver!.resolve(
+                item.productUnitId,
+                businessId,
+              );
+            } catch (_) {}
+          }
+          final targetUnitId = unitInfo?.baseUnit.id ?? item.productUnitId;
+          final baseQuantity = unitInfo != null
+              ? unitInfo.toBaseQuantity(item.quantity)
+              : PrecisionMath.roundQty(item.quantity);
+
           final inventory = await _inventoryRepository
               .getInventoryByUnitAndWarehouse(
                 businessId,
                 item.warehouseId,
-                item.productUnitId,
+                targetUnitId,
               );
           if (inventory != null) {
-            final newQuantity = inventory.quantity + item.quantity;
+            final newQuantity = inventory.quantity + baseQuantity;
             await _inventoryRepository.updateInventory(
               inventory
                   .toCompanion(false)
@@ -453,8 +476,8 @@ class ProcessSalesReturnUseCase
                 id: _uuid.v4(),
                 businessId: businessId,
                 warehouseId: item.warehouseId,
-                productUnitId: item.productUnitId,
-                quantity: drift.Value(item.quantity),
+                productUnitId: targetUnitId,
+                quantity: drift.Value(baseQuantity),
               ),
             );
           }

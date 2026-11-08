@@ -58,10 +58,7 @@ class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
       currencyId: data['currency_id']?.toString(),
       showInStore: (data['show_in_store'] as bool?) ?? false,
       openingWarehouseId: data['opening_warehouse_id']?.toString(),
-      openingQuantity: data['opening_quantity'] != null
-          ? double.tryParse(data['opening_quantity'].toString())
-          : null,
-    );
+      openingQuantity: data['opening_quantity'] != null ? double.tryParse(data['opening_quantity'].toString()) : null, additionalUnits: (data['additional_units'] as List<dynamic>?)?.map((item) { if (item is ProductUnitInputCommand) return item; final m = item as Map<String, dynamic>; return ProductUnitInputCommand(id: m['id']?.toString(), unitId: m['unit_id'].toString(), conversionFactor: double.tryParse(m['conversion_factor']?.toString() ?? '1') ?? 1.0, isBaseUnit: false, barcode: m['barcode']?.toString(), sku: m['sku']?.toString(), purchasePrice: double.tryParse(m['purchase_price']?.toString() ?? '0') ?? 0.0, sellingPrice: double.tryParse(m['selling_price']?.toString() ?? '0') ?? 0.0, minimumPrice: double.tryParse(m['minimum_price']?.toString() ?? '0') ?? 0.0); }).toList() ?? const <ProductUnitInputCommand>[],);
 
     final result = await service.saveProduct(command);
     return result.fold((l) => null, (r) => r);

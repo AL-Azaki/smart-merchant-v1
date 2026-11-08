@@ -1,6 +1,6 @@
+import '../../../catalog/presentation/providers/catalog_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../database/daos/catalog_dao.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/pos_provider.dart';
@@ -37,21 +37,71 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
     }
   }
 
-  String _formatUnitLabel(ProductUnit unit) {
-    if (unit.isBaseUnit) return 'حبة';
+  String _formatUnitLabel(ProductUnit unit, List<Unit> unitsDef) {
+    final def = unitsDef.where((u) => u.id == unit.unitId).firstOrNull;
+    final name = def?.unitName ?? (unit.isBaseUnit ? 'حبة' : 'عبوة');
     if (unit.conversionFactor > 1) {
-      return 'كرتون (${unit.conversionFactor.toInt()})';
+      return '$name (${unit.conversionFactor.toInt()})';
     }
-    return 'عبوة';
+    return name;
   }
 
-  void _addToCart() {
+  void _addToCart(List<Unit> unitsDef) {
+    final factor = _selectedUnit.conversionFactor > 0 ? _selectedUnit.conversionFactor : 1.0;
+    final cart = ref.read(posNotifierProvider).cart;
+    final totalInCartBase = cart
+        .where((c) => c.id == widget.posItem.product.id)
+        .fold<double>(0.0, (sum, item) => sum + (item.quantity * (item.conversionFactor > 0 ? item.conversionFactor : 1.0)));
+
+    final remainingStock = widget.posItem.stockQuantity - totalInCartBase;
+
+    if (widget.posItem.stockQuantity <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('عذراً، هذا المنتج غير متوفر في المخزن حالياً (نفد المخزون).'),
+          backgroundColor: AppColors.error,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (remainingStock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'تم حجز كامل المخزون المتوفر في السلة (${widget.posItem.stockQuantity.toInt()} حبة). لا يمكن إضافة المزيد.',
+          ),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    if (remainingStock < factor) {
+      final unitLabel = _formatUnitLabel(_selectedUnit, unitsDef);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'الكمية المتبقية (${remainingStock.toInt()} حبة) لا تكفي لبيع $unitLabel كامل (${factor.toInt()} حبة).',
+          ),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     ref.read(posNotifierProvider.notifier).addProduct(
           id: widget.posItem.product.id,
           name: widget.posItem.product.productName,
           price: _selectedUnit.sellingPrice,
           productUnitId: _selectedUnit.id,
-          unitName: _formatUnitLabel(_selectedUnit),
+          unitName: _formatUnitLabel(_selectedUnit, unitsDef),
+          conversionFactor: _selectedUnit.conversionFactor,
+          availableUnits: widget.posItem.units,
+          totalBaseStock: widget.posItem.stockQuantity,
         );
   }
 
@@ -60,6 +110,39 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final product = widget.posItem.product;
     final units = widget.posItem.units;
+    final unitsDef = ref.watch(unitsNotifierProvider).value ?? [];
+
+    final factor = _selectedUnit.conversionFactor > 0 ? _selectedUnit.conversionFactor : 1.0;
+    
+    // Calculate total base quantity currently reserved in cart for this product
+    final totalInCartBase = ref.watch(posNotifierProvider.select((state) {
+      return state.cart
+          .where((c) => c.id == product.id)
+          .fold<double>(0.0, (sum, item) => sum + (item.quantity * (item.conversionFactor > 0 ? item.conversionFactor : 1.0)));
+    }));
+
+    final remainingStock = (widget.posItem.stockQuantity - totalInCartBase).clamp(0.0, double.infinity);
+    final isCompletelyExhausted = widget.posItem.stockQuantity <= 0 || remainingStock <= 0;
+    final isShortStock = remainingStock < factor;
+
+    String stockBadgeText;
+    if (widget.posItem.stockQuantity <= 0) {
+      stockBadgeText = 'نفد المخزون';
+    } else if (remainingStock <= 0) {
+      stockBadgeText = 'تم حجز الكل بالسلة';
+    } else if (_selectedUnit.conversionFactor > 1) {
+      final fullUnits = remainingStock ~/ factor;
+      final rem = (remainingStock % factor).toInt();
+      final unitDef = unitsDef.where((u) => u.id == _selectedUnit.unitId).firstOrNull;
+      final uName = unitDef?.unitName ?? 'كرتون';
+      stockBadgeText = fullUnits > 0
+          ? 'المتبقي: $fullUnits $uName' + (rem > 0 ? ' و $rem' : '')
+          : 'المتبقي ($rem حبة) لا يكفي لـ $uName';
+    } else {
+      final unitDef = unitsDef.where((u) => u.id == _selectedUnit.unitId).firstOrNull;
+      final uName = unitDef?.unitName ?? 'حبة';
+      stockBadgeText = 'المتبقي: ${remainingStock % 1 == 0 ? remainingStock.toInt() : remainingStock.toStringAsFixed(1)} $uName';
+    }
 
     final surfaceColor = isDark ? AppColors.surfaceDark : Colors.white;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
@@ -107,10 +190,12 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
 
     final hasInCart = inCartQuantity > 0;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _addToCart,
+    return Opacity(
+      opacity: widget.posItem.stockQuantity <= 0 ? 0.65 : 1.0,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+        onTap: () => _addToCart(unitsDef),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(
@@ -167,25 +252,23 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: widget.posItem.stockQuantity <= 0
-                                ? AppColors.error.withValues(alpha: 0.85)
+                            color: (widget.posItem.stockQuantity <= 0 || remainingStock <= 0 || isShortStock)
+                                ? AppColors.error.withValues(alpha: 0.88)
                                 : (isDark
                                     ? Colors.black.withValues(alpha: 0.6)
                                     : Colors.white.withValues(alpha: 0.9)),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                              color: widget.posItem.stockQuantity <= 0
+                              color: (widget.posItem.stockQuantity <= 0 || remainingStock <= 0 || isShortStock)
                                   ? AppColors.error
                                   : borderColor,
                               width: 0.8,
                             ),
                           ),
                           child: Text(
-                            widget.posItem.stockQuantity <= 0
-                                ? 'نفذت الكمية'
-                                : 'المتوفر: ${widget.posItem.stockQuantity % 1 == 0 ? widget.posItem.stockQuantity.toInt() : widget.posItem.stockQuantity.toStringAsFixed(1)}',
+                            stockBadgeText,
                             style: TextStyle(
-                              color: widget.posItem.stockQuantity <= 0
+                              color: (widget.posItem.stockQuantity <= 0 || remainingStock <= 0 || isShortStock)
                                   ? Colors.white
                                   : (isDark ? Colors.white70 : AppColors.textSecondaryLight),
                               fontSize: 9,
@@ -283,7 +366,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  _formatUnitLabel(unit),
+                                  _formatUnitLabel(unit, unitsDef),
                                   style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: isUnitSelected
@@ -301,7 +384,7 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                       )
                     else
                       Text(
-                        _formatUnitLabel(_selectedUnit),
+                        _formatUnitLabel(_selectedUnit, unitsDef),
                         style: TextStyle(
                           fontSize: 10,
                           color: textSecondary,
@@ -331,19 +414,25 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
                           width: 26,
                           height: 26,
                           decoration: BoxDecoration(
-                            color: hasInCart ? AppColors.success : AppColors.primary,
+                            color: isCompletelyExhausted
+                                ? (isDark ? Colors.grey.shade800 : Colors.grey.shade400)
+                                : (hasInCart ? AppColors.success : AppColors.primary),
                             borderRadius: BorderRadius.circular(7),
-                            boxShadow: [
-                              BoxShadow(
-                                color: (hasInCart ? AppColors.success : AppColors.primary)
-                                    .withValues(alpha: 0.25),
-                                blurRadius: 4,
-                                offset: const Offset(0, 1),
-                              ),
-                            ],
+                            boxShadow: isCompletelyExhausted
+                                ? []
+                                : [
+                                    BoxShadow(
+                                      color: (hasInCart ? AppColors.success : AppColors.primary)
+                                          .withValues(alpha: 0.25),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
+                                    ),
+                                  ],
                           ),
                           child: Icon(
-                            hasInCart ? Icons.done_rounded : Icons.add_rounded,
+                            isCompletelyExhausted
+                                ? Icons.block_rounded
+                                : (hasInCart ? Icons.done_rounded : Icons.add_rounded),
                             size: 18,
                             color: Colors.white,
                           ),
@@ -357,6 +446,6 @@ class _PosProductCardState extends ConsumerState<PosProductCard> {
           ),
         ),
       ),
-    );
+    ));
   }
 }

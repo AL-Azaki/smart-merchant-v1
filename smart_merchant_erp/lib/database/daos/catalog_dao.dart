@@ -80,10 +80,12 @@ class ProductCatalogEntry {
   final Product product;
   final List<ProductUnit> units;
   final Map<String, double> quantitiesByUnit;
+  final double baseAverageCost;
   const ProductCatalogEntry({
     required this.product,
     required this.units,
     required this.quantitiesByUnit,
+    this.baseAverageCost = 0.0,
   });
 }
 
@@ -685,6 +687,7 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
       final productMap = <String, Product>{};
       final units = <String, Map<String, ProductUnit>>{};
       final quantities = <String, Map<String, double>>{};
+      final averageCosts = <String, double>{};
       for (final row in rows) {
         final product = row.readTable(products);
         productMap[product.id] = product;
@@ -697,6 +700,9 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
         if (inventory != null) {
           final stockMap = quantities[product.id] ??= {};
           stockMap[unit.id] = (stockMap[unit.id] ?? 0) + inventory.quantity;
+          if (unit.isBaseUnit && inventory.averageCost > 0) {
+            averageCosts[product.id] = inventory.averageCost;
+          }
         }
       }
       return [
@@ -711,6 +717,7 @@ class CatalogDao extends DatabaseAccessor<AppDatabase> with _$CatalogDaoMixin {
                 return a.conversionFactor.compareTo(b.conversionFactor);
               }),
             quantitiesByUnit: quantities[product.id] ?? const {},
+            baseAverageCost: averageCosts[product.id] ?? 0.0,
           ),
       ];
     });

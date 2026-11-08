@@ -182,6 +182,7 @@ class InventoryReportsService {
     ]);
 
     query.where(_db.productUnits.businessId.equals(businessId));
+    query.where(_db.productUnits.isBaseUnit.equals(true));
     query.where(_db.productUnits.deletedAt.isNull());
     query.where(_db.products.deletedAt.isNull());
 
@@ -329,6 +330,7 @@ class InventoryReportsService {
     ]);
 
     query.where(_db.productUnits.businessId.equals(businessId));
+    query.where(_db.productUnits.isBaseUnit.equals(true));
     query.where(_db.productUnits.deletedAt.isNull());
     query.where(_db.products.deletedAt.isNull());
 
@@ -555,9 +557,10 @@ class InventoryReportsService {
       final uName = unitMap[unit.unitId] ?? 'حبة';
       final wName = warehouseMap[tx.warehouseId] ?? selectedWarehouseName;
 
+      final factor = unit.conversionFactor > 0 ? unit.conversionFactor : 1.0;
       final isInbound = tx.movementDirection == InventoryMovementDirection.inbound;
-      final inQty = isInbound ? line.quantity : 0.0;
-      final outQty = !isInbound ? line.quantity : 0.0;
+      final inQty = isInbound ? (line.quantity * factor) : 0.0;
+      final outQty = !isInbound ? (line.quantity * factor) : 0.0;
 
       String movementTypeLabel = 'حركة مخزنية';
       String refNum = tx.referenceId ?? '';

@@ -7,6 +7,30 @@ import '../../../../kernel/storage/app_database.dart' hide Unit;
 import '../../domain/repositories/catalog_repository.dart';
 import '../../../inventory/application/usecases/process_stock_adjustment_usecase.dart';
 
+class ProductUnitInputCommand {
+  final String? id;
+  final String unitId;
+  final double conversionFactor;
+  final bool isBaseUnit;
+  final String? barcode;
+  final String? sku;
+  final double purchasePrice;
+  final double sellingPrice;
+  final double minimumPrice;
+
+  const ProductUnitInputCommand({
+    this.id,
+    required this.unitId,
+    this.conversionFactor = 1.0,
+    this.isBaseUnit = false,
+    this.barcode,
+    this.sku,
+    this.purchasePrice = 0.0,
+    this.sellingPrice = 0.0,
+    this.minimumPrice = 0.0,
+  });
+}
+
 class ProductCommand {
   final String? id;
   final String name;
@@ -26,6 +50,7 @@ class ProductCommand {
   final bool showInStore;
   final String? openingWarehouseId;
   final double? openingQuantity;
+  final List<ProductUnitInputCommand> additionalUnits;
 
   const ProductCommand({
     this.id,
@@ -46,6 +71,7 @@ class ProductCommand {
     this.showInStore = false,
     this.openingWarehouseId,
     this.openingQuantity,
+    this.additionalUnits = const [],
   });
 }
 
@@ -146,34 +172,57 @@ class CatalogApplicationService {
       String? createdUnitId;
 
       if (isNew) {
+        final allUnits = <ProductUnitsCompanion>[];
+
         if (command.unitId != null && command.unitId!.isNotEmpty) {
           final unitIdStr = _uuid.v4();
           createdUnitId = unitIdStr;
-          final unitsCompanion = ProductUnitsCompanion(
-            id: drift.Value(unitIdStr),
-            businessId: drift.Value(businessId),
-            productId: drift.Value(productId),
-            unitId: drift.Value(command.unitId!),
-            barcode: drift.Value(command.barcode),
-            purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
-            sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
-            minimumPrice: const drift.Value(0.0),
-            isBaseUnit: const drift.Value(true),
-            isActive: const drift.Value(true),
-            syncStatus: const drift.Value('pending'),
-          );
-          await _catalogRepository.createProductWithDetails(
-            product: companion,
-            units: [unitsCompanion],
-            images: images,
-          );
-        } else {
-          await _catalogRepository.createProductWithDetails(
-            product: companion,
-            units: [],
-            images: images,
+          allUnits.add(
+            ProductUnitsCompanion(
+              id: drift.Value(unitIdStr),
+              businessId: drift.Value(businessId),
+              productId: drift.Value(productId),
+              unitId: drift.Value(command.unitId!),
+              barcode: drift.Value(command.barcode),
+              sku: drift.Value(command.sku),
+              conversionFactor: const drift.Value(1.0),
+              purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
+              sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
+              minimumPrice: const drift.Value(0.0),
+              isBaseUnit: const drift.Value(true),
+              isActive: const drift.Value(true),
+              syncStatus: const drift.Value('pending'),
+            ),
           );
         }
+
+        for (final addUnit in command.additionalUnits) {
+          allUnits.add(
+            ProductUnitsCompanion(
+              id: drift.Value(addUnit.id ?? _uuid.v4()),
+              businessId: drift.Value(businessId),
+              productId: drift.Value(productId),
+              unitId: drift.Value(addUnit.unitId),
+              barcode: drift.Value(addUnit.barcode),
+              sku: drift.Value(addUnit.sku),
+              conversionFactor: drift.Value(
+                addUnit.conversionFactor > 0 ? addUnit.conversionFactor : 1.0,
+              ),
+              purchasePrice: drift.Value(addUnit.purchasePrice),
+              sellingPrice: drift.Value(addUnit.sellingPrice),
+              minimumPrice: drift.Value(addUnit.minimumPrice),
+              isBaseUnit: const drift.Value(false),
+              isActive: const drift.Value(true),
+              syncStatus: const drift.Value('pending'),
+            ),
+          );
+        }
+
+        await _catalogRepository.createProductWithDetails(
+          product: companion,
+          units: allUnits,
+          images: images,
+        );
       } else {
         await _catalogRepository.updateProduct(companion);
         if (images.isNotEmpty) {
@@ -184,12 +233,15 @@ class CatalogApplicationService {
           }
           await _catalogRepository.insertProductImage(images.first);
         }
+
+        final existingUnits = await _catalogRepository
+            .listProductUnitsByProductId(productId, businessId);
+
         if (command.unitId != null && command.unitId!.isNotEmpty) {
-          final existingUnits = await _catalogRepository
-              .listProductUnitsByProductId(productId, businessId);
           final existingBase =
               existingUnits.where((u) => u.isBaseUnit).firstOrNull ??
               existingUnits.firstOrNull;
+
           if (existingBase != null) {
             await _catalogRepository.updateProductUnit(
               ProductUnitsCompanion(
@@ -198,10 +250,10 @@ class CatalogApplicationService {
                 productId: drift.Value(productId),
                 unitId: drift.Value(command.unitId!),
                 barcode: drift.Value(command.barcode),
-                sku: drift.Value(existingBase.sku),
-                conversionFactor: drift.Value(existingBase.conversionFactor),
-                isBaseUnit: drift.Value(existingBase.isBaseUnit),
-                isActive: drift.Value(existingBase.isActive),
+                sku: drift.Value(command.sku ?? existingBase.sku),
+                conversionFactor: const drift.Value(1.0),
+                isBaseUnit: const drift.Value(true),
+                isActive: const drift.Value(true),
                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
                 minimumPrice: drift.Value(existingBase.minimumPrice),
@@ -219,6 +271,8 @@ class CatalogApplicationService {
                 productId: drift.Value(productId),
                 unitId: drift.Value(command.unitId!),
                 barcode: drift.Value(command.barcode),
+                sku: drift.Value(command.sku),
+                conversionFactor: const drift.Value(1.0),
                 purchasePrice: drift.Value(command.purchasePrice ?? 0.0),
                 sellingPrice: drift.Value(command.sellingPrice ?? 0.0),
                 minimumPrice: const drift.Value(0.0),
@@ -227,6 +281,68 @@ class CatalogApplicationService {
                 syncStatus: const drift.Value('pending'),
               ),
             );
+          }
+        }
+
+        final handledUnitIds = <String>{};
+        for (final addUnit in command.additionalUnits) {
+          final existing = addUnit.id != null
+              ? existingUnits.where((u) => u.id == addUnit.id).firstOrNull
+              : existingUnits
+                  .where((u) => !u.isBaseUnit && u.unitId == addUnit.unitId)
+                  .firstOrNull;
+
+          if (existing != null) {
+            handledUnitIds.add(existing.id);
+            await _catalogRepository.updateProductUnit(
+              ProductUnitsCompanion(
+                id: drift.Value(existing.id),
+                businessId: drift.Value(businessId),
+                productId: drift.Value(productId),
+                unitId: drift.Value(addUnit.unitId),
+                barcode: drift.Value(addUnit.barcode),
+                sku: drift.Value(addUnit.sku ?? existing.sku),
+                conversionFactor: drift.Value(
+                  addUnit.conversionFactor > 0 ? addUnit.conversionFactor : 1.0,
+                ),
+                purchasePrice: drift.Value(addUnit.purchasePrice),
+                sellingPrice: drift.Value(addUnit.sellingPrice),
+                minimumPrice: drift.Value(addUnit.minimumPrice),
+                isBaseUnit: const drift.Value(false),
+                isActive: const drift.Value(true),
+                syncStatus: const drift.Value('pending'),
+                version: drift.Value(existing.version + 1),
+                updatedAt: drift.Value(DateTime.now()),
+              ),
+            );
+          } else {
+            final newId = addUnit.id ?? _uuid.v4();
+            handledUnitIds.add(newId);
+            await _catalogRepository.insertProductUnit(
+              ProductUnitsCompanion(
+                id: drift.Value(newId),
+                businessId: drift.Value(businessId),
+                productId: drift.Value(productId),
+                unitId: drift.Value(addUnit.unitId),
+                barcode: drift.Value(addUnit.barcode),
+                sku: drift.Value(addUnit.sku),
+                conversionFactor: drift.Value(
+                  addUnit.conversionFactor > 0 ? addUnit.conversionFactor : 1.0,
+                ),
+                purchasePrice: drift.Value(addUnit.purchasePrice),
+                sellingPrice: drift.Value(addUnit.sellingPrice),
+                minimumPrice: drift.Value(addUnit.minimumPrice),
+                isBaseUnit: const drift.Value(false),
+                isActive: const drift.Value(true),
+                syncStatus: const drift.Value('pending'),
+              ),
+            );
+          }
+        }
+
+        for (final u in existingUnits) {
+          if (!u.isBaseUnit && !handledUnitIds.contains(u.id)) {
+            await _catalogRepository.softDeleteProductUnit(u.id, businessId);
           }
         }
       }
@@ -247,6 +363,7 @@ class CatalogApplicationService {
                   countedQuantity: command.openingQuantity!,
                   expectedQuantity: 0,
                   difference: command.openingQuantity!,
+                  unitCost: command.purchasePrice ?? 0.0,
                 ),
               ],
             ),

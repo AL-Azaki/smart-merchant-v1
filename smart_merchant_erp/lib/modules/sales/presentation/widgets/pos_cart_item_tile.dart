@@ -1,3 +1,4 @@
+import '../../../../kernel/storage/app_database.dart';
 import 'package:flutter/material.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../providers/pos_provider.dart';
@@ -10,6 +11,7 @@ class PosCartItemTile extends StatelessWidget {
   final ValueChanged<double> onQuantityChanged;
   final VoidCallback onRemove;
   final ValueChanged<double>? onDiscountChanged;
+  final ValueChanged<ProductUnit>? onSwitchUnit;
 
   const PosCartItemTile({
     required this.item,
@@ -17,6 +19,7 @@ class PosCartItemTile extends StatelessWidget {
     required this.onQuantityChanged,
     required this.onRemove,
     this.onDiscountChanged,
+    this.onSwitchUnit,
     super.key,
   });
 
@@ -164,6 +167,10 @@ class PosCartItemTile extends StatelessWidget {
         ? item.quantity.toInt().toString()
         : item.quantity.toString();
 
+    final factor = item.conversionFactor > 0 ? item.conversionFactor : 1.0;
+    final isAtMaxStock = item.totalBaseStock.isFinite &&
+        ((item.quantity + 1) * factor) > (item.totalBaseStock + 0.0001);
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -207,21 +214,52 @@ class PosCartItemTile extends StatelessWidget {
                     ),
                     if (item.unitName != null && item.unitName!.isNotEmpty) ...[
                       const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 1.5,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item.unitName!,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
+                      InkWell(
+                        onTap: item.availableUnits.length > 1 && onSwitchUnit != null
+                            ? () {
+                                final curIdx = item.availableUnits.indexWhere(
+                                  (u) => u.id == (item.productUnitId ?? item.id),
+                                );
+                                final nextIdx = (curIdx + 1) % item.availableUnits.length;
+                                onSwitchUnit!(item.availableUnits[nextIdx]);
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 1.5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: item.availableUnits.length > 1
+                                ? Border.all(
+                                    color: AppColors.primary.withValues(alpha: 0.4),
+                                    width: 0.8,
+                                  )
+                                : null,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                item.unitName!,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              if (item.availableUnits.length > 1) ...[
+                                const SizedBox(width: 3),
+                                const Icon(
+                                  Icons.sync_alt_rounded,
+                                  size: 10,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
@@ -387,7 +425,19 @@ class PosCartItemTile extends StatelessWidget {
 
                     // Increment Button
                     InkWell(
-                      onTap: () => onQuantityChanged(item.quantity + 1),
+                      onTap: isAtMaxStock
+                          ? () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'وصلت للحد الأقصى للمخزون المتوفر من "${item.name}" (${item.totalBaseStock.toInt()} حبة). لا يمكن إضافة المزيد.',
+                                  ),
+                                  backgroundColor: AppColors.error,
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          : () => onQuantityChanged(item.quantity + 1),
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(8),
                         bottomLeft: Radius.circular(8),
@@ -397,9 +447,11 @@ class PosCartItemTile extends StatelessWidget {
                         height: 30,
                         alignment: Alignment.center,
                         child: Icon(
-                          Icons.add_rounded,
+                          isAtMaxStock ? Icons.block_rounded : Icons.add_rounded,
                           size: 16,
-                          color: textSecondary,
+                          color: isAtMaxStock
+                              ? AppColors.error.withValues(alpha: 0.6)
+                              : textSecondary,
                         ),
                       ),
                     ),

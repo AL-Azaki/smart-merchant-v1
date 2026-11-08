@@ -166,10 +166,9 @@ class _PosProductsGridState extends ConsumerState<PosProductsGrid> {
                   final nameLower = item.product.productName.toLowerCase();
                   final matchesSearch = searchQuery.isEmpty ||
                       nameLower.contains(searchQuery) ||
-                      (item.baseUnit.barcode != null &&
-                          item.baseUnit.barcode!
-                              .toLowerCase()
-                              .contains(searchQuery));
+                      item.units.any((u) =>
+                          (u.barcode != null && u.barcode!.toLowerCase().contains(searchQuery)) ||
+                          (u.sku != null && u.sku!.toLowerCase().contains(searchQuery)));
 
                   final matchesCatId = _selectedCategoryId == null ||
                       item.product.categoryId == _selectedCategoryId;

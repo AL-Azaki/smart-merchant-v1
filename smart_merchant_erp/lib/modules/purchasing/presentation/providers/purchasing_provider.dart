@@ -25,6 +25,9 @@ class PurchaseItemState {
   final double sellingPrice;
   final double discount;
   final String expiryDate;
+  final List<ProductUnit> availableUnits;
+  final double conversionFactor;
+  final double currentBaseWac;
 
   PurchaseItemState({
     required this.id,
@@ -39,6 +42,9 @@ class PurchaseItemState {
     required this.sellingPrice,
     this.discount = 0.0,
     required this.expiryDate,
+    this.availableUnits = const [],
+    this.conversionFactor = 1.0,
+    this.currentBaseWac = 0.0,
   });
 
   PurchaseItemState copyWith({
@@ -53,6 +59,9 @@ class PurchaseItemState {
     double? sellingPrice,
     double? discount,
     String? expiryDate,
+    List<ProductUnit>? availableUnits,
+    double? conversionFactor,
+    double? currentBaseWac,
   }) {
     return PurchaseItemState(
       id: this.id,
@@ -67,6 +76,9 @@ class PurchaseItemState {
       sellingPrice: sellingPrice ?? this.sellingPrice,
       discount: discount ?? this.discount,
       expiryDate: expiryDate ?? this.expiryDate,
+      availableUnits: availableUnits ?? this.availableUnits,
+      conversionFactor: conversionFactor ?? this.conversionFactor,
+      currentBaseWac: currentBaseWac ?? this.currentBaseWac,
     );
   }
 }
@@ -117,7 +129,7 @@ class PurchasingState {
         barcode: '',
         productName: '',
         categoryId: '',
-        unitId: '',
+        unitId: 'حبة',
         quantity: 1,
         purchasePrice: 0,
         sellingPrice: 0,
@@ -221,7 +233,7 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
         barcode: '',
         productName: '',
         categoryId: '',
-        unitId: '',
+        unitId: 'حبة',
         quantity: 1,
         purchasePrice: 0,
         sellingPrice: 0,
@@ -244,6 +256,30 @@ class PurchasingNotifier extends AutoDisposeNotifier<PurchasingState> {
       final newItems = List<PurchaseItemState>.from(state.items);
       newItems[index] = updatedRow;
       state = state.copyWith(items: newItems);
+    }
+  }
+
+  void changeRowUnit(String id, ProductUnit newUnit, String unitName) {
+    final index = state.items.indexWhere((i) => i.id == id);
+    if (index >= 0) {
+      final current = state.items[index];
+      final currentFactor = current.conversionFactor > 0 ? current.conversionFactor : 1.0;
+      final newPrice = newUnit.purchasePrice > 0
+          ? newUnit.purchasePrice
+          : (current.purchasePrice / currentFactor) * newUnit.conversionFactor;
+      final newSelling = newUnit.sellingPrice > 0
+          ? newUnit.sellingPrice
+          : (current.sellingPrice / currentFactor) * newUnit.conversionFactor;
+
+      final updatedRow = current.copyWith(
+        productUnitId: newUnit.id,
+        unitId: unitName,
+        barcode: newUnit.barcode ?? current.barcode,
+        conversionFactor: newUnit.conversionFactor,
+        purchasePrice: newPrice,
+        sellingPrice: newSelling,
+      );
+      updateRow(id, updatedRow);
     }
   }
 

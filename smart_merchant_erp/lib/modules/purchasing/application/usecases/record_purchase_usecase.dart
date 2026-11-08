@@ -732,6 +732,19 @@ class RecordPurchaseUseCase implements UseCase<String, RecordPurchaseCommand> {
           }
         }
 
+        // Update product_units purchase price if unitCost > 0
+        for (final item in params.items) {
+          if (item.unitCost > 0) {
+            await (_db.update(_db.productUnits)
+                  ..where((u) => u.id.equals(item.productUnitId)))
+                .write(
+                  ProductUnitsCompanion(
+                    purchasePrice: drift.Value(item.unitCost),
+                  ),
+                );
+          }
+        }
+
         // Record Treasury Payments if applicable
         for (final payment in paymentsToRecord) {
           await _treasuryRepository.insertPayment(payment);

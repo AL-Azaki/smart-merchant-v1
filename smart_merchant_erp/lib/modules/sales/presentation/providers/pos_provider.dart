@@ -11,9 +11,12 @@ import '../../../inventory/application/services/warehouse_context_service.dart';
 import '../../../catalog/domain/repositories/catalog_repository.dart';
 import 'product_unit_provider.dart';
 
+import '../../../../kernel/storage/app_database.dart';
+
 part 'pos_provider.g.dart';
 
 // النموذج الخاص بعنصر السلة داخل واجهة الكاشير
+
 class PosCartItem {
   final String id;
   final String name;
@@ -25,6 +28,9 @@ class PosCartItem {
   // Real database IDs for submission
   final String? productUnitId;
   final String? unitName;
+  final double conversionFactor;
+  final List<ProductUnit> availableUnits;
+  final double totalBaseStock;
 
   PosCartItem({
     required this.id,
@@ -35,18 +41,33 @@ class PosCartItem {
     this.discount = 0.0,
     this.productUnitId,
     this.unitName,
+    this.conversionFactor = 1.0,
+    this.availableUnits = const [],
+    this.totalBaseStock = double.infinity,
   });
 
-  PosCartItem copyWith({double? quantity, double? discount}) {
+  PosCartItem copyWith({
+    double? quantity,
+    double? discount,
+    String? productUnitId,
+    String? unitName,
+    double? unitPrice,
+    double? conversionFactor,
+    List<ProductUnit>? availableUnits,
+    double? totalBaseStock,
+  }) {
     return PosCartItem(
       id: id,
       name: name,
       quantity: quantity ?? this.quantity,
-      unitPrice: unitPrice,
+      unitPrice: unitPrice ?? this.unitPrice,
       taxRate: taxRate,
       discount: discount ?? this.discount,
-      productUnitId: productUnitId,
-      unitName: unitName,
+      productUnitId: productUnitId ?? this.productUnitId,
+      unitName: unitName ?? this.unitName,
+      conversionFactor: conversionFactor ?? this.conversionFactor,
+      availableUnits: availableUnits ?? this.availableUnits,
+      totalBaseStock: totalBaseStock ?? this.totalBaseStock,
     );
   }
 }
@@ -158,19 +179,54 @@ class PosNotifier extends _$PosNotifier {
     double taxRate = 0.0,
     String? productUnitId,
     String? unitName,
+    double conversionFactor = 1.0,
+    List<ProductUnit> availableUnits = const [],
+    double? totalBaseStock,
   }) {
     if (state.isSubmitting) return;
 
     final targetUnitId = productUnitId ?? id;
     final currentCart = List<PosCartItem>.from(state.cart);
+    final factor = conversionFactor > 0 ? conversionFactor : 1.0;
+
     final existingIndex = currentCart.indexWhere(
-      (item) => (item.productUnitId ?? item.id) == targetUnitId,
+      (item) => item.id == id && (item.productUnitId ?? item.id) == targetUnitId,
     );
+
+    // Resolve known total base stock for this product
+    final stockLimit = totalBaseStock ??
+        (existingIndex >= 0
+            ? currentCart[existingIndex].totalBaseStock
+            : currentCart.where((item) => item.id == id).map((e) => e.totalBaseStock).firstOrNull ?? double.infinity);
+
+    // 1. Strict guard: Out of stock check
+    if (stockLimit <= 0) {
+      state = state.copyWith(
+        error: ValidationFailure('نفد المخزون: لا توجد كمية متوفرة من "$name" في المخزن حالياً.'),
+      );
+      return;
+    }
+
+    // 2. Strict guard: Check cumulative quantity across all units in cart for this product
+    final currentReservedBase = currentCart
+        .where((item) => item.id == id)
+        .fold<double>(0.0, (sum, item) => sum + (item.quantity * (item.conversionFactor > 0 ? item.conversionFactor : 1.0)));
+
+    if (stockLimit.isFinite && (currentReservedBase + factor) > (stockLimit + 0.0001)) {
+      final remaining = (stockLimit - currentReservedBase).clamp(0.0, double.infinity);
+      state = state.copyWith(
+        error: ValidationFailure(
+          'الكمية المتوفرة لا تكفي! المتبقي في المخزن (${remaining.toInt()} حبة)، ولا يمكن إضافة المزيد من "$name".',
+        ),
+      );
+      return;
+    }
 
     if (existingIndex >= 0) {
       final existing = currentCart[existingIndex];
       currentCart[existingIndex] = existing.copyWith(
         quantity: existing.quantity + 1,
+        totalBaseStock: stockLimit,
       );
     } else {
       currentCart.add(
@@ -182,11 +238,77 @@ class PosNotifier extends _$PosNotifier {
           taxRate: taxRate,
           productUnitId: targetUnitId,
           unitName: unitName,
+          conversionFactor: factor,
+          availableUnits: availableUnits,
+          totalBaseStock: stockLimit,
         ),
       );
     }
 
     _recalculate(currentCart);
+  }
+
+  void switchCartItemUnit(String currentUnitId, ProductUnit newUnit, String newUnitName) {
+    if (state.isSubmitting) return;
+    final currentCart = List<PosCartItem>.from(state.cart);
+    final index = currentCart.indexWhere(
+      (item) => (item.productUnitId ?? item.id) == currentUnitId,
+    );
+    if (index >= 0) {
+      final item = currentCart[index];
+      final newFactor = newUnit.conversionFactor > 0 ? newUnit.conversionFactor : 1.0;
+
+      // Check if another line for the SAME product already uses newUnit.id
+      final duplicateIndex = currentCart.indexWhere(
+        (other) =>
+            other.id == item.id &&
+            (other.productUnitId ?? other.id) == newUnit.id &&
+            other != item,
+      );
+
+      // Strict stock guard when switching unit
+      if (item.totalBaseStock.isFinite) {
+        final otherLinesBase = currentCart
+            .where((other) =>
+                other.id == item.id &&
+                (other.productUnitId ?? other.id) != currentUnitId &&
+                other != item &&
+                (duplicateIndex < 0 || other != currentCart[duplicateIndex]))
+            .fold<double>(0.0, (sum, other) => sum + (other.quantity * (other.conversionFactor > 0 ? other.conversionFactor : 1.0)));
+
+        final totalTargetQty = duplicateIndex >= 0
+            ? (currentCart[duplicateIndex].quantity + item.quantity)
+            : item.quantity;
+
+        final newTotalBase = otherLinesBase + (totalTargetQty * newFactor);
+        if (newTotalBase > (item.totalBaseStock + 0.0001)) {
+          state = state.copyWith(
+            error: ValidationFailure(
+              'لا يمكن التحويل إلى "$newUnitName"؛ المخزون المتوفر (${item.totalBaseStock.toInt()} حبة) لا يكفي لهذه الكمية.',
+            ),
+          );
+          return;
+        }
+      }
+
+      if (duplicateIndex >= 0) {
+        // Merge into the existing line for this unit to prevent duplicate rows
+        final existingItem = currentCart[duplicateIndex];
+        currentCart[duplicateIndex] = existingItem.copyWith(
+          quantity: existingItem.quantity + item.quantity,
+        );
+        currentCart.removeAt(index);
+      } else {
+        currentCart[index] = item.copyWith(
+          productUnitId: newUnit.id,
+          unitName: newUnitName,
+          unitPrice: newUnit.sellingPrice > 0 ? newUnit.sellingPrice : item.unitPrice,
+          conversionFactor: newFactor,
+        );
+      }
+
+      _recalculate(currentCart);
+    }
   }
 
   void updateQuantity(String idOrUnitId, double newQuantity) {
@@ -210,6 +332,28 @@ class PosNotifier extends _$PosNotifier {
     );
     if (existingIndex >= 0) {
       final existing = currentCart[existingIndex];
+
+      // Strict stock guard
+      if (existing.totalBaseStock.isFinite) {
+        final otherLinesBase = currentCart
+            .where((item) =>
+                item.id == existing.id &&
+                (item.productUnitId ?? item.id) != (existing.productUnitId ?? existing.id))
+            .fold<double>(0.0, (sum, item) => sum + (item.quantity * (item.conversionFactor > 0 ? item.conversionFactor : 1.0)));
+
+        final requestedTotalBase = otherLinesBase + (newQuantity * existing.conversionFactor);
+        if (requestedTotalBase > (existing.totalBaseStock + 0.0001)) {
+          final maxAllowedForThisLine =
+              ((existing.totalBaseStock - otherLinesBase) / existing.conversionFactor).floorToDouble();
+          state = state.copyWith(
+            error: ValidationFailure(
+              'الكمية المطلوبة تتجاوز المخزون المتوفر! أقصى كمية مسموحة من "${existing.name}" هي ${maxAllowedForThisLine.toInt()} ${existing.unitName ?? "وحدة"} (${existing.totalBaseStock.toInt()} حبة كلياً).',
+            ),
+          );
+          return;
+        }
+      }
+
       currentCart[existingIndex] = existing.copyWith(quantity: newQuantity);
       _recalculate(currentCart);
     }
@@ -467,6 +611,24 @@ class PosNotifier extends _$PosNotifier {
     final effectiveInvoiceDiscount =
         (state.totals.totalDiscount - totalItemDiscounts)
             .clamp(0.0, state.totals.totalDiscount);
+
+    // Strict pre-submission inventory stock guard
+    for (final item in state.cart) {
+      if (item.totalBaseStock.isFinite) {
+        final totalDemandForProduct = state.cart
+            .where((other) => other.id == item.id)
+            .fold<double>(0.0, (sum, other) => sum + (other.quantity * (other.conversionFactor > 0 ? other.conversionFactor : 1.0)));
+        if (totalDemandForProduct > (item.totalBaseStock + 0.0001)) {
+          state = state.copyWith(
+            isSubmitting: false,
+            error: ValidationFailure(
+              'لا يمكن إتمام البيع: الكمية المطلوبة للمنتج "${item.name}" (${totalDemandForProduct.toInt()} حبة) تتجاوز المخزون المتوفر (${item.totalBaseStock.toInt()} حبة).',
+            ),
+          );
+          return;
+        }
+      }
+    }
 
     final command = CompleteSaleCommand(
       customerId: state.customerId,
