@@ -5,12 +5,6 @@ import '../../../../shared/design_system/widgets/app_card.dart';
 import '../../../../shared/design_system/widgets/app_text_field.dart';
 import '../providers/pos_provider.dart';
 import 'customer_select_modal.dart';
-import '../mappers/sales_invoice_document_mapper.dart';
-import '../../../../app/di/injection.dart';
-import '../../../../shared/documents/presentation/models/commercial_document_data.dart';
-import '../../../../shared/documents/presentation/widgets/commercial_document_preview_screen.dart';
-import '../../../../shared/documents/printing/document_printer.dart';
-import '../../../../shared/documents/sharing/document_share.dart';
 
 enum PosPaymentMode { cash, bank, credit, split }
 
@@ -141,136 +135,6 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
     showDialog<void>(
       context: context,
       builder: (_) => const CustomerSelectModal(),
-    );
-  }
-
-  void _handlePrint(CommercialDocumentData doc) {
-    DocumentPrinter.printDocument(doc);
-  }
-
-  void _handleShare(CommercialDocumentData doc) {
-    DocumentShare.shareDocument(doc);
-  }
-
-  void _handleSaleSuccess(String invoiceId) async {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(child: CircularProgressIndicator()),
-    );
-    try {
-      final mapper = getIt<SalesInvoiceDocumentMapper>();
-      final docData = await mapper.mapToDocumentData(invoiceId);
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context, rootNavigator: true).pop();
-      _showSuccessDialog(docData);
-    } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context, rootNavigator: true).pop();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  }
-
-  void _showSuccessDialog(CommercialDocumentData docData) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.success.withValues(alpha: 0.1),
-                ),
-                child: const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppColors.success,
-                  size: 56,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'تم إتمام البيع بنجاح!',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'رقم الفاتورة: ${docData.documentNumber}',
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: () => _handlePrint(docData),
-                      icon: const Icon(Icons.print_rounded),
-                      label: const Text('طباعة'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _handleShare(docData),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                      ),
-                      icon: const Icon(Icons.share_rounded, color: Colors.white),
-                      label: const Text('مشاركة', style: TextStyle(color: Colors.white)),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(ctx).pop();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute<void>(
-                      builder: (_) => CommercialDocumentPreviewScreen(document: docData),
-                    ),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                ),
-                icon: const Icon(Icons.receipt_long_rounded),
-                label: const Text('عرض الفاتورة'),
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton.icon(
-                onPressed: () {
-                  ref.read(posNotifierProvider.notifier).clearCart();
-                  Navigator.of(ctx).pop();
-                  Navigator.of(context).pop();
-                },
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 48),
-                  backgroundColor: AppColors.primary,
-                ),
-                icon: const Icon(Icons.add_shopping_cart_rounded, color: Colors.white),
-                label: const Text('بيع جديد', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -405,7 +269,12 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
         ref.read(posNotifierProvider.notifier).clearError();
       }
       if (previous?.successInvoiceId == null && next.successInvoiceId != null) {
-        _handleSaleSuccess(next.successInvoiceId!);
+        if (mounted) {
+          final nav = Navigator.of(context);
+          if (nav.canPop()) {
+            nav.pop();
+          }
+        }
       }
     });
 

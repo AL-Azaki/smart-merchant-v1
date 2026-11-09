@@ -10,6 +10,7 @@ import '../providers/accounting_provider.dart';
 import '../../../sales/domain/repositories/sales_repository.dart';
 import '../../../treasury/application/usecases/receive_payment_usecase.dart';
 import '../../../treasury/domain/repositories/treasury_repository.dart';
+import 'voucher_account_search_picker.dart';
 
 class ReceiptVoucherDialog extends ConsumerStatefulWidget {
   final String? initialCustomerId;
@@ -24,9 +25,7 @@ class ReceiptVoucherDialog extends ConsumerStatefulWidget {
 class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
   final _formKey = GlobalKey<FormState>();
 
-  String _voucherType = 'customer'; // 'customer' or 'revenue'
-  String? _selectedCustomerId;
-  String? _selectedIncomeAccountId;
+  VoucherAccountItem? _selectedAccountItem;
   String? _selectedTargetAccountId; // Cash/Bank ChartOfAccount
   String _paymentMethod = 'CASH';
   final _amountController = TextEditingController();
@@ -37,6 +36,7 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
   CustomerBalanceSummary? _customerBalance;
   bool _isLoadingData = true;
   bool _isSubmitting = false;
+  String? _accountSelectionError;
 
   @override
   void initState() {
@@ -53,7 +53,9 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
 
   Future<void> _loadInitialData() async {
     final session = ref.read(sessionNotifierProvider);
-    if (!session.isActive || session.businessId == null) return;
+    if (!session.isActive || session.businessId == null) {
+      return;
+    }
 
     try {
       final salesRepo = getIt<SalesRepository>();
@@ -75,7 +77,12 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
           _isLoadingData = false;
         });
         if (widget.initialCustomerId != null) {
-          _onCustomerChanged(widget.initialCustomerId);
+          final matchedCustomer = _customers
+              .where((c) => c.id == widget.initialCustomerId)
+              .firstOrNull;
+          if (matchedCustomer != null) {
+            _selectCustomer(matchedCustomer);
+          }
         }
       }
     } catch (_) {
@@ -83,39 +90,86 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
     }
   }
 
-  Future<void> _onCustomerChanged(String? customerId) async {
+  Future<void> _selectCustomer(Customer c) async {
+    final item = VoucherAccountItem(
+      id: c.id,
+      title: c.customerName,
+      subtitle: c.phone != null && c.phone!.isNotEmpty ? 'عميل - ' : 'عميل',
+      phone: c.phone,
+      isCustomer: true,
+    );
     setState(() {
-      _selectedCustomerId = customerId;
+      _selectedAccountItem = item;
+      _accountSelectionError = null;
       _customerBalance = null;
     });
 
-    if (customerId != null) {
-      final session = ref.read(sessionNotifierProvider);
-      if (session.businessId != null) {
-        final salesRepo = getIt<SalesRepository>();
-        final summary = await salesRepo.getCustomerBalanceSummary(
-          customerId,
-          session.businessId!,
-        );
-        if (mounted) {
-          setState(() => _customerBalance = summary);
-        }
+    final session = ref.read(sessionNotifierProvider);
+    if (session.businessId != null) {
+      final salesRepo = getIt<SalesRepository>();
+      final summary = await salesRepo.getCustomerBalanceSummary(
+        c.id,
+        session.businessId!,
+      );
+      if (mounted) {
+        setState(() => _customerBalance = summary);
       }
     }
   }
 
+  void _onAccountSelected(VoucherAccountItem item) {
+    if (item.isCustomer) {
+      final customer = _customers.where((c) => c.id == item.id).firstOrNull;
+      if (customer != null) {
+        _selectCustomer(customer);
+        return;
+      }
+    }
+    setState(() {
+      _selectedAccountItem = item;
+      _customerBalance = null;
+      _accountSelectionError = null;
+    });
+  }
+
+  void _onClearAccount() {
+    setState(() {
+      _selectedAccountItem = null;
+      _customerBalance = null;
+      _accountSelectionError = null;
+    });
+  }
+
+  String _getAccountTypeName(int typeId) {
+    switch (typeId) {
+      case 1:
+        return 'أصول';
+      case 2:
+        return 'خصوم';
+      case 3:
+        return 'حقوق ملكية';
+      case 4:
+        return 'إيرادات';
+      case 5:
+        return 'مصروفات';
+      default:
+        return 'حساب مالي';
+    }
+  }
+
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+    if (_selectedAccountItem == null) {
+      setState(() {
+        _accountSelectionError = 'يرجى اختيار الحساب أو العميل المقبوض منه';
+      });
+      _showSnack('يرجى اختيار الحساب أو العميل المقبوض منه');
+      return;
+    }
     if (_selectedTargetAccountId == null) {
       _showSnack('يرجى اختيار الصندوق أو الحساب البنكي المستلم');
-      return;
-    }
-    if (_voucherType == 'customer' && _selectedCustomerId == null) {
-      _showSnack('يرجى اختيار العميل');
-      return;
-    }
-    if (_voucherType == 'revenue' && _selectedIncomeAccountId == null) {
-      _showSnack('يرجى اختيار حساب الإيراد');
       return;
     }
 
@@ -130,22 +184,28 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
     final useCase = getIt<ReceivePaymentUseCase>();
 
     final command = ReceivePaymentCommand(
-      customerId: _voucherType == 'customer' ? _selectedCustomerId : null,
-      incomeAccountId: _voucherType == 'revenue' ? _selectedIncomeAccountId : null,
+      customerId:
+          _selectedAccountItem!.isCustomer ? _selectedAccountItem!.id : null,
+      incomeAccountId:
+          !_selectedAccountItem!.isCustomer ? _selectedAccountItem!.id : null,
       amount: amount,
       currencyId: 'YER',
       paymentMethodId: _paymentMethod,
       chartOfAccountId: _selectedTargetAccountId!,
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
     );
 
     final result = await useCase(command);
 
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     setState(() => _isSubmitting = false);
 
     result.fold(
-      (failure) => _showSnack('فشل الحفظ: ${failure.message}'),
+      (failure) => _showSnack('فشل الحفظ: '),
       (paymentId) {
         Navigator.of(context).pop(true);
         _showSnack('تم تسجيل وترحيل سند القبض بنجاح');
@@ -161,19 +221,35 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surface = isDark ? AppColors.surfaceDark : Colors.white;
-    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
+    final textPrimary =
+        isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight;
     final accountsAsync = ref.watch(chartOfAccountsNotifierProvider);
 
     final List<ChartOfAccount> availableAccounts =
         accountsAsync.asData?.value ?? [];
-    // Postable cash/bank accounts (11101, 11102...)
     final receivingAccounts = availableAccounts
-        .where((a) => a.allowPosting && (a.accountCode.startsWith('111') || a.accountTypeId == 1))
+        .where((a) =>
+            a.allowPosting && (a.accountCode.startsWith('111') || a.accountTypeId == 1))
         .toList();
-    // Revenue/Income accounts (4...)
-    final incomeAccounts = availableAccounts
-        .where((a) => a.allowPosting && (a.accountTypeId == 4 || a.accountTypeId == 3))
-        .toList();
+
+    final List<VoucherAccountItem> searchableItems = [
+      ..._customers.map((c) => VoucherAccountItem(
+            id: c.id,
+            title: c.customerName,
+            subtitle: c.phone != null && c.phone!.isNotEmpty
+                ? 'عميل - '
+                : 'عميل',
+            phone: c.phone,
+            isCustomer: true,
+          )),
+      ...availableAccounts.where((a) => a.allowPosting).map((acc) =>
+          VoucherAccountItem(
+            id: acc.id,
+            title: acc.accountName,
+            code: acc.accountCode,
+            subtitle: _getAccountTypeName(acc.accountTypeId),
+          )),
+    ];
 
     return Dialog(
       backgroundColor: surface,
@@ -194,13 +270,13 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Title
                         Row(
                           children: [
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                color: const Color(0xFF10B981)
+                                    .withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: const Icon(
@@ -222,95 +298,60 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Voucher Type Segment
-                        SegmentedButton<String>(
-                          segments: const [
-                            ButtonSegment(
-                              value: 'customer',
-                              label: Text('قبض من عميل'),
-                              icon: Icon(Icons.person_outline_rounded, size: 18),
-                            ),
-                            ButtonSegment(
-                              value: 'revenue',
-                              label: Text('إيراد عام / أخرى'),
-                              icon: Icon(Icons.account_balance_wallet_outlined, size: 18),
-                            ),
-                          ],
-                          selected: {_voucherType},
-                          onSelectionChanged: (val) {
-                            setState(() => _voucherType = val.first);
+                        VoucherAccountSelectField(
+                          label: 'الحساب / الطرف المقبوض منه *',
+                          selectedItem: _selectedAccountItem,
+                          errorText: _accountSelectionError,
+                          onTap: () async {
+                            final picked =
+                                await showVoucherAccountSearchPicker(
+                              context: context,
+                              title: 'اختيار الحساب أو العميل',
+                              items: searchableItems,
+                              selectedId: _selectedAccountItem?.id,
+                            );
+                            if (picked != null) {
+                              _onAccountSelected(picked);
+                            }
                           },
+                          onClear: _onClearAccount,
                         ),
-                        const SizedBox(height: 16),
-
-                        // Party Selector
-                        if (_voucherType == 'customer') ...[
-                          DropdownButtonFormField<String>(
-                            value: _selectedCustomerId,
-                            decoration: const InputDecoration(
-                              labelText: 'العميل *',
-                              prefixIcon: Icon(Icons.person_rounded),
-                              border: OutlineInputBorder(),
+                        if (_customerBalance != null) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF3B82F6)
+                                  .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            items: _customers.map((c) {
-                              return DropdownMenuItem<String>(
-                                value: c.id,
-                                child: Text(c.customerName),
-                              );
-                            }).toList(),
-                            onChanged: _onCustomerChanged,
-                            validator: (val) => val == null ? 'مطلوب اختيار العميل' : null,
-                          ),
-                          if (_customerBalance != null) ...[
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF3B82F6).withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Text(
-                                    'إجمالي المديونية المستحقة:',
-                                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'إجمالي المديونية المستحقة على العميل:',
+                                  style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                Text(
+                                  '\ ر.ي',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF3B82F6),
                                   ),
-                                  Text(
-                                    '${_customerBalance!.totalRemaining.toStringAsFixed(2)} ر.ي',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF3B82F6),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ] else ...[
-                          DropdownButtonFormField<String>(
-                            value: _selectedIncomeAccountId,
-                            decoration: const InputDecoration(
-                              labelText: 'حساب الإيراد *',
-                              prefixIcon: Icon(Icons.category_outlined),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: incomeAccounts.map((a) {
-                              return DropdownMenuItem<String>(
-                                value: a.id,
-                                child: Text('${a.accountCode} - ${a.accountName}'),
-                              );
-                            }).toList(),
-                            onChanged: (val) => setState(() => _selectedIncomeAccountId = val),
-                            validator: (val) => val == null ? 'مطلوب اختيار حساب الإيراد' : null,
                           ),
                         ],
                         const SizedBox(height: 16),
 
-                        // Receiving Account (Cash/Bank)
                         DropdownButtonFormField<String>(
                           value: _selectedTargetAccountId,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'الصندوق / الحساب البنكي المستلم *',
                             prefixIcon: Icon(Icons.account_balance_rounded),
@@ -319,31 +360,41 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                           items: receivingAccounts.map((a) {
                             return DropdownMenuItem<String>(
                               value: a.id,
-                              child: Text('${a.accountCode} - ${a.accountName}'),
+                              child: Text(
+                                '\ - ',
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }).toList(),
-                          onChanged: (val) => setState(() => _selectedTargetAccountId = val),
-                          validator: (val) => val == null ? 'مطلوب اختيار الحساب المستلم' : null,
+                          onChanged: (val) =>
+                              setState(() => _selectedTargetAccountId = val),
+                          validator: (val) =>
+                              val == null ? 'مطلوب اختيار الحساب المستلم' : null,
                         ),
                         const SizedBox(height: 16),
 
-                        // Amount & Payment Method
                         Row(
                           children: [
                             Expanded(
                               flex: 3,
                               child: TextFormField(
                                 controller: _amountController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                        decimal: true),
                                 decoration: const InputDecoration(
                                   labelText: 'المبلغ المستلم *',
                                   prefixIcon: Icon(Icons.attach_money_rounded),
                                   border: OutlineInputBorder(),
                                 ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty) return 'مطلوب إدخال المبلغ';
+                                  if (val == null || val.trim().isEmpty) {
+                                    return 'مطلوب إدخال المبلغ';
+                                  }
                                   final num = double.tryParse(val.trim());
-                                  if (num == null || num <= 0) return 'مبلغ غير صالح';
+                                  if (num == null || num <= 0) {
+                                    return 'مبلغ غير صالح';
+                                  }
                                   return null;
                                 },
                               ),
@@ -352,9 +403,13 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                             Expanded(
                               flex: 2,
                               child: DropdownButtonFormField<String>(
-                                value: _paymentMethods.any((m) => m.id == _paymentMethod)
+                                value: _paymentMethods
+                                        .any((m) => m.id == _paymentMethod)
                                     ? _paymentMethod
-                                    : (_paymentMethods.isNotEmpty ? _paymentMethods.first.id : _paymentMethod),
+                                    : (_paymentMethods.isNotEmpty
+                                        ? _paymentMethods.first.id
+                                        : _paymentMethod),
+                                isExpanded: true,
                                 decoration: const InputDecoration(
                                   labelText: 'طريقة الدفع',
                                   border: OutlineInputBorder(),
@@ -363,16 +418,31 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                                     ? _paymentMethods.map((pm) {
                                         return DropdownMenuItem<String>(
                                           value: pm.id,
-                                          child: Text(pm.methodName),
+                                          child: Text(
+                                            pm.methodName,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         );
                                       }).toList()
                                     : const [
-                                        DropdownMenuItem(value: 'CASH', child: Text('نقداً')),
-                                        DropdownMenuItem(value: 'CARD', child: Text('بطاقة/شبكة')),
-                                        DropdownMenuItem(value: 'BANK_TRANSFER', child: Text('تحويل بنكي')),
+                                        DropdownMenuItem(
+                                            value: 'CASH',
+                                            child: Text('نقداً')),
+                                        DropdownMenuItem(
+                                            value: 'CARD',
+                                            child: Text('شبكة/مدى',
+                                                overflow:
+                                                    TextOverflow.ellipsis)),
+                                        DropdownMenuItem(
+                                            value: 'BANK_TRANSFER',
+                                            child: Text('تحويل بنكي',
+                                                overflow:
+                                                    TextOverflow.ellipsis)),
                                       ],
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _paymentMethod = val);
+                                  if (val != null) {
+                                    setState(() => _paymentMethod = val);
+                                  }
                                 },
                               ),
                             ),
@@ -380,7 +450,6 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Notes
                         TextFormField(
                           controller: _notesController,
                           maxLines: 2,
@@ -392,12 +461,13 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                         ),
                         const SizedBox(height: 24),
 
-                        // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
                             TextButton(
-                              onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                              onPressed: _isSubmitting
+                                  ? null
+                                  : () => Navigator.of(context).pop(),
                               child: const Text('إلغاء'),
                             ),
                             const SizedBox(width: 12),
@@ -405,18 +475,25 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF10B981),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
                               ),
                               onPressed: _isSubmitting ? null : _submit,
                               icon: _isSubmitting
                                   ? const SizedBox(
                                       width: 16,
                                       height: 16,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                      child: CircularProgressIndicator(
+                                          color: Colors.white, strokeWidth: 2),
                                     )
-                                  : const Icon(Icons.check_circle_outline_rounded, size: 18),
-                              label: Text(_isSubmitting ? 'جاري الترحيل...' : 'حفظ وترحيل السند'),
+                                  : const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 18),
+                              label: Text(_isSubmitting
+                                  ? 'جاري الترحيل...'
+                                  : 'حفظ وترحيل السند'),
                             ),
                           ],
                         ),

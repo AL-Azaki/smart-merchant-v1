@@ -136,22 +136,22 @@ class ReceiptPrinter {
               ),
               pw.SizedBox(height: 5),
 
-              // عناوين الجدول
+              // عناوين الجدول (من اليسار لليمين: الإجمالي، السعر، الكمية، الصنف)
               pw.Table(
                 border: pw.TableBorder.all(color: PdfColors.black, width: 0.8),
                 columnWidths: const {
-                  0: pw.FlexColumnWidth(44),
-                  1: pw.FlexColumnWidth(16),
-                  2: pw.FlexColumnWidth(20),
-                  3: pw.FlexColumnWidth(20),
+                  0: pw.FlexColumnWidth(20), // الإجمالي (يسار)
+                  1: pw.FlexColumnWidth(20), // السعر
+                  2: pw.FlexColumnWidth(16), // الكمية
+                  3: pw.FlexColumnWidth(44), // الصنف (يمين)
                 },
                 children: [
                   pw.TableRow(
                     children: [
-                      _buildHeaderCell('الصنف', pw.TextAlign.right),
-                      _buildHeaderCell('الكمية', pw.TextAlign.center),
-                      _buildHeaderCell('السعر', pw.TextAlign.center),
                       _buildHeaderCell('الإجمالي', pw.TextAlign.left),
+                      _buildHeaderCell('السعر', pw.TextAlign.center),
+                      _buildHeaderCell('الكمية', pw.TextAlign.center),
+                      _buildHeaderCell('الصنف', pw.TextAlign.right),
                     ],
                   ),
                   ...items.map((item) {
@@ -163,10 +163,10 @@ class ReceiptPrinter {
 
                     return pw.TableRow(
                       children: [
-                        _buildCell(item['name']?.toString() ?? '', pw.TextAlign.right, isBold: true),
-                        _buildCell(q == q.roundToDouble() ? q.toInt().toString() : q.toStringAsFixed(2), pw.TextAlign.center, isBold: true),
-                        _buildCell(NumberFormat('#,##0.##', 'en_US').format(price), pw.TextAlign.center),
                         _buildCell(NumberFormat('#,##0.##', 'en_US').format(rowTotal), pw.TextAlign.left, isBold: true),
+                        _buildCell(NumberFormat('#,##0.##', 'en_US').format(price), pw.TextAlign.center),
+                        _buildCell(q == q.roundToDouble() ? q.toInt().toString() : q.toStringAsFixed(2), pw.TextAlign.center, isBold: true),
+                        _buildCell(item['name']?.toString() ?? '', pw.TextAlign.right, isBold: true),
                       ],
                     );
                   }),

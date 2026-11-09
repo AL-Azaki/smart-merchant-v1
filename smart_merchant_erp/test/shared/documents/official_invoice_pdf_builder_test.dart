@@ -89,6 +89,40 @@ void main() {
       createdBy: 'أحمد الكاشير',
     );
 
+    final samplePurchase = CommercialDocumentData(
+      documentType: 'فاتورة مشتريات',
+      documentNumber: 'PINV-2026-0001',
+      issueDate: DateTime(2026, 11, 9, 13, 45),
+      businessName: 'المتجر الرئيسي',
+      businessPhone: '777123456',
+      branchName: 'الفرع الرئيسي',
+      customerOrSupplierName: 'شركة الإخوة للتوريدات',
+      customerOrSupplierPhone: '770000111',
+      currencyCode: 'YER',
+      currencySymbol: 'ريال يمني',
+      paymentMethod: 'آجل',
+      paymentStatus: 'Unpaid',
+      items: const [
+        CommercialDocumentLine(
+          description: 'ماء كرتون (12)',
+          unitName: 'كرتون',
+          quantity: 1,
+          unitPrice: 1200,
+          discount: 0,
+          tax: 0,
+          lineTotal: 1200,
+        ),
+      ],
+      subtotal: 1200,
+      discount: 0,
+      tax: 0,
+      grandTotal: 1200,
+      paidAmount: 0,
+      remainingAmount: 1200,
+      notes: 'فاتورة توريد بضاعة',
+      createdBy: 'أمين المخزن',
+    );
+
     test('builds thermal 80mm sales invoice PDF without errors', () async {
       final pdf = await OfficialCommercialDocumentPdfBuilder.build(
         sampleInvoice,
@@ -102,6 +136,24 @@ void main() {
       final pdf = await OfficialCommercialDocumentPdfBuilder.build(
         sampleReturn,
         pageFormat: PdfPageFormat.roll80,
+      );
+      final bytes = await pdf.save();
+      expect(bytes.isNotEmpty, isTrue);
+    });
+
+    test('builds thermal 80mm purchase invoice PDF without errors', () async {
+      final pdf = await OfficialCommercialDocumentPdfBuilder.build(
+        samplePurchase,
+        pageFormat: PdfPageFormat.roll80,
+      );
+      final bytes = await pdf.save();
+      expect(bytes.isNotEmpty, isTrue);
+    });
+
+    test('builds A4 format purchase invoice without errors', () async {
+      final pdf = await OfficialCommercialDocumentPdfBuilder.build(
+        samplePurchase,
+        pageFormat: PdfPageFormat.a4,
       );
       final bytes = await pdf.save();
       expect(bytes.isNotEmpty, isTrue);

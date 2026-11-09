@@ -208,9 +208,7 @@ class _PosSaleSuccessDialogState extends ConsumerState<PosSaleSuccessDialog> {
               const SizedBox(height: 10),
               TextButton.icon(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                    context,
+                  Navigator.of(context).pushReplacement(
                     MaterialPageRoute<void>(
                       builder: (_) => CommercialDocumentPreviewScreen(
                         document: _docData!,

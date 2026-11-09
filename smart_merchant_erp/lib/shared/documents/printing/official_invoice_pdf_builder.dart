@@ -126,7 +126,7 @@ class OfficialCommercialDocumentPdfBuilder {
               pw.SizedBox(height: 10),
               _buildFooter(docData, isA4: true),
               pw.SizedBox(height: 20),
-              _buildA4Signatures(),
+              _buildA4Signatures(docData),
             ];
           },
         ),
@@ -167,7 +167,10 @@ class OfficialCommercialDocumentPdfBuilder {
     final badgeSize = isA4 ? 11.0 : 9.5;
 
     final isReturn = docData.documentType.contains('مرتجع');
-    final docTitle = isReturn ? 'مرتجع مبيعات' : 'مبيعات';
+    final isPurchase = docData.documentType.contains('مشتريات') || docData.documentType.contains('شراء');
+    final docTitle = isPurchase
+        ? (isReturn ? 'مرتجع مشتريات' : 'مشتريات')
+        : (isReturn ? 'مرتجع مبيعات' : 'مبيعات');
     final paymentTitle = docData.paymentMethod ?? (isReturn ? 'استرداد نقدي' : 'نقداً');
 
     return pw.Column(
@@ -270,13 +273,21 @@ class OfficialCommercialDocumentPdfBuilder {
     );
   }
 
-  // --- 2. تفاصيل الفاتورة والعميل والتواريخ (محاطة بحدود متقطعة) ---
+  // --- 2. تفاصيل الفاتورة والعميل/المورد والتواريخ (محاطة بحدود متقطعة) ---
   static pw.Widget _buildMetadataBox(CommercialDocumentData docData, {required bool isA4}) {
     final metaSize = isA4 ? 10.0 : 8.8;
     final currency = _resolveCurrency(docData);
     final isReturn = docData.documentType.contains('مرتجع');
+    final isPurchase = docData.documentType.contains('مشتريات') || docData.documentType.contains('شراء');
 
     final dateStr = _formatDate(docData.issueDate);
+    final partyLabel = isPurchase ? 'المورد: ' : 'العميل: ';
+    final defaultParty = isPurchase ? 'مورد عام' : 'عميل نقدي';
+    final invoiceNumLabel = isReturn
+        ? (isPurchase ? 'رقم مرتجع الشراء: ' : 'رقم المرتجع: ')
+        : (isPurchase ? 'رقم فاتورة الشراء: ' : 'رقم الفاتورة: ');
+    final phoneLabel = isPurchase ? 'هاتف المورد: ' : 'هاتف العميل: ';
+    final cashierLabel = isPurchase ? 'المسؤول: ' : 'الكاشير: ';
 
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(vertical: 4, horizontal: 2),
@@ -288,18 +299,18 @@ class OfficialCommercialDocumentPdfBuilder {
       ),
       child: pw.Column(
         children: [
-          // سطر 1: العميل | رقم الفاتورة
+          // سطر 1: العميل / المورد | رقم الفاتورة
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Row(
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
-                  pw.Text('العميل: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                  pw.Text(partyLabel, style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
                   pw.Text(
                     docData.customerOrSupplierName.isNotEmpty
                         ? docData.customerOrSupplierName
-                        : 'عميل نقدي',
+                        : defaultParty,
                     style: pw.TextStyle(
                       fontSize: metaSize,
                       fontWeight: pw.FontWeight.bold,
@@ -312,7 +323,7 @@ class OfficialCommercialDocumentPdfBuilder {
                 mainAxisSize: pw.MainAxisSize.min,
                 children: [
                   pw.Text(
-                    isReturn ? 'رقم المرتجع: ' : 'رقم الفاتورة: ',
+                    invoiceNumLabel,
                     style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black),
                   ),
                   pw.Text(
@@ -373,7 +384,7 @@ class OfficialCommercialDocumentPdfBuilder {
                 pw.Row(
                   mainAxisSize: pw.MainAxisSize.min,
                   children: [
-                    pw.Text('هاتف العميل: ', style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
+                    pw.Text(phoneLabel, style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black)),
                     pw.Text(
                       docData.customerOrSupplierPhone!,
                       style: pw.TextStyle(
@@ -387,7 +398,7 @@ class OfficialCommercialDocumentPdfBuilder {
                 ),
                 if (docData.createdBy != null && docData.createdBy!.isNotEmpty)
                   pw.Text(
-                    'الكاشير: ${docData.createdBy}',
+                    '$cashierLabel${docData.createdBy}',
                     style: pw.TextStyle(fontSize: metaSize, color: PdfColors.black),
                   ),
               ],
@@ -408,20 +419,20 @@ class OfficialCommercialDocumentPdfBuilder {
         width: 0.8,
       ),
       columnWidths: const {
-        0: pw.FlexColumnWidth(44), // الصنف
-        1: pw.FlexColumnWidth(16), // الكمية
-        2: pw.FlexColumnWidth(20), // السعر
-        3: pw.FlexColumnWidth(20), // الإجمالي
+        0: pw.FlexColumnWidth(20), // الإجمالي (أقصى اليسار)
+        1: pw.FlexColumnWidth(20), // السعر
+        2: pw.FlexColumnWidth(16), // الكمية
+        3: pw.FlexColumnWidth(44), // الصنف (أقصى اليمين)
       },
       children: [
-        // ترويسة الجدول
+        // ترويسة الجدول: من اليسار إلى اليمين (الإجمالي، السعر، الكمية، الصنف) لتبدو بالترتيب الطبيعي العربي
         pw.TableRow(
           decoration: const pw.BoxDecoration(color: PdfColors.white),
           children: [
-            _buildCell('الصنف', isHeader: true, align: pw.TextAlign.right, fontSize: fontSize),
-            _buildCell('الكمية', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
-            _buildCell('السعر', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
             _buildCell('الإجمالي', isHeader: true, align: pw.TextAlign.left, fontSize: fontSize),
+            _buildCell('السعر', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
+            _buildCell('الكمية', isHeader: true, align: pw.TextAlign.center, fontSize: fontSize),
+            _buildCell('الصنف', isHeader: true, align: pw.TextAlign.right, fontSize: fontSize),
           ],
         ),
 
@@ -434,14 +445,8 @@ class OfficialCommercialDocumentPdfBuilder {
           return pw.TableRow(
             children: [
               _buildCell(
-                '${item.description}$unitSuffix',
-                align: pw.TextAlign.right,
-                fontSize: fontSize,
-                isBold: true,
-              ),
-              _buildCell(
-                _formatQty(item.quantity),
-                align: pw.TextAlign.center,
+                _formatMoney(item.lineTotal),
+                align: pw.TextAlign.left,
                 fontSize: fontSize,
                 isBold: true,
               ),
@@ -451,8 +456,14 @@ class OfficialCommercialDocumentPdfBuilder {
                 fontSize: fontSize,
               ),
               _buildCell(
-                _formatMoney(item.lineTotal),
-                align: pw.TextAlign.left,
+                _formatQty(item.quantity),
+                align: pw.TextAlign.center,
+                fontSize: fontSize,
+                isBold: true,
+              ),
+              _buildCell(
+                '${item.description}$unitSuffix',
+                align: pw.TextAlign.right,
                 fontSize: fontSize,
                 isBold: true,
               ),
@@ -620,16 +631,18 @@ class OfficialCommercialDocumentPdfBuilder {
   // --- 5. تذييل الفاتورة الرسمي الكلاسيكي ---
   static pw.Widget _buildFooter(CommercialDocumentData docData, {required bool isA4}) {
     final isReturn = docData.documentType.contains('مرتجع');
+    final isPurchase = docData.documentType.contains('مشتريات') || docData.documentType.contains('شراء');
     final footerTitle = isReturn
-        ? 'سند إرجاع بضاعة رسمي ومقيد بالحساب'
-        : 'شكراً لتعاملكم معنا';
+        ? (isPurchase ? 'سند إرجاع مشتريات رسمي ومقيد بالحساب' : 'سند إرجاع بضاعة رسمي ومقيد بالحساب')
+        : (isPurchase ? 'سند استلام بضاعة ومشتريات' : 'شكراً لتعاملكم معنا');
     final policyText = docData.terms ??
         (isReturn
-            ? 'تم استلام البضاعة وإعادتها للمخزن وتحديث الحساب المالي'
-            : 'البضاعة المباعة لا تُرد ولا تُستبدل إلا بموجب أصل الفاتورة');
+            ? (isPurchase ? 'تم استلام البضاعة وإعادتها للمورد وتحديث الحساب المالي' : 'تم استلام البضاعة وإعادتها للمخزن وتحديث الحساب المالي')
+            : (isPurchase ? 'تم استلام وفحص البضاعة وتأكيد قيدها في المخزون' : 'البضاعة المباعة لا تُرد ولا تُستبدل إلا بموجب أصل الفاتورة'));
 
-    final cashierName = docData.createdBy ?? 'مستخدم النظام';
+    final cashierName = docData.createdBy ?? (isPurchase ? 'مسؤول المشتريات' : 'مستخدم النظام');
     final printTime = DateFormat('yyyy-MM-dd HH:mm').format(DateTime.now());
+    final userLabel = isPurchase ? 'المسؤول: ' : 'المحاسب: ';
 
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
@@ -664,7 +677,7 @@ class OfficialCommercialDocumentPdfBuilder {
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Text(
-                'المحاسب: $cashierName',
+                '$userLabel$cashierName',
                 style: pw.TextStyle(
                   fontSize: isA4 ? 9.5 : 8.0,
                   fontWeight: pw.FontWeight.bold,
@@ -687,13 +700,14 @@ class OfficialCommercialDocumentPdfBuilder {
   }
 
   // --- تذييل التوقيعات لأوراق A4 فقط ---
-  static pw.Widget _buildA4Signatures() {
+  static pw.Widget _buildA4Signatures(CommercialDocumentData docData) {
+    final isPurchase = docData.documentType.contains('مشتريات') || docData.documentType.contains('شراء');
     return pw.Row(
       mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
       children: [
         _buildSignatureLine('ختم المؤسسة / المحل'),
-        _buildSignatureLine('توقيع المستلم / العميل'),
-        _buildSignatureLine('توقيع البائع / المحاسب'),
+        _buildSignatureLine(isPurchase ? 'توقيع المورد / المندوب' : 'توقيع المستلم / العميل'),
+        _buildSignatureLine(isPurchase ? 'المستلم / أمين المخزن' : 'توقيع البائع / المحاسب'),
       ],
     );
   }
