@@ -1,3 +1,4 @@
+import '../../../widgets/stock_count_unit_calculator_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../kernel/storage/app_database.dart';
@@ -491,7 +492,7 @@ class _StockCountFormSheetState extends ConsumerState<StockCountFormSheet> {
                       physical: parseCountQuantity(l.physical),
                       onRemove: () => setState(() => _lines.removeAt(index)),
                       input: TextFormField(
-                        key: ValueKey('quantity_${l.unitId}'),
+                        key: ValueKey('quantity_${l.unitId}_${l.physical}'),
                         initialValue: l.physical,
                         textDirection: TextDirection.ltr,
                         keyboardType: const TextInputType.numberWithOptions(
@@ -501,11 +502,29 @@ class _StockCountFormSheetState extends ConsumerState<StockCountFormSheet> {
                         onChanged: (v) => setState(() => l.physical = v),
                         decoration: InputDecoration(
                           isDense: true,
-                          hintText: 'لم يُعدّ',
+                          hintText: 'لم يُعدّ أو (مثال: 5*12+7)',
+                          suffixIcon: IconButton(
+                            tooltip: 'حاسبة الكراتين والحبات',
+                            icon: const Icon(Icons.calculate_outlined, size: 20),
+                            onPressed: () async {
+                              final calc = await StockCountUnitCalculatorDialog.show(
+                                context,
+                                productId: l.productId,
+                                productName: l.name,
+                                baseUnitName: l.unitName,
+                                currentCounted: parseCountQuantity(l.physical),
+                              );
+                              if (calc != null && mounted) {
+                                setState(() {
+                                  l.physical = formatCatalogNumber(calc);
+                                });
+                              }
+                            },
+                          ),
                           errorText:
                               l.physical.trim().isNotEmpty &&
                                   parseCountQuantity(l.physical) == null
-                              ? 'رقم غير صالح'
+                              ? 'رقم أو معادلة غير صالحة'
                               : null,
                           border: const OutlineInputBorder(),
                           contentPadding: const EdgeInsets.symmetric(

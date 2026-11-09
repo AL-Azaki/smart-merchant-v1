@@ -1,3 +1,4 @@
+import '../../../../inventory/presentation/dialogs/product_stock_card_dialog.dart';
 import 'package:flutter/material.dart';
 import '../../../../../shared/design_system/tokens/colors.dart';
 import '../../../domain/models/catalog_product_item.dart';
@@ -502,6 +503,24 @@ void showProductDetailsDialog(
                         icon: const Icon(Icons.close_rounded, size: 18),
                         label: const Text('إغلاق', style: TextStyle(fontWeight: FontWeight.bold)),
                         onPressed: () => Navigator.pop(ctx),
+                      ),
+                      const SizedBox(width: 10),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          side: BorderSide(color: borderColor),
+                        ),
+                        icon: const Icon(Icons.history_toggle_off, size: 18, color: AppColors.primary),
+                        label: const Text('كارت حركة الصنف', style: TextStyle(fontWeight: FontWeight.bold)),
+                        onPressed: () {
+                          ProductStockCardDialog.show(
+                            context,
+                            productId: item.product.id,
+                            productName: item.product.productName,
+                            productCode: item.product.productCode,
+                          );
+                        },
                       ),
                       const SizedBox(width: 10),
                       ElevatedButton.icon(

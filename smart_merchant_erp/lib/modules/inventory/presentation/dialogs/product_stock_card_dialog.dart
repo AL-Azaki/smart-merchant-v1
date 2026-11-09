@@ -273,8 +273,10 @@ class _ProductStockCardDialogState
                             Expanded(
                               child: _buildMetricTile(
                                 label: 'الرصيد التراكمي الإجمالي',
-                                value: _formatNumber(cardData.currentStock),
-                                subtitle: 'بالوحدة الأساسية',
+                                value: cardData.formattedBreakdown.isNotEmpty
+                                    ? cardData.formattedBreakdown
+                                    : '${_formatNumber(cardData.currentStock)} ${cardData.baseUnitName}',
+                                subtitle: 'إجمالي ${_formatNumber(cardData.currentStock)} ${cardData.baseUnitName}',
                                 color: cardData.currentStock > 0
                                     ? AppColors.success
                                     : (cardData.currentStock == 0
@@ -547,13 +549,28 @@ class _ProductStockCardDialogState
                                         // Unit & Qty
                                         Expanded(
                                           flex: 2,
-                                          child: Text(
-                                            '${_formatNumber(m.quantity)} ${m.unitName}',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w600,
-                                              fontFamily: 'Cairo',
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              Text(
+                                                '${_formatNumber(m.quantity)} ${m.unitName}',
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  fontFamily: 'Cairo',
+                                                ),
+                                              ),
+                                              if (m.conversionFactor > 1)
+                                                Text(
+                                                  '= ${_formatNumber(m.baseQuantity)} ${cardData.baseUnitName}',
+                                                  style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: secondaryTextColor,
+                                                    fontFamily: 'Cairo',
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ),
 
@@ -597,7 +614,7 @@ class _ProductStockCardDialogState
                                                 CrossAxisAlignment.end,
                                             children: [
                                               Text(
-                                                'الرصيد',
+                                                'الرصيد (${cardData.baseUnitName})',
                                                 style: TextStyle(
                                                   fontSize: 9,
                                                   color: secondaryTextColor,

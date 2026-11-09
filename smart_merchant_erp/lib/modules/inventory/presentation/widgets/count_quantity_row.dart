@@ -8,10 +8,44 @@ double? parseCountQuantity(String text) {
         .replaceAll('٠١٢٣٤٥٦٧٨٩'[i], '$i')
         .replaceAll('۰۱۲۳۴۵۶۷۸۹'[i], '$i');
   }
-  final value = double.tryParse(
-    normalized.replaceAll('٫', '.').replaceAll(',', '.'),
-  );
-  return value != null && value.isFinite && value >= 0 ? value : null;
+  normalized = normalized
+      .replaceAll('٫', '.')
+      .replaceAll(',', '.')
+      .replaceAll('×', '*')
+      .replaceAll('x', '*')
+      .replaceAll('X', '*');
+  if (normalized.isEmpty) return null;
+
+  final direct = double.tryParse(normalized);
+  if (direct != null && direct.isFinite && direct >= 0) {
+    return direct;
+  }
+
+  try {
+    final parts = normalized.split('+');
+    double sum = 0.0;
+    for (var part in parts) {
+      part = part.trim();
+      if (part.isEmpty) continue;
+      if (part.contains('*')) {
+        final factors = part.split('*');
+        double product = 1.0;
+        for (final f in factors) {
+          final val = double.tryParse(f.trim());
+          if (val == null || !val.isFinite || val < 0) return null;
+          product *= val;
+        }
+        sum += product;
+      } else {
+        final val = double.tryParse(part);
+        if (val == null || !val.isFinite || val < 0) return null;
+        sum += val;
+      }
+    }
+    return sum >= 0 ? sum : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 class CountQuantityRow extends StatelessWidget {

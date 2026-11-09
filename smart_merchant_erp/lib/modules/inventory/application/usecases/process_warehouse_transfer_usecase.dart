@@ -84,66 +84,98 @@ class ProcessWarehouseTransferUseCase
           );
         }
         final sources = <String, Inventory>{},
-            targets = <String, Inventory?>{},
-            quantities = <String, double>{};
+            targets = <String, Inventory?>{};
+        final totalBaseDeductions = <String, double>{};
+        final plannedItems = <({
+          ProductUnit unit,
+          ProductUnit baseUnit,
+          double quantity,
+          double baseQuantity,
+          double unitCost,
+        })>[];
+
         for (final item in params.items) {
-          if (!item.quantity.isFinite ||
-              item.quantity <= 0 ||
-              quantities.containsKey(item.productUnitId)) {
-            throw const ValidationFailure(
-              'راجع الكميات؛ لا يقبل التحويل كمية غير صالحة أو منتجاً مكرراً.',
-            );
+          if (!item.quantity.isFinite || item.quantity <= 0) {
+            throw const ValidationFailure('راجع الكميات؛ يجب أن تكون أكبر من الصفر.');
           }
           final quantity = PrecisionMath.roundQty(item.quantity);
           if (quantity <= 0) {
-            throw const ValidationFailure(
-              'الكمية المحوّلة أقل من دقة المخزون المتاحة.',
-            );
+            throw const ValidationFailure('الكمية المحوّلة أقل من دقة المخزون المتاحة.');
           }
-          final unit =
-              await (_db.select(_db.productUnits)..where(
-                    (u) =>
-                        u.id.equals(item.productUnitId) &
-                        u.businessId.equals(businessId) &
-                        u.isActive.equals(true) &
-                        u.isBaseUnit.equals(true) &
-                        u.deletedAt.isNull(),
-                  ))
-                  .getSingleOrNull();
+
+          final unit = await (_db.select(_db.productUnits)..where(
+                (u) =>
+                    u.id.equals(item.productUnitId) &
+                    u.businessId.equals(businessId) &
+                    u.isActive.equals(true) &
+                    u.deletedAt.isNull(),
+              )).getSingleOrNull();
+
           if (unit == null) {
-            throw const ValidationFailure(
-              'اختر وحدة المخزون الأساسية لمنتج نشط من هذه المنشأة.',
-            );
+            throw const ValidationFailure('اختر وحدة نشطة لمنتج متاح في هذه المنشأة.');
           }
-          final product =
-              await (_db.select(_db.products)..where(
-                    (p) =>
-                        p.id.equals(unit.productId) &
-                        p.businessId.equals(businessId) &
-                        p.isActive.equals(true) &
-                        p.deletedAt.isNull(),
-                  ))
-                  .getSingleOrNull();
+
+          // Resolve canonical base unit
+          ProductUnit baseUnit = unit;
+          double factor = unit.conversionFactor > 0 ? unit.conversionFactor : 1.0;
+          if (!unit.isBaseUnit) {
+            final allUnits = await (_db.select(_db.productUnits)..where(
+                  (u) =>
+                      u.productId.equals(unit.productId) &
+                      u.businessId.equals(businessId) &
+                      u.deletedAt.isNull(),
+                )).get();
+            baseUnit = allUnits.firstWhere((u) => u.isBaseUnit, orElse: () => unit);
+          }
+
+          final product = await (_db.select(_db.products)..where(
+                (p) =>
+                    p.id.equals(unit.productId) &
+                    p.businessId.equals(businessId) &
+                    p.isActive.equals(true) &
+                    p.deletedAt.isNull(),
+              )).getSingleOrNull();
+
           if (product == null) {
             throw const ValidationFailure('أحد المنتجات غير متاح للتحويل.');
           }
-          final stock = await _inventoryRepository
-              .getInventoryByUnitAndWarehouse(businessId, source.id, unit.id);
-          if (stock == null || stock.quantity + .000001 < quantity) {
+
+          final baseQuantity = PrecisionMath.roundQty(quantity * factor);
+          final demanded = (totalBaseDeductions[baseUnit.id] ?? 0.0) + baseQuantity;
+
+          final stock = sources[baseUnit.id] ??
+              await _inventoryRepository.getInventoryByUnitAndWarehouse(
+                businessId,
+                source.id,
+                baseUnit.id,
+              );
+
+          if (stock == null || stock.quantity + .000001 < demanded) {
             throw ValidationFailure(
               'الرصيد الحالي للمنتج «${product.productName}» لا يكفي للتحويل. حدّث القائمة وراجع الكمية.',
             );
           }
-          sources[unit.id] = stock;
-          targets[unit.id] = await _inventoryRepository
-              .getInventoryByUnitAndWarehouse(
-                businessId,
-                destination.id,
-                unit.id,
-                includeDeleted: true,
-              );
-          quantities[unit.id] = quantity;
+
+          sources[baseUnit.id] = stock;
+          if (!targets.containsKey(baseUnit.id)) {
+            targets[baseUnit.id] = await _inventoryRepository.getInventoryByUnitAndWarehouse(
+              businessId,
+              destination.id,
+              baseUnit.id,
+              includeDeleted: true,
+            );
+          }
+
+          totalBaseDeductions[baseUnit.id] = demanded;
+          plannedItems.add((
+            unit: unit,
+            baseUnit: baseUnit,
+            quantity: quantity,
+            baseQuantity: baseQuantity,
+            unitCost: stock.averageCost * factor,
+          ));
         }
+
         await _inventoryRepository.recordTransferWithItems(
           transfer: InventoryTransfersCompanion.insert(
             id: transferId,
@@ -157,16 +189,17 @@ class ProcessWarehouseTransferUseCase
             createdBy: _context.currentUserId,
           ),
           items: [
-            for (final e in quantities.entries)
+            for (final p in plannedItems)
               InventoryTransferItemsCompanion.insert(
                 id: _uuid.v4(),
                 businessId: businessId,
                 transferId: transferId,
-                productUnitId: e.key,
-                quantity: e.value,
+                productUnitId: p.unit.id,
+                quantity: p.quantity,
               ),
           ],
         );
+
         for (final inbound in [false, true]) {
           final txId = _uuid.v4();
           await _inventoryRepository.recordTransactionWithLines(
@@ -190,47 +223,49 @@ class ProcessWarehouseTransferUseCase
               postedAt: drift.Value(now),
             ),
             lines: [
-              for (final e in quantities.entries)
+              for (final p in plannedItems)
                 InventoryTransactionLinesCompanion.insert(
                   id: _uuid.v4(),
                   businessId: businessId,
                   inventoryTransactionId: txId,
-                  productUnitId: e.key,
-                  quantity: e.value,
-                  unitCost: drift.Value(sources[e.key]!.averageCost),
+                  productUnitId: p.unit.id,
+                  quantity: p.quantity,
+                  unitCost: drift.Value(p.unitCost),
                 ),
             ],
           );
         }
-        for (final e in quantities.entries) {
-          final from = sources[e.key]!, to = targets[e.key];
+
+        for (final e in totalBaseDeductions.entries) {
+          final baseUnitId = e.key;
+          final baseDeduction = e.value;
+          final from = sources[baseUnitId]!, to = targets[baseUnitId];
+
           await _inventoryRepository.updateInventory(
-            from
-                .toCompanion(false)
-                .copyWith(
+            from.toCompanion(false).copyWith(
                   quantity: drift.Value(
-                    PrecisionMath.roundQty(from.quantity - e.value),
+                    PrecisionMath.roundQty(from.quantity - baseDeduction),
                   ),
                   updatedAt: drift.Value(now),
                   version: drift.Value(from.version + 1),
                   syncStatus: const drift.Value('pending'),
                 ),
           );
+
           final oldQty = to == null || to.deletedAt != null ? 0.0 : to.quantity;
-          final oldCost = to == null || to.deletedAt != null
-              ? 0.0
-              : to.averageCost;
-          final total = PrecisionMath.roundQty(oldQty + e.value);
+          final oldCost = to == null || to.deletedAt != null ? 0.0 : to.averageCost;
+          final total = PrecisionMath.roundQty(oldQty + baseDeduction);
           final average = total > 0
-              ? (oldQty * oldCost + e.value * from.averageCost) / total
+              ? (oldQty * oldCost + baseDeduction * from.averageCost) / total
               : from.averageCost;
+
           if (to == null) {
             await _inventoryRepository.insertInventory(
               InventoriesCompanion.insert(
                 id: _uuid.v4(),
                 businessId: businessId,
                 warehouseId: destination.id,
-                productUnitId: e.key,
+                productUnitId: baseUnitId,
                 quantity: drift.Value(total),
                 averageCost: drift.Value(average),
                 createdAt: drift.Value(now),
@@ -238,9 +273,7 @@ class ProcessWarehouseTransferUseCase
             );
           } else {
             await _inventoryRepository.updateInventory(
-              to
-                  .toCompanion(false)
-                  .copyWith(
+              to.toCompanion(false).copyWith(
                     quantity: drift.Value(total),
                     averageCost: drift.Value(average),
                     deletedAt: const drift.Value(null),

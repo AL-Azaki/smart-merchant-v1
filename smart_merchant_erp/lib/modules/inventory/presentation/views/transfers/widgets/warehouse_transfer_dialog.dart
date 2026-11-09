@@ -1,3 +1,7 @@
+import 'package:drift/drift.dart' as drift;
+import '../../../../../../app/di/getit_instance.dart';
+import '../../../../../../shared/design_system/tokens/colors.dart';
+import '../../../../../catalog/domain/services/unit_quantity_formatter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../../kernel/storage/app_database.dart';
@@ -23,11 +27,31 @@ class WarehouseTransferDialog extends ConsumerStatefulWidget {
 
 class _TransferLine {
   final StockBalanceView stock;
+  final List<ProductUnit> units;
+  final Map<String, String> unitNames;
+  ProductUnit selectedUnit;
   String quantity;
-  _TransferLine(this.stock)
-    : quantity = formatCatalogNumber(
-        stock.inventory.quantity >= 1 ? 1 : stock.inventory.quantity,
-      );
+
+  _TransferLine({
+    required this.stock,
+    required this.units,
+    required this.unitNames,
+    required this.selectedUnit,
+    required this.quantity,
+  });
+
+  String get baseUnitName {
+    final base = units.firstWhere((u) => u.isBaseUnit, orElse: () => selectedUnit);
+    return unitNames[base.id] ?? 'وحدة';
+  }
+
+  String get formattedBreakdown {
+    return UnitQuantityFormatter.formatBreakdown(
+      baseQuantity: stock.inventory.quantity,
+      units: units,
+      unitNameResolver: (id) => unitNames[id] ?? 'وحدة',
+    );
+  }
 }
 
 class _WarehouseTransferDialogState
@@ -71,17 +95,18 @@ class _WarehouseTransferDialogState
       );
       return;
     }
-    if (_lines.any(
-      (l) =>
-          parseCountQuantity(l.quantity) == null ||
-          parseCountQuantity(l.quantity)! <= 0 ||
-          parseCountQuantity(l.quantity)! > l.stock.inventory.quantity,
-    )) {
-      setState(
-        () => _error =
-            'راجع الكميات؛ يجب أن تكون أكبر من صفر وألا تتجاوز الرصيد المتاح.',
-      );
-      return;
+    for (final l in _lines) {
+      final qty = parseCountQuantity(l.quantity);
+      if (qty == null || qty <= 0) {
+        setState(() => _error = 'أدخل كمية تحويل صالحة وأكبر من الصفر.');
+        return;
+      }
+      final factor = l.selectedUnit.conversionFactor > 0 ? l.selectedUnit.conversionFactor : 1.0;
+      final baseQty = qty * factor;
+      if (baseQty > l.stock.inventory.quantity + 0.000001) {
+        setState(() => _error = 'الكمية المطلوبة لتحويل «${l.stock.product.productName}» تتجاوز الرصيد المتاح بالمستودع.');
+        return;
+      }
     }
     setState(() {
       _busy = true;
@@ -96,7 +121,7 @@ class _WarehouseTransferDialogState
           items: [
             for (final l in _lines)
               WarehouseTransferItemCommand(
-                productUnitId: l.stock.productUnit.id,
+                productUnitId: l.selectedUnit.id,
                 quantity: parseCountQuantity(l.quantity)!,
               ),
           ],
@@ -177,10 +202,44 @@ class _WarehouseTransferDialogState
         )
         .take(8)
         .toList();
-    void add(StockBalanceView stock) => setState(() {
-      _lines.add(_TransferLine(stock));
-      _search.clear();
-    });
+    Future<void> add(StockBalanceView stock) async {
+      final db = getIt<AppDatabase>();
+      final rows = await (db.select(db.productUnits).join([
+        drift.innerJoin(db.units, db.units.id.equalsExp(db.productUnits.unitId)),
+      ])..where(
+          db.productUnits.productId.equals(stock.product.id) &
+          db.productUnits.isActive.equals(true) &
+          db.productUnits.deletedAt.isNull(),
+        ))
+        .get();
+
+      final units = <ProductUnit>[];
+      final unitNames = <String, String>{};
+      ProductUnit? baseUnit;
+      for (final row in rows) {
+        final pu = row.readTable(db.productUnits);
+        final u = row.readTable(db.units);
+        units.add(pu);
+        unitNames[pu.id] = u.unitName;
+        if (pu.isBaseUnit) {
+          baseUnit = pu;
+        }
+      }
+
+      final initialUnit = baseUnit ?? (units.isNotEmpty ? units.first : stock.productUnit);
+      if (mounted) {
+        setState(() {
+          _lines.add(_TransferLine(
+            stock: stock,
+            units: units.isNotEmpty ? units : [stock.productUnit],
+            unitNames: unitNames.isNotEmpty ? unitNames : {stock.productUnit.id: 'وحدة'},
+            selectedUnit: initialUnit,
+            quantity: '1',
+          ));
+          _search.clear();
+        });
+      }
+    }
     return InventoryDialogFrame(
       title: 'تحويل مخزني جديد',
       icon: Icons.swap_horiz_rounded,
@@ -371,37 +430,114 @@ class _WarehouseTransferDialogState
                               l.stock.product.productName,
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
+                                fontSize: 15,
                               ),
                             ),
                           ),
                           IconButton(
                             tooltip: 'إزالة المنتج',
                             onPressed: () => setState(() => _lines.removeAt(i)),
-                            icon: const Icon(Icons.close_rounded),
+                            icon: const Icon(Icons.close_rounded, size: 20),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
                       Row(
                         children: [
                           Expanded(
-                            child: Text(
-                              'متاح: ${formatCatalogNumber(l.stock.inventory.quantity)}',
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.inventory_2_outlined, size: 14, color: AppColors.primary),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'المتاح: ${l.formattedBreakdown.isNotEmpty ? l.formattedBreakdown : formatCatalogNumber(l.stock.inventory.quantity)}',
+                                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '(${formatCatalogNumber(l.stock.inventory.quantity)} ${l.baseUnitName})',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(width: 12),
+                          if (l.units.length > 1) ...[
+                            SizedBox(
+                              width: 160,
+                              child: DropdownButtonFormField<String>(
+                                initialValue: l.selectedUnit.id,
+                                isDense: true,
+                                decoration: const InputDecoration(
+                                  labelText: 'الوحدة المحولة',
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                                items: [
+                                  for (final u in l.units)
+                                    DropdownMenuItem(
+                                      value: u.id,
+                                      child: Text(
+                                        u.isBaseUnit
+                                            ? '${l.unitNames[u.id] ?? "حبة"} (أساسية)'
+                                            : '${l.unitNames[u.id] ?? "كرتون"} (×${formatCatalogNumber(u.conversionFactor)})',
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                ],
+                                onChanged: (newUnitId) {
+                                  if (newUnitId != null) {
+                                    final newUnit = l.units.firstWhere((u) => u.id == newUnitId);
+                                    setState(() {
+                                      l.selectedUnit = newUnit;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
                           SizedBox(
-                            width: 140,
-                            child: TextFormField(
-                              initialValue: l.quantity,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
+                            width: 130,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                TextFormField(
+                                  key: ValueKey('transfer_qty_${l.selectedUnit.id}_${l.stock.productUnit.id}'),
+                                  initialValue: l.quantity,
+                                  keyboardType: const TextInputType.numberWithOptions(
                                     decimal: true,
                                   ),
-                              textInputAction: TextInputAction.next,
-                              onChanged: (v) => l.quantity = v,
-                              decoration: const InputDecoration(
-                                labelText: 'كمية التحويل',
-                                border: OutlineInputBorder(),
-                              ),
+                                  textDirection: TextDirection.ltr,
+                                  textInputAction: TextInputAction.next,
+                                  onChanged: (v) => setState(() => l.quantity = v),
+                                  decoration: InputDecoration(
+                                    labelText: 'الكمية (${l.unitNames[l.selectedUnit.id] ?? "الوحدة"})',
+                                    border: const OutlineInputBorder(),
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  ),
+                                ),
+                                if (!l.selectedUnit.isBaseUnit && (parseCountQuantity(l.quantity) ?? 0) > 0)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      '= ${formatCatalogNumber((parseCountQuantity(l.quantity) ?? 0) * l.selectedUnit.conversionFactor)} ${l.baseUnitName}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],

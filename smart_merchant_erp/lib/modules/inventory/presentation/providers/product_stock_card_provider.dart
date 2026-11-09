@@ -6,6 +6,7 @@ import '../../../../database/enums/inventory_reference_type.dart';
 import '../../../../database/enums/inventory_transaction_type.dart';
 import '../../../../kernel/storage/app_database.dart';
 import '../../../authentication/presentation/providers/session_provider.dart';
+import '../../../catalog/domain/services/unit_quantity_formatter.dart';
 
 class ProductStockMovement {
   final String lineId;
@@ -54,6 +55,8 @@ class ProductStockCardData {
   final double currentStock;
   final double totalInbound;
   final double totalOutbound;
+  final String baseUnitName;
+  final String formattedBreakdown;
   final List<ProductStockMovement> movements;
 
   const ProductStockCardData({
@@ -64,6 +67,8 @@ class ProductStockCardData {
     required this.totalInbound,
     required this.totalOutbound,
     required this.movements,
+    this.baseUnitName = 'حبة',
+    this.formattedBreakdown = '',
   });
 }
 
@@ -111,14 +116,20 @@ final productStockCardProvider = FutureProvider.autoDispose.family<ProductStockC
 
     final unitInfoMap = <String, Map<String, dynamic>>{};
     final unitIds = <String>[];
+    final allUnits = <ProductUnit>[];
+    String baseUnitName = 'حبة';
     for (final row in productUnitsQuery) {
       final pu = row.readTable(db.productUnits);
       final u = row.readTable(db.units);
       unitIds.add(pu.id);
+      allUnits.add(pu);
       unitInfoMap[pu.id] = {
         'unitName': u.unitName,
         'conversionFactor': pu.conversionFactor,
       };
+      if (pu.isBaseUnit) {
+        baseUnitName = u.unitName;
+      }
     }
 
     if (unitIds.isEmpty) {
@@ -211,6 +222,12 @@ final productStockCardProvider = FutureProvider.autoDispose.family<ProductStockC
       ));
     }
 
+    final formattedBreakdown = UnitQuantityFormatter.formatBreakdown(
+      baseQuantity: runningBalance,
+      units: allUnits,
+      unitNameResolver: (unitId) => (unitInfoMap[unitId]?['unitName'] as String?) ?? 'وحدة',
+    );
+
     return ProductStockCardData(
       productId: productId,
       productName: product.productName,
@@ -218,6 +235,8 @@ final productStockCardProvider = FutureProvider.autoDispose.family<ProductStockC
       currentStock: runningBalance,
       totalInbound: totalInbound,
       totalOutbound: totalOutbound,
+      baseUnitName: baseUnitName,
+      formattedBreakdown: formattedBreakdown,
       movements: movements.reversed.toList(), // Show newest first in table
     );
   },
