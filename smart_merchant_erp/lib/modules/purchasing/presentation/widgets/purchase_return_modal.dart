@@ -1,11 +1,10 @@
+import '../../../../app/di/getit_instance.dart';
+import '../../../../database/daos/catalog_dao.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
-import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
 import '../providers/purchase_returns_provider.dart';
-import '../providers/purchasing_provider.dart';
-import '../../../../kernel/storage/app_database.dart';
 import '../../../../app/di/getit_providers.dart';
 import '../../../../database/daos/purchasing_dao.dart'
     show PurchaseInvoiceFilter, PurchaseInvoiceWithItems;
@@ -32,6 +31,9 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
   PurchaseInvoiceWithItems? _selectedInvoice;
   List<PurchaseInvoiceWithItems> _searchResults = [];
   bool _isSearching = false;
+  final Map<String, TextEditingController> _qtyControllers = {};
+  final Map<String, String> _productNames = {};
+  final Map<String, String> _unitNames = {};
 
   @override
   void initState() {
@@ -40,13 +42,114 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
       final notifier = ref.read(purchaseReturnNotifierProvider.notifier);
       notifier.clearForm();
       if (widget.initialInvoice != null) {
-        setState(() {
-          _selectedInvoice = widget.initialInvoice;
-          _step = 2;
-        });
-        notifier.setInvoice(widget.initialInvoice!);
+        _onSelectInvoice(widget.initialInvoice!, notifier);
       }
     });
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _qtyControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onSelectInvoice(
+    PurchaseInvoiceWithItems invoice,
+    PurchaseReturnNotifier notifier,
+  ) {
+    for (final controller in _qtyControllers.values) {
+      controller.dispose();
+    }
+    _qtyControllers.clear();
+
+    for (final item in invoice.items) {
+      _qtyControllers[item.productUnitId] = TextEditingController();
+    }
+
+    setState(() {
+      _selectedInvoice = invoice;
+      _step = 2;
+    });
+
+    notifier.setInvoice(invoice);
+    _loadProductNames(invoice);
+  }
+
+  Future<void> _loadProductNames(PurchaseInvoiceWithItems invoice) async {
+    final session = ref.read(sessionNotifierProvider);
+    final businessId = session.businessId ?? '';
+    final catalogDao = getIt<CatalogDao>();
+
+    for (final item in invoice.items) {
+      try {
+        final productUnit = await catalogDao.getProductUnitById(
+          item.productUnitId,
+          businessId,
+        );
+        if (productUnit != null) {
+          final product = await catalogDao.getProductById(
+            productUnit.productId,
+            businessId,
+          );
+          if (product != null && mounted) {
+            setState(() {
+              _productNames[item.productUnitId] = product.productName;
+            });
+          }
+          final unit = await catalogDao.getUnitById(
+            productUnit.unitId,
+            businessId,
+          );
+          if (unit != null && mounted) {
+            setState(() {
+              _unitNames[item.productUnitId] = unit.unitName;
+            });
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  void _returnAllItems(PurchaseReturnNotifier notifier) {
+    if (_selectedInvoice == null) return;
+    final Map<String, double> allQtys = {};
+    for (final item in _selectedInvoice!.items) {
+      allQtys[item.productUnitId] = item.quantity;
+      final controller = _qtyControllers[item.productUnitId];
+      if (controller != null) {
+        controller.text = item.quantity % 1 == 0
+            ? item.quantity.toInt().toString()
+            : item.quantity.toString();
+      }
+    }
+    notifier.setAllQuantities(allQtys);
+  }
+
+  void _clearAllItems(PurchaseReturnNotifier notifier) {
+    if (_selectedInvoice == null) return;
+    for (final item in _selectedInvoice!.items) {
+      final controller = _qtyControllers[item.productUnitId];
+      if (controller != null) {
+        controller.clear();
+      }
+    }
+    notifier.clearAllQuantities();
+  }
+
+  void _updateItemQty(
+    String productUnitId,
+    double qty,
+    PurchaseReturnNotifier notifier,
+  ) {
+    final controller = _qtyControllers[productUnitId];
+    if (controller != null) {
+      controller.text = qty > 0
+          ? (qty % 1 == 0 ? qty.toInt().toString() : qty.toString())
+          : '';
+    }
+    notifier.updateQuantity(productUnitId, qty);
   }
 
   Future<void> _searchInvoices() async {
@@ -256,8 +359,7 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                     text: 'متابعة',
                     onPressed: _selectedInvoice != null
                         ? () {
-                            notifier.setInvoice(_selectedInvoice!);
-                            setState(() => _step = 2);
+                            _onSelectInvoice(_selectedInvoice!, notifier);
                           }
                         : null,
                   )
@@ -454,20 +556,96 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
         ),
         const SizedBox(height: 24),
 
-        const Text(
-          'حدد الكميات المرتجعة للمورد من المستودع',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        // Toolbar with 'تنزيل الكل (إرجاع كامل)' and 'إلغاء الكل (تصفير)'
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'أصناف الفاتورة المراد إرجاعها',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Text(
+                      '(${_selectedInvoice!.items.length} أصناف في الفاتورة)',
+                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: () => _returnAllItems(notifier),
+                icon: const Icon(Icons.download_done_rounded, size: 16),
+                label: const Text(
+                  'تنزيل الكل (إرجاع كامل)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.deepOrange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: () => _clearAllItems(notifier),
+                icon: const Icon(Icons.clear_all_rounded, size: 16),
+                label: const Text(
+                  'إلغاء الكل (تصفير)',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 16),
 
         ..._selectedInvoice!.items.map((item) {
           final returnedQty = state.returnQuantities[item.productUnitId] ?? 0.0;
+          final controller = _qtyControllers.putIfAbsent(
+            item.productUnitId,
+            () => TextEditingController(
+              text: returnedQty > 0
+                  ? (returnedQty % 1 == 0
+                      ? returnedQty.toInt().toString()
+                      : returnedQty.toString())
+                  : '',
+            ),
+          );
+
+          final productName = _productNames[item.productUnitId] ??
+              'المنتج ${item.productUnitId.length >= 8 ? item.productUnitId.substring(0, 8) : item.productUnitId}';
+          final unitName = _unitNames[item.productUnitId] ?? 'وحدة';
+
           return Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              border: Border.all(color: borderColor),
+              border: Border.all(
+                color: returnedQty > 0 ? Colors.deepOrange.withValues(alpha: 0.5) : borderColor,
+                width: returnedQty > 0 ? 1.5 : 1.0,
+              ),
               borderRadius: BorderRadius.circular(12),
+              color: returnedQty > 0
+                  ? Colors.deepOrange.withValues(alpha: isDark ? 0.08 : 0.03)
+                  : null,
             ),
             child: Row(
               children: [
@@ -475,10 +653,28 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'المنتج ${item.productUnitId.substring(0, 8)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ), // Ideally we have product name
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              productName,
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              unitName,
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         'السعر: ${item.unitPrice}${item.discount > 0 ? ' (صافي: ${(item.unitPrice - (item.discount / item.quantity)).toStringAsFixed(2)})' : ''} | الكمية المشتراة: ${item.quantity}',
@@ -492,23 +688,26 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                 ),
                 Row(
                   children: [
-                    const Text(
-                      'إرجاع:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, size: 20),
+                      onPressed: returnedQty <= 0
+                          ? null
+                          : () {
+                              final newQty = (returnedQty - 1).clamp(0.0, item.quantity);
+                              _updateItemQty(item.productUnitId, newQty, notifier);
+                            },
                     ),
-                    const SizedBox(width: 8),
                     SizedBox(
-                      width: 80,
+                      width: 75,
                       child: TextField(
-                        keyboardType: TextInputType.number,
+                        controller: controller,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         textAlign: TextAlign.center,
                         decoration: InputDecoration(
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 8,
+                            horizontal: 4,
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -520,6 +719,33 @@ class _PurchaseReturnModalState extends ConsumerState<PurchaseReturnModal> {
                             notifier.updateQuantity(item.productUnitId, qty);
                           }
                         },
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, size: 20),
+                      color: Colors.deepOrange,
+                      onPressed: returnedQty >= item.quantity
+                          ? null
+                          : () {
+                              final newQty = (returnedQty + 1).clamp(0.0, item.quantity);
+                              _updateItemQty(item.productUnitId, newQty, notifier);
+                            },
+                    ),
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: returnedQty >= item.quantity
+                          ? null
+                          : () => _updateItemQty(item.productUnitId, item.quantity, notifier),
+                      style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                      ),
+                      child: const Text(
+                        'الكل',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],

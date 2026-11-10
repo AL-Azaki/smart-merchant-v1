@@ -925,12 +925,6 @@ class _OrderDetailsSheet extends StatelessWidget {
                             '-${order.discountTotal.toStringAsFixed(2)}',
                             AppColors.error,
                           ),
-                        if (order.taxTotal > 0)
-                          _buildTotalRow(
-                            'الضريبة',
-                            order.taxTotal.toStringAsFixed(2),
-                            textSecondary,
-                          ),
                         Divider(color: borderColor, height: 16),
                         _buildTotalRow(
                           'الإجمالي',

@@ -160,12 +160,20 @@ class BusinessDto {
   final String id;
   final String businessName;
   final String? businessType;
+  final String? primaryPhone;
+  final String? primaryEmail;
+  final String? logoPath;
+  final String? storefrontAddressText;
   final String? status;
 
   const BusinessDto({
     required this.id,
     required this.businessName,
     this.businessType,
+    this.primaryPhone,
+    this.primaryEmail,
+    this.logoPath,
+    this.storefrontAddressText,
     this.status,
   });
 
@@ -174,6 +182,10 @@ class BusinessDto {
       id: json['id'].toString(),
       businessName: json['business_name'] as String? ?? '',
       businessType: json['business_type'] as String?,
+      primaryPhone: json['primary_phone'] as String?,
+      primaryEmail: json['primary_email'] as String?,
+      logoPath: json['logo_path'] as String?,
+      storefrontAddressText: json['storefront_address_text'] as String?,
       status: json['status'] as String?,
     );
   }
@@ -185,12 +197,18 @@ class BranchDto {
   final String id;
   final String branchName;
   final String? branchCode;
+  final String? phone;
+  final String? email;
+  final String? address;
   final bool isActive;
 
   const BranchDto({
     required this.id,
     required this.branchName,
     this.branchCode,
+    this.phone,
+    this.email,
+    this.address,
     required this.isActive,
   });
 
@@ -199,6 +217,9 @@ class BranchDto {
       id: json['id'].toString(),
       branchName: json['branch_name'] as String? ?? '',
       branchCode: json['branch_code'] as String?,
+      phone: json['phone'] as String?,
+      email: json['email'] as String?,
+      address: json['address'] as String?,
       isActive: json['is_active'] as bool? ?? true,
     );
   }

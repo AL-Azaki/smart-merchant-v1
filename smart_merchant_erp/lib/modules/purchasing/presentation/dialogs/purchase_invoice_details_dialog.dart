@@ -421,11 +421,6 @@ class _PurchaseInvoiceDetailsDialogState
                               color: Color(0xFFEF4444),
                             ),
                           ),
-                        if (widget.invoice.taxTotal > 0)
-                          Text(
-                            'الضريبة: +${widget.invoice.taxTotal.toStringAsFixed(2)} ر.ي',
-                            style: TextStyle(fontSize: 12, color: textSecondary),
-                          ),
                       ],
                     ),
                     Row(

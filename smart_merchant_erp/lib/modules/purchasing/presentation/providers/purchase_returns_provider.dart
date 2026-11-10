@@ -121,6 +121,16 @@ class PurchaseReturnNotifier extends AutoDisposeNotifier<PurchaseReturnState> {
     state = state.copyWith(returnQuantities: newQtys);
   }
 
+  void setAllQuantities(Map<String, double> quantities) {
+    state = state.copyWith(
+      returnQuantities: Map<String, double>.from(quantities),
+    );
+  }
+
+  void clearAllQuantities() {
+    state = state.copyWith(returnQuantities: {});
+  }
+
   void clearForm() {
     state = PurchaseReturnState.initial();
   }

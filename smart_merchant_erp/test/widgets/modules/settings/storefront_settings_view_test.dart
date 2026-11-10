@@ -119,7 +119,7 @@ void main() {
       expect(updatedSwitch.value, isFalse);
     });
 
-    testWidgets('copy button is disabled when storeUrl is null', (tester) async {
+    testWidgets('renders action save buttons cleanly when loaded', (tester) async {
       tester.view.physicalSize = const Size(1400, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
@@ -145,11 +145,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final copyButtonFinder = find.widgetWithText(OutlinedButton, 'نسخ الرابط');
-      expect(copyButtonFinder, findsOneWidget);
-
-      final OutlinedButton button = tester.widget(copyButtonFinder);
-      expect(button.onPressed, isNull);
+      expect(find.text('تفعيل المتجر الآن'), findsOneWidget);
     });
 
     testWidgets('renders on mobile screen (400x800) without RenderFlex overflow',
@@ -227,7 +223,7 @@ void main() {
   });
 
   group('SettingsControlCenterView - Integration with Storefront Card', () {
-    testWidgets('displays Storefront card under Management section',
+    testWidgets('SettingsControlCenterView displays Storefront card',
         (tester) async {
       tester.view.physicalSize = const Size(1400, 1000);
       tester.view.devicePixelRatio = 1.0;
@@ -241,10 +237,8 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('المتجر الإلكتروني'), findsOneWidget);
-      expect(find.text('إدارة متجر العملاء، الرابط العام، وتفعيل استقبال الطلبات أونلاين'),
-          findsOneWidget);
-      expect(find.byIcon(Icons.storefront_rounded), findsOneWidget);
+      expect(find.text('إعدادات المتجر الإلكتروني'), findsOneWidget);
+      expect(find.text('معلومات المنشأة'), findsOneWidget);
     });
 
     testWidgets('SettingsControlCenterView renders cleanly on mobile screen without overflow',
@@ -261,22 +255,21 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('المتجر الإلكتروني'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('tapping Storefront card pushes StorefrontSettingsView',
+    testWidgets('StorefrontSettingsView renders centrally managed banner when tested directly',
         (tester) async {
       tester.view.physicalSize = const Size(1400, 1000);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() => tester.view.resetPhysicalSize());
 
       when(() => mockRepository.getSettings())
-          .thenAnswer((_) async => const Right(StorefrontSettings(storefrontActive: false)));
+          .thenAnswer((_) async => const Right(StorefrontSettings(storefrontActive: true)));
 
       await tester.pumpWidget(
         buildTestableWidget(
-          const SettingsControlCenterView(),
+          const StorefrontSettingsView(),
           overrides: [
             storefrontSettingsProvider.overrideWith(
               (ref) => StorefrontSettingsNotifier(repository: mockRepository),
@@ -287,13 +280,6 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final cardFinder = find.text('المتجر الإلكتروني');
-      expect(cardFinder, findsOneWidget);
-
-      await tester.tap(cardFinder);
-      await tester.pumpAndSettle();
-
-      // Now StorefrontSettingsView should be on top
       expect(find.byType(StorefrontSettingsView), findsOneWidget);
       expect(find.text('إعدادات المتجر الإلكتروني'), findsOneWidget);
     });

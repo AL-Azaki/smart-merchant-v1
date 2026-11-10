@@ -623,34 +623,101 @@ class AuthNotifier extends _$AuthNotifier {
               ),
             );
 
-        // Upsert Business
+        // Upsert Business (preserving local pending edits & existing fields)
+        final existingBiz = await (db.select(db.businesses)
+              ..where((t) => t.id.equals(bootstrap.activeBusiness.id)))
+            .getSingleOrNull();
+        final keepLocalBiz =
+            existingBiz != null && existingBiz.syncStatus == 'pending';
+
         await db
             .into(db.businesses)
             .insertOnConflictUpdate(
               BusinessesCompanion.insert(
                 id: bootstrap.activeBusiness.id,
-                accountId: dummyAccountId,
-                businessName: bootstrap.activeBusiness.businessName,
+                accountId: existingBiz?.accountId ?? dummyAccountId,
+                businessName: keepLocalBiz
+                    ? existingBiz.businessName
+                    : bootstrap.activeBusiness.businessName,
                 businessType: drift.Value(
-                  bootstrap.activeBusiness.businessType,
+                  keepLocalBiz
+                      ? existingBiz.businessType
+                      : (bootstrap.activeBusiness.businessType ??
+                          existingBiz?.businessType),
+                ),
+                primaryPhone: drift.Value(
+                  keepLocalBiz
+                      ? existingBiz.primaryPhone
+                      : (bootstrap.activeBusiness.primaryPhone ??
+                          bootstrap.accountPhone ??
+                          existingBiz?.primaryPhone),
+                ),
+                primaryEmail: drift.Value(
+                  keepLocalBiz
+                      ? existingBiz.primaryEmail
+                      : (bootstrap.activeBusiness.primaryEmail ??
+                          bootstrap.accountEmail ??
+                          existingBiz?.primaryEmail),
+                ),
+                logoPath: drift.Value(
+                  keepLocalBiz
+                      ? existingBiz.logoPath
+                      : (existingBiz?.logoPath ??
+                          bootstrap.activeBusiness.logoPath),
                 ),
                 status: drift.Value(
                   bootstrap.activeBusiness.status ?? 'Active',
+                ),
+                syncStatus: drift.Value(
+                  keepLocalBiz ? 'pending' : 'synced',
                 ),
               ),
             );
 
         // Upsert Branch
         if (bootstrap.activeBranch != null) {
+          final existingBranch = await (db.select(db.branches)
+                ..where((t) => t.id.equals(bootstrap.activeBranch!.id)))
+              .getSingleOrNull();
+          final keepLocalBranch =
+              existingBranch != null && existingBranch.syncStatus == 'pending';
+
           await db
               .into(db.branches)
               .insertOnConflictUpdate(
                 BranchesCompanion.insert(
                   id: bootstrap.activeBranch!.id,
                   businessId: bootstrap.activeBusiness.id,
-                  branchName: bootstrap.activeBranch!.branchName,
+                  branchName: keepLocalBranch
+                      ? existingBranch.branchName
+                      : bootstrap.activeBranch!.branchName,
                   branchCode: bootstrap.activeBranch!.branchCode ?? 'MAIN',
+                  phone: drift.Value(
+                    keepLocalBranch
+                        ? existingBranch.phone
+                        : (bootstrap.activeBranch!.phone ??
+                            bootstrap.activeBusiness.primaryPhone ??
+                            existingBranch?.phone),
+                  ),
+                  email: drift.Value(
+                    keepLocalBranch
+                        ? existingBranch.email
+                        : (bootstrap.activeBranch!.email ??
+                            bootstrap.activeBusiness.primaryEmail ??
+                            existingBranch?.email),
+                  ),
+                  address: drift.Value(
+                    keepLocalBranch
+                        ? existingBranch.address
+                        : (bootstrap.activeBranch!.address ??
+                            bootstrap.activeBusiness.storefrontAddressText ??
+                            existingBranch?.address),
+                  ),
+                  isDefault: const drift.Value(true),
                   isActive: drift.Value(bootstrap.activeBranch!.isActive),
+                  syncStatus: drift.Value(
+                    keepLocalBranch ? 'pending' : 'synced',
+                  ),
                 ),
               );
         }

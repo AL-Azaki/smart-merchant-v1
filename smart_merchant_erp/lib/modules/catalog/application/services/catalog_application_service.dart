@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../kernel/core/application_context.dart';
 import '../../../../kernel/error/failures.dart';
 import '../../../../kernel/storage/app_database.dart' hide Unit;
+import '../../../../database/daos/catalog_dao.dart' show ProductFilter;
 import '../../domain/repositories/catalog_repository.dart';
 import '../../../inventory/application/usecases/process_stock_adjustment_usecase.dart';
 
@@ -486,6 +487,73 @@ class CatalogApplicationService {
     try {
       await _catalogRepository.softDeleteUnit(id, businessId);
       return const Right<Failure, Unit>(unit);
+    } catch (e) {
+      return Left(UnexpectedFailure(e.toString()));
+    }
+  }
+
+  /// Toggles `showInStore` flag on a single product without losing any existing fields.
+  Future<Either<Failure, bool>> toggleProductStoreVisibility(
+    String productId,
+    bool showInStore,
+  ) async {
+    final businessId = _context.currentBusinessId;
+    if (businessId.isEmpty) {
+      return const Left(ValidationFailure('Business ID is required.'));
+    }
+
+    try {
+      final existing = await _catalogRepository.getProductById(
+        productId,
+        businessId,
+      );
+      if (existing == null) {
+        return const Left(ValidationFailure('المنتج غير موجود.'));
+      }
+
+      final companion = existing.toCompanion(true).copyWith(
+            showInStore: drift.Value(showInStore),
+            syncStatus: const drift.Value('pending'),
+            version: drift.Value(existing.version + 1),
+            updatedAt: drift.Value(DateTime.now()),
+          );
+
+      final updated = await _catalogRepository.updateProduct(companion);
+      return Right(updated);
+    } catch (e) {
+      return Left(UnexpectedFailure(e.toString()));
+    }
+  }
+
+  /// Bulk updates `showInStore` flag for all active products of the current business.
+  Future<Either<Failure, int>> setAllProductsStoreVisibility(
+    bool showInStore,
+  ) async {
+    final businessId = _context.currentBusinessId;
+    if (businessId.isEmpty) {
+      return const Left(ValidationFailure('Business ID is required.'));
+    }
+
+    try {
+      final allActive = await _catalogRepository.listProducts(
+        ProductFilter(businessId: businessId, isActive: true),
+      );
+      var count = 0;
+      for (final p in allActive) {
+        if (p.showInStore != showInStore) {
+          final companion = p.toCompanion(true).copyWith(
+                showInStore: drift.Value(showInStore),
+                syncStatus: const drift.Value('pending'),
+                version: drift.Value(p.version + 1),
+                updatedAt: drift.Value(DateTime.now()),
+              );
+          final ok = await _catalogRepository.updateProduct(companion);
+          if (ok) {
+            count++;
+          }
+        }
+      }
+      return Right(count);
     } catch (e) {
       return Left(UnexpectedFailure(e.toString()));
     }

@@ -17,7 +17,7 @@ import '../../../../kernel/security/permissions_provider.dart';
 import '../../../platform/presentation/providers/sync_provider.dart';
 import '../../../../kernel/sync/coordinator/sync_coordinator.dart' show SyncStatus;
 import '../../../settings/presentation/providers/storefront_settings_provider.dart';
-import '../../../settings/presentation/views/storefront_settings_view.dart';
+import 'package:go_router/go_router.dart';
 
 class ProductsView extends ConsumerStatefulWidget {
   const ProductsView({super.key});
@@ -729,11 +729,7 @@ class _ProductsViewState extends ConsumerState<ProductsView>
             ),
             onPressed: () {
               Navigator.of(dialogCtx).pop();
-              Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const StorefrontSettingsView(),
-                ),
-              );
+              context.go('/storefront?tab=3');
             },
             icon: const Icon(Icons.settings_rounded, size: 18),
             label: const Text('الانتقال لإعدادات المتجر'),

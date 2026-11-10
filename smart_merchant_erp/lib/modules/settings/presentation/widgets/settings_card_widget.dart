@@ -67,7 +67,10 @@ class _SettingsCardWidgetState extends State<SettingsCardWidget> {
             highlightColor: widget.item.color.withValues(alpha: 0.05),
             splashColor: widget.item.color.withValues(alpha: 0.1),
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.lg),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,

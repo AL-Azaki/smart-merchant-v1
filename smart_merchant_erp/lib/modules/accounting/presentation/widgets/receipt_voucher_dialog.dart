@@ -227,22 +227,54 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
 
     final List<ChartOfAccount> availableAccounts =
         accountsAsync.asData?.value ?? [];
-    final receivingAccounts = availableAccounts
-        .where((a) =>
-            a.allowPosting && (a.accountCode.startsWith('111') || a.accountTypeId == 1))
+    // Parent account IDs to strictly exclude main/header accounts
+    final Set<String> parentAccountIds = availableAccounts
+        .map((a) => a.parentAccountId)
+        .whereType<String>()
+        .toSet();
+
+    // Sub-accounts only (Leaf accounts that allow direct posting)
+    final leafAccounts = availableAccounts
+        .where((a) => a.allowPosting && !parentAccountIds.contains(a.id))
         .toList();
+
+    // Filter strictly for Cash & Bank sub-accounts (صناديق وبنوك فرعية)
+    final rawReceivingAccounts = leafAccounts
+        .where((a) =>
+            a.accountCategory == 'Cash' ||
+            a.accountCategory == 'Bank' ||
+            a.accountCategory == 'DigitalWallet' ||
+            a.accountCode.startsWith('1110') ||
+            a.accountName.contains('صندوق') ||
+            a.accountName.contains('خزينة') ||
+            a.accountName.contains('كاشير') ||
+            a.accountName.contains('بنك') ||
+            a.accountName.contains('مصرف') ||
+            a.accountName.contains('محفظة'))
+        .toList();
+
+    final receivingAccounts = rawReceivingAccounts.isNotEmpty
+        ? rawReceivingAccounts
+        : leafAccounts;
+    final effectiveTargetAccountId = (_selectedTargetAccountId != null &&
+            receivingAccounts.any((a) => a.id == _selectedTargetAccountId))
+        ? _selectedTargetAccountId
+        : (receivingAccounts.isNotEmpty ? receivingAccounts.first.id : null);
+    if (_selectedTargetAccountId == null && effectiveTargetAccountId != null) {
+      _selectedTargetAccountId = effectiveTargetAccountId;
+    }
 
     final List<VoucherAccountItem> searchableItems = [
       ..._customers.map((c) => VoucherAccountItem(
             id: c.id,
             title: c.customerName,
             subtitle: c.phone != null && c.phone!.isNotEmpty
-                ? 'عميل - '
+                ? 'عميل - ${c.phone}'
                 : 'عميل',
             phone: c.phone,
             isCustomer: true,
           )),
-      ...availableAccounts.where((a) => a.allowPosting).map((acc) =>
+      ...leafAccounts.map((acc) =>
           VoucherAccountItem(
             id: acc.id,
             title: acc.accountName,
@@ -336,7 +368,7 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                                       fontWeight: FontWeight.w600),
                                 ),
                                 Text(
-                                  '\ ر.ي',
+                                  '${_customerBalance!.netBalance.toStringAsFixed(2)} ر.ي',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
@@ -350,7 +382,7 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                         const SizedBox(height: 16),
 
                         DropdownButtonFormField<String>(
-                          value: _selectedTargetAccountId,
+                          value: effectiveTargetAccountId,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'الصندوق / الحساب البنكي المستلم *',
@@ -358,11 +390,25 @@ class _ReceiptVoucherDialogState extends ConsumerState<ReceiptVoucherDialog> {
                             border: OutlineInputBorder(),
                           ),
                           items: receivingAccounts.map((a) {
+                            final isBank = a.accountCode.startsWith('112') || a.accountName.contains('بنك') || a.accountName.contains('مصرف');
                             return DropdownMenuItem<String>(
                               value: a.id,
-                              child: Text(
-                                '\ - ',
-                                overflow: TextOverflow.ellipsis,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isBank ? Icons.account_balance_rounded : Icons.point_of_sale_rounded,
+                                    size: 18,
+                                    color: isBank ? const Color(0xFF3B82F6) : const Color(0xFFF59E0B),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${a.accountCode} - ${a.accountName}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           }).toList(),

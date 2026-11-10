@@ -201,6 +201,64 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
       .where((item) => item.returnQuantity > 0)
       .length;
 
+  void _returnAllItems() {
+    setState(() {
+      for (final draft in _returnDraftItems) {
+        draft.returnQuantity = draft.item.quantity;
+      }
+    });
+  }
+
+  void _clearAllItems() {
+    setState(() {
+      for (final draft in _returnDraftItems) {
+        draft.returnQuantity = 0.0;
+      }
+    });
+  }
+
+  Future<void> _showCustomQtyDialog(_ItemReturnDraft draft, double maxQty) async {
+    final controller = TextEditingController(
+      text: draft.returnQuantity > 0
+          ? (draft.returnQuantity % 1 == 0
+              ? draft.returnQuantity.toInt().toString()
+              : draft.returnQuantity.toString())
+          : '',
+    );
+    final result = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('تحديد كمية إرجاع (${draft.productName})'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          decoration: InputDecoration(
+            labelText: 'الكمية المراد إرجاعها (الحد الأقصى: $maxQty)',
+            suffixText: draft.unitName,
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final val = double.tryParse(controller.text) ?? 0.0;
+              Navigator.of(ctx).pop(val.clamp(0.0, maxQty));
+            },
+            child: const Text('تطبيق'),
+          ),
+        ],
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => draft.returnQuantity = result);
+    }
+  }
+
   Future<void> _submitReturn() async {
     if (_selectedInvoice == null) return;
 
@@ -980,6 +1038,63 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
         ),
         const SizedBox(height: 12),
 
+        // Quick Actions Toolbar (تنزيل الكل / إلغاء الكل)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.playlist_add_check_circle_rounded,
+                size: 20,
+                color: Color(0xFF6366F1),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'أصناف الفاتورة (${_returnDraftItems.length} أصناف)',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              const Spacer(),
+              FilledButton.icon(
+                onPressed: _returnDraftItems.isEmpty ? null : _returnAllItems,
+                icon: const Icon(Icons.download_done_rounded, size: 16),
+                label: const Text(
+                  'تنزيل الكل (إرجاع كامل الفاتورة)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: _returnDraftItems.isEmpty ? null : _clearAllItems,
+                icon: const Icon(Icons.clear_all_rounded, size: 16),
+                label: const Text(
+                  'إلغاء الكل (تصفير)',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
         // Items Return Table
         Expanded(
           child: _isLoadingItems
@@ -1197,37 +1312,44 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
                                                   });
                                                 },
                                         ),
-                                        Container(
-                                          width: 50,
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: draft.returnQuantity > 0
-                                                ? AppColors.error
-                                                    .withOpacity(0.12)
-                                                : Colors.transparent,
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            border: Border.all(
-                                              color: draft.returnQuantity > 0
-                                                  ? AppColors.error
-                                                  : borderColor,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            draft.returnQuantity.toStringAsFixed(
-                                              draft.returnQuantity % 1 == 0
-                                                  ? 0
-                                                  : 2,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 13,
-                                              color: draft.returnQuantity > 0
-                                                  ? AppColors.error
-                                                  : textColor,
+                                        Tooltip(
+                                          message: 'انقر لتحديد الكمية يدوياً',
+                                          child: InkWell(
+                                            onTap: () => _showCustomQtyDialog(draft, maxQty),
+                                            borderRadius: BorderRadius.circular(6),
+                                            child: Container(
+                                              width: 50,
+                                              padding: const EdgeInsets.symmetric(
+                                                vertical: 4,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: draft.returnQuantity > 0
+                                                    ? AppColors.error
+                                                        .withOpacity(0.12)
+                                                    : Colors.transparent,
+                                                borderRadius:
+                                                    BorderRadius.circular(6),
+                                                border: Border.all(
+                                                  color: draft.returnQuantity > 0
+                                                      ? AppColors.error
+                                                      : borderColor,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                draft.returnQuantity.toStringAsFixed(
+                                                  draft.returnQuantity % 1 == 0
+                                                      ? 0
+                                                      : 2,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                  color: draft.returnQuantity > 0
+                                                      ? AppColors.error
+                                                      : textColor,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -1246,6 +1368,29 @@ class _ReturnsModalState extends ConsumerState<ReturnsModal>
                                                             .clamp(0.0, maxQty);
                                                   });
                                                 },
+                                        ),
+                                        const SizedBox(width: 2),
+                                        TextButton(
+                                          onPressed: draft.returnQuantity >= maxQty
+                                              ? null
+                                              : () {
+                                                  setState(() {
+                                                    draft.returnQuantity = maxQty;
+                                                  });
+                                                },
+                                          style: TextButton.styleFrom(
+                                            visualDensity: VisualDensity.compact,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 6,
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'الكل',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                         ),
                                       ],
                                     ),

@@ -60,7 +60,7 @@ class SettingsGroupSectionWidget extends StatelessWidget {
             final hasStats = group.cards.any((c) => c.stats.isNotEmpty);
             final double effectiveExtent;
             if (width <= 700) {
-              effectiveExtent = hasStats ? 230.0 : 185.0;
+              effectiveExtent = hasStats ? 250.0 : 190.0;
             } else {
               effectiveExtent = mainAxisExtent ?? (hasStats ? 210.0 : 185.0);
             }

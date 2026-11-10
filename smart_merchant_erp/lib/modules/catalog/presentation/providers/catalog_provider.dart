@@ -73,6 +73,31 @@ class ProductsNotifier extends AutoDisposeStreamNotifier<List<Product>> {
     final service = getIt<CatalogApplicationService>();
     await service.deleteProduct(id);
   }
+
+  Future<bool> toggleStoreVisibility(String productId, bool showInStore) async {
+    final session = ref.read(sessionNotifierProvider);
+    if (!session.isActive) {
+      return false;
+    }
+
+    final service = getIt<CatalogApplicationService>();
+    final result = await service.toggleProductStoreVisibility(
+      productId,
+      showInStore,
+    );
+    return result.fold((_) => false, (ok) => ok);
+  }
+
+  Future<int> setAllStoreVisibility(bool showInStore) async {
+    final session = ref.read(sessionNotifierProvider);
+    if (!session.isActive) {
+      return 0;
+    }
+
+    final service = getIt<CatalogApplicationService>();
+    final result = await service.setAllProductsStoreVisibility(showInStore);
+    return result.fold((_) => 0, (count) => count);
+  }
 }
 
 final categoriesNotifierProvider =

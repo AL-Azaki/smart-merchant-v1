@@ -229,22 +229,54 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
 
     final List<ChartOfAccount> availableAccounts =
         accountsAsync.asData?.value ?? [];
-    final sourceAccounts = availableAccounts
-        .where((a) =>
-            a.allowPosting && (a.accountCode.startsWith('111') || a.accountTypeId == 1))
+    // Parent account IDs to strictly exclude main/header accounts
+    final Set<String> parentAccountIds = availableAccounts
+        .map((a) => a.parentAccountId)
+        .whereType<String>()
+        .toSet();
+
+    // Sub-accounts only (Leaf accounts that allow direct posting)
+    final leafAccounts = availableAccounts
+        .where((a) => a.allowPosting && !parentAccountIds.contains(a.id))
         .toList();
+
+    // Filter strictly for Cash & Bank sub-accounts (صناديق وبنوك فرعية)
+    final rawSourceAccounts = leafAccounts
+        .where((a) =>
+            a.accountCategory == 'Cash' ||
+            a.accountCategory == 'Bank' ||
+            a.accountCategory == 'DigitalWallet' ||
+            a.accountCode.startsWith('1110') ||
+            a.accountName.contains('صندوق') ||
+            a.accountName.contains('خزينة') ||
+            a.accountName.contains('كاشير') ||
+            a.accountName.contains('بنك') ||
+            a.accountName.contains('مصرف') ||
+            a.accountName.contains('محفظة'))
+        .toList();
+
+    final sourceAccounts = rawSourceAccounts.isNotEmpty
+        ? rawSourceAccounts
+        : leafAccounts;
+    final effectiveSourceAccountId = (_selectedSourceAccountId != null &&
+            sourceAccounts.any((a) => a.id == _selectedSourceAccountId))
+        ? _selectedSourceAccountId
+        : (sourceAccounts.isNotEmpty ? sourceAccounts.first.id : null);
+    if (_selectedSourceAccountId == null && effectiveSourceAccountId != null) {
+      _selectedSourceAccountId = effectiveSourceAccountId;
+    }
 
     final List<VoucherAccountItem> searchableItems = [
       ..._suppliers.map((s) => VoucherAccountItem(
             id: s.id,
             title: s.supplierName,
             subtitle: s.phone != null && s.phone!.isNotEmpty
-                ? 'مورد - '
+                ? 'مورد - ${s.phone}'
                 : 'مورد',
             phone: s.phone,
             isSupplier: true,
           )),
-      ...availableAccounts.where((a) => a.allowPosting).map((acc) =>
+      ...leafAccounts.map((acc) =>
           VoucherAccountItem(
             id: acc.id,
             title: acc.accountName,
@@ -339,7 +371,7 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
                                       fontWeight: FontWeight.w600),
                                 ),
                                 Text(
-                                  '\ ر.ي',
+                                  '${_supplierBalance!.currentBalance.toStringAsFixed(2)} ر.ي',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w800,
@@ -353,7 +385,7 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
                         const SizedBox(height: 16),
 
                         DropdownButtonFormField<String>(
-                          value: _selectedSourceAccountId,
+                          value: effectiveSourceAccountId,
                           isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'الصندوق / الحساب البنكي المصروف منه *',
@@ -361,11 +393,25 @@ class _PaymentVoucherDialogState extends ConsumerState<PaymentVoucherDialog> {
                             border: OutlineInputBorder(),
                           ),
                           items: sourceAccounts.map((a) {
+                            final isBank = a.accountCode.startsWith('112') || a.accountName.contains('بنك') || a.accountName.contains('مصرف');
                             return DropdownMenuItem<String>(
                               value: a.id,
-                              child: Text(
-                                '\ - ',
-                                overflow: TextOverflow.ellipsis,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isBank ? Icons.account_balance_rounded : Icons.point_of_sale_rounded,
+                                    size: 18,
+                                    color: isBank ? const Color(0xFF3B82F6) : const Color(0xFFF59E0B),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${a.accountCode} - ${a.accountName}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           }).toList(),

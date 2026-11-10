@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../shared/design_system/tokens/colors.dart';
 import '../../../../shared/design_system/tokens/spacing.dart';
 import '../../../../shared/design_system/widgets/app_card.dart';
 import '../../../../shared/design_system/widgets/app_status_badge.dart';
 import '../../../../shared/design_system/widgets/primary_button.dart';
+import '../../../../shared/design_system/widgets/yemen_map_picker_dialog.dart';
 import '../../domain/entities/storefront_settings.dart';
 import '../providers/storefront_settings_provider.dart';
 import '../widgets/settings_form_field_widget.dart';
 import '../widgets/settings_header_widget.dart';
-import '../../../catalog/presentation/providers/catalog_provider.dart';
-import '../../../../kernel/storage/app_database.dart';
 
 class StorefrontSettingsView extends ConsumerStatefulWidget {
-  const StorefrontSettingsView({super.key});
+  final bool isEmbedded;
+  final VoidCallback? onOpenLiveSimulator;
+
+  const StorefrontSettingsView({
+    super.key,
+    this.isEmbedded = false,
+    this.onOpenLiveSimulator,
+  });
 
   @override
   ConsumerState<StorefrontSettingsView> createState() =>
@@ -113,75 +117,6 @@ class _StorefrontSettingsViewState
     );
   }
 
-  Future<void> _copyUrl(String? url) async {
-    if (url == null || url.isEmpty) {
-      return;
-    }
-
-    await Clipboard.setData(ClipboardData(text: url));
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.check_circle_rounded, color: Colors.white),
-            SizedBox(width: AppSpacing.md),
-            Text(
-              'تم نسخ رابط المتجر إلى الحافظة بنجاح',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.success,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openStore(String? url) async {
-    if (url == null || url.isEmpty) {
-      return;
-    }
-
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('تعذر فتح الرابط في المتصفح حالياً.'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  Future<void> _shareStore(String? url, String? storeName) async {
-    if (url == null || url.isEmpty) {
-      return;
-    }
-
-    final name = (storeName != null && storeName.isNotEmpty)
-        ? storeName
-        : 'متجرنا الإلكتروني';
-    await SharePlus.instance.share(
-      ShareParams(
-        text: 'تسوق الآن من $name عبر الرابط:\n$url',
-        subject: 'رابط $name',
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(storefrontSettingsProvider);
@@ -235,13 +170,13 @@ class _StorefrontSettingsViewState
           : AppColors.backgroundLight,
       body: Column(
         children: [
-          // Header Bar
-          SettingsHeaderWidget(
-            title: 'إعدادات المتجر الإلكتروني',
-            description:
-                'إدارة المتجر العام، رابط الوصول للعملاء، وبيانات التواصل',
-            onBackTap: () => Navigator.of(context).pop(),
-          ),
+          if (!widget.isEmbedded)
+            SettingsHeaderWidget(
+              title: 'إعدادات المتجر الإلكتروني',
+              description:
+                  'إدارة المتجر العام، رابط الوصول للعملاء، وبيانات التواصل',
+              onBackTap: () => Navigator.of(context).pop(),
+            ),
 
           // Main Body
           Expanded(
@@ -291,17 +226,11 @@ class _StorefrontSettingsViewState
                                       ),
                                       const SizedBox(width: AppSpacing.xl),
 
-                                      // Side Column (Preview & Actions)
+                                      // Side Column (Actions)
                                       Expanded(
                                         flex: 2,
                                         child: Column(
                                           children: [
-                                            _buildPreviewCard(
-                                              currentUrl,
-                                              _displayNameController.text,
-                                            ),
-                                            const SizedBox(
-                                                height: AppSpacing.lg),
                                             _buildActionsCard(
                                               state,
                                               notifier,
@@ -327,11 +256,7 @@ class _StorefrontSettingsViewState
                                     const SizedBox(height: AppSpacing.lg),
                                     _buildLocationCard(state),
                                     const SizedBox(height: AppSpacing.lg),
-                                    _buildPreviewCard(
-                                      currentUrl,
-                                      _displayNameController.text,
-                                    ),
-                                    const SizedBox(height: AppSpacing.lg),
+
                                     _buildActionsCard(
                                       state,
                                       notifier,
@@ -585,37 +510,216 @@ class _StorefrontSettingsViewState
     );
   }
 
-  Widget _buildLocationCard(StorefrontSettingsState state) {
-    return AppCard(
-      title: 'الإحداثيات الجغرافية (اختياري)',
-      icon: Icons.map_outlined,
-      subtitle: 'تساعد في تحديد موقع متجرك على الخريطة للعملاء',
-      child: Row(
-        children: [
-          Expanded(
-            child: SettingsFormFieldWidget(
-              label: 'خط العرض (Latitude)',
-              hint: '15.354000',
-              controller: _latController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
+  Future<void> _pickLocationFromMap() async {
+    final currentLat = double.tryParse(_latController.text.trim());
+    final currentLng = double.tryParse(_lngController.text.trim());
+
+    final result = await YemenMapPickerDialog.show(
+      context,
+      initialLatitude: currentLat,
+      initialLongitude: currentLng,
+    );
+
+    if (result != null && mounted) {
+      setState(() {
+        _latController.text = result.latitude.toStringAsFixed(6);
+        _lngController.text = result.longitude.toStringAsFixed(6);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Text(
+                'تم تثبيت الموقع: ${result.cityName ?? "اليمن"} (${result.formattedCoordinates})',
+                style: const TextStyle(fontWeight: FontWeight.bold),
               ),
-              errorText: state.validationErrors['storefront_lat']?.first,
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  Widget _buildLocationCard(StorefrontSettingsState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final lat = double.tryParse(_latController.text.trim());
+    final lng = double.tryParse(_lngController.text.trim());
+    final hasCoordinates = lat != null && lng != null;
+
+    return AppCard(
+      title: 'موقع المتجر الجغرافي على الخريطة',
+      icon: Icons.map_rounded,
+      subtitle: 'تحديد موقع المعرض أو المتجر على خريطة اليمن لتسهيل وصول العملاء والطلبات',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Visual Map Picker Banner / Status
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF111827) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+              border: Border.all(
+                color: hasCoordinates
+                    ? (isDark ? const Color(0xFF059669) : const Color(0xFF10B981))
+                    : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                width: hasCoordinates ? 1.5 : 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (hasCoordinates ? const Color(0xFF10B981) : AppColors.primary)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        hasCoordinates
+                            ? Icons.location_on_rounded
+                            : Icons.add_location_alt_rounded,
+                        color: hasCoordinates ? const Color(0xFF10B981) : AppColors.primary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            hasCoordinates
+                                ? 'تم تحديد موقع المتجر على الخريطة'
+                                : 'لم يتم تحديد موقع المتجر على الخريطة بعد',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : const Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            hasCoordinates
+                                ? 'الإحداثيات: ${lat.toStringAsFixed(6)}, ${lng.toStringAsFixed(6)}'
+                                : 'اضغط لاختيار وتثبيت الموقع عبر خريطة تفاعلية لمدن اليمن',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? AppColors.textSecondaryDark
+                                  : AppColors.textSecondaryLight,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    AppStatusBadge(
+                      label: hasCoordinates ? 'محدد' : 'غير محدد',
+                      variant: hasCoordinates
+                          ? AppStatusBadgeVariant.success
+                          : AppStatusBadgeVariant.neutral,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+
+                // Action Buttons
+                Wrap(
+                  spacing: AppSpacing.sm,
+                  runSpacing: AppSpacing.sm,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _pickLocationFromMap,
+                      icon: Icon(
+                        hasCoordinates ? Icons.edit_location_rounded : Icons.map_rounded,
+                        size: 16,
+                      ),
+                      label: Text(
+                        hasCoordinates
+                            ? 'تعديل الموقع من الخريطة'
+                            : 'تحديد الموقع من خريطة اليمن',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: hasCoordinates
+                            ? const Color(0xFF10B981)
+                            : AppColors.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                    ),
+                    if (hasCoordinates) ...[
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final url =
+                              'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
+                          final uri = Uri.parse(url);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 15),
+                        label: const Text('معاينة بخرائط Google'),
+                        style: OutlinedButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _latController.clear();
+                            _lngController.clear();
+                          });
+                        },
+                        icon: const Icon(Icons.delete_outline_rounded, size: 15, color: AppColors.error),
+                        label: const Text('مسح', style: TextStyle(color: AppColors.error)),
+                        style: TextButton.styleFrom(
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: SettingsFormFieldWidget(
-              label: 'خط الطول (Longitude)',
-              hint: '44.205000',
-              controller: _lngController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-                signed: true,
+          const SizedBox(height: AppSpacing.md),
+
+          // Manual coordinate inputs for review/editing
+          Row(
+            children: [
+              Expanded(
+                child: SettingsFormFieldWidget(
+                  label: 'خط العرض (Latitude)',
+                  hint: '15.369400',
+                  controller: _latController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  errorText: state.validationErrors['storefront_lat']?.first,
+                ),
               ),
-              errorText: state.validationErrors['storefront_lng']?.first,
-            ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: SettingsFormFieldWidget(
+                  label: 'خط الطول (Longitude)',
+                  hint: '44.191000',
+                  controller: _lngController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  errorText: state.validationErrors['storefront_lng']?.first,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -772,442 +876,6 @@ class _StorefrontSettingsViewState
                 ),
               ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPreviewCard(String? currentUrl, String displayName) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final name = displayName.trim().isNotEmpty
-        ? displayName.trim()
-        : (ref.watch(storefrontSettingsProvider).settings?.effectiveDisplayName ??
-            'اسم المتجر المعروض');
-
-    final AsyncValue<List<Product>> productsState =
-        ref.watch(productsNotifierProvider);
-    final List<Product> storeProducts = productsState.valueOrNull
-            ?.where((Product p) => p.showInStore)
-            .take(4)
-            .toList() ??
-        <Product>[];
-
-    final List<String> categoriesToDisplay = _selectedCategories.isNotEmpty
-        ? _selectedCategories
-        : <String>['الكل', 'الأكثر طلباً', 'عروض خاصة'];
-
-    return AppCard(
-      title: 'معاينة المتجر المباشرة',
-      icon: Icons.smartphone_rounded,
-      subtitle: 'كيف يرى عملاؤك متجرك على هواتفهم الذكية',
-      child: Column(
-        children: [
-          // Smartphone Mockup Frame
-          Container(
-            width: 290,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : Colors.white,
-              borderRadius: BorderRadius.circular(32),
-              border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFF1E293B),
-                width: 6,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.18),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(26),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Phone Notch / Island
-                  Container(
-                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFF0F172A),
-                    padding: const EdgeInsets.only(top: 8, bottom: 6),
-                    alignment: Alignment.center,
-                    child: Container(
-                      width: 50,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF475569) : const Color(0xFF334155),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-
-                  // Mockup Storefront Header
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
-                      border: Border(
-                        bottom: BorderSide(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 14,
-                              backgroundColor: AppColors.primary,
-                              child: Text(
-                                name.isNotEmpty ? name.characters.first : 'S',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    name,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 6,
-                                        height: 6,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: _isActive
-                                              ? const Color(0xFF22C55E)
-                                              : const Color(0xFF94A3B8),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        _isActive ? 'مفتوح للطلب الآن' : 'المتجر مغلق مؤقتاً',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          color: _isActive
-                                              ? const Color(0xFF22C55E)
-                                              : const Color(0xFF94A3B8),
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        // Mock Search Bar
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                          decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF0F172A) : Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.search,
-                                size: 14,
-                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'ابحث عن منتج...',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Category Pills in Mockup
-                  Container(
-                    height: 32,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: categoriesToDisplay.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(width: 6),
-                      itemBuilder: (context, idx) {
-                        final cat = categoriesToDisplay[idx];
-                        final isFirst = idx == 0;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isFirst
-                                ? AppColors.primary
-                                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Center(
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: isFirst ? FontWeight.bold : FontWeight.w500,
-                                color: isFirst
-                                    ? Colors.white
-                                    : (isDark ? Colors.white70 : const Color(0xFF334155)),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  // Mini 2-column Product Grid
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    color: isDark ? const Color(0xFF0B1120) : const Color(0xFFF1F5F9),
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 6,
-                      crossAxisSpacing: 6,
-                      childAspectRatio: 0.85,
-                      children: storeProducts.isNotEmpty
-                          ? storeProducts
-                              .map((Product p) => _buildMockProductCard(
-                                  p.productName,
-                                  1500,
-                                  null,
-                                  isDark))
-                              .toList()
-                          : <Widget>[
-                              _buildMockProductCard('منتج تجريبي 1', 1200, null, isDark),
-                              _buildMockProductCard('منتج تجريبي 2', 3500, null, isDark),
-                            ],
-                    ),
-                  ),
-
-                  // Mock Bottom Navigation / Cart Bar
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                      border: Border(
-                        top: BorderSide(
-                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-                        ),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.shopping_bag_outlined, size: 16, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              'سلة التسوق',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Text(
-                            'اطلب الآن',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 9,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-
-          // URL Display & Quick Actions
-          Container(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF111827) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              border: Border.all(
-                color: isDark ? const Color(0xFF374151) : const Color(0xFFCBD5E1),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'رابط متجرك المباشر للعملاء:',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: isDark
-                            ? AppColors.textSecondaryDark
-                            : AppColors.textSecondaryLight,
-                      ),
-                    ),
-                    AppStatusBadge(
-                      label: _isActive ? 'مفعل' : 'مسودة',
-                      variant: _isActive
-                          ? AppStatusBadgeVariant.success
-                          : AppStatusBadgeVariant.neutral,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                SelectableText(
-                  currentUrl ?? 'لم يتم تفعيل الرابط بعد',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: currentUrl != null
-                        ? AppColors.primary
-                        : AppColors.textSecondaryLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Wrap(
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.sm,
-            alignment: WrapAlignment.center,
-            children: [
-              OutlinedButton.icon(
-                onPressed: currentUrl != null ? () => _copyUrl(currentUrl) : null,
-                icon: const Icon(Icons.copy_rounded, size: 16),
-                label: const Text('نسخ الرابط'),
-              ),
-              OutlinedButton.icon(
-                onPressed: currentUrl != null
-                    ? () => _openStore(currentUrl)
-                    : null,
-                icon: const Icon(Icons.open_in_new_rounded, size: 16),
-                label: const Text('فتح في المتصفح'),
-              ),
-              IconButton.outlined(
-                onPressed: currentUrl != null
-                    ? () => _shareStore(currentUrl, name)
-                    : null,
-                icon: const Icon(Icons.share_rounded, size: 18),
-                tooltip: 'مشاركة الرابط',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMockProductCard(String name, double price, String? imagePath, bool isDark) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Container(
-              decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
-              ),
-              child: Center(
-                child: imagePath != null && imagePath.startsWith('http')
-                    ? Image.network(
-                        imagePath,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(
-                          Icons.image_outlined,
-                          size: 20,
-                          color: Color(0xFF94A3B8),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.shopping_bag_outlined,
-                        size: 22,
-                        color: AppColors.primary,
-                      ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(6),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : const Color(0xFF0F172A),
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$price ر.ي',
-                  style: const TextStyle(
-                    fontSize: 8,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
           ),
         ],
       ),

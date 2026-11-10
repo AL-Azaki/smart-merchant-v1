@@ -34,4 +34,17 @@ class StorefrontRemoteApiClient {
     );
     return SlugAvailabilityDto.fromJson(response.json);
   }
+
+  /// POST /storefront/v1/{slug}/orders
+  /// Submits a customer order directly to the public storefront API.
+  Future<Map<String, dynamic>> createCustomerOrder(
+    String slug,
+    Map<String, dynamic> payload,
+  ) async {
+    final response = await _apiClient.post(
+      '/storefront/v1/$slug/orders',
+      data: payload,
+    );
+    return response.json;
+  }
 }

@@ -46,6 +46,10 @@ class PurchaseInvoiceDocumentMapper {
     if (invoice.branchId.isNotEmpty) {
       final branch = await _coreDao.getBranchById(invoice.branchId, businessId);
       branchName = branch?.branchName;
+      businessAddress = branch?.address;
+      if (businessPhone == null || businessPhone.isEmpty) {
+        businessPhone = branch?.phone;
+      }
     }
 
     // 3. Fetch Supplier info

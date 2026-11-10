@@ -9,6 +9,7 @@ import '../../../kernel/sync/coordinator/sync_coordinator.dart';
 import '../../../modules/platform/presentation/providers/sync_provider.dart';
 import '../../../modules/authentication/presentation/providers/session_provider.dart';
 import '../../../modules/authentication/presentation/providers/auth_provider.dart';
+import '../../../modules/sales/presentation/providers/online_orders_provider.dart';
 import '../tokens/colors.dart';
 import '../tokens/spacing.dart';
 import '../widgets/subscription_warning_banner.dart';
@@ -18,9 +19,9 @@ class MainLayout extends ConsumerWidget {
   final int currentIndex;
 
   const MainLayout({
-    super.key,
     required this.child,
     required this.currentIndex,
+    super.key,
   });
 
   void _onNavigate(BuildContext context, int index) {
@@ -38,6 +39,9 @@ class MainLayout extends ConsumerWidget {
         context.go('/accounting');
         break;
       case 4:
+        context.go('/storefront');
+        break;
+      case 5:
         context.go('/settings');
         break;
     }
@@ -323,7 +327,6 @@ class MainLayout extends ConsumerWidget {
       ),
 
       // 2. Main Content & Floating Dock
-      extendBody: false,
       body: Column(
         children: [
           const SubscriptionWarningBanner(),
@@ -332,7 +335,9 @@ class MainLayout extends ConsumerWidget {
               final session = ref.watch(sessionNotifierProvider);
               final syncState = ref.watch(syncNotifierProvider);
               final isOffline = (session.isOffline == true) || (syncState.status == SyncStatus.offline);
-              if (!isOffline) return const SizedBox.shrink();
+              if (!isOffline) {
+                return const SizedBox.shrink();
+              }
 
               return Container(
                 width: double.infinity,
@@ -364,7 +369,6 @@ class MainLayout extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: SafeArea(
-        bottom: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           child: ClipRRect(
@@ -400,6 +404,12 @@ class MainLayout extends ConsumerWidget {
                   builder: (context, ref, child) {
                     final activeModules = ref.watch(modulesNotifierProvider);
                     final currentUser = ref.watch(activeUserProvider);
+                    final ordersAsync = ref.watch(onlineOrdersNotifierProvider);
+                    final pendingOrdersCount = ordersAsync.maybeWhen(
+                      data: (orders) =>
+                          orders.where((o) => o.status == 'Pending').length,
+                      orElse: () => 0,
+                    );
                     // In Flutter, Row automatically reverses order if Directionality is RTL.
                     return Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -435,10 +445,19 @@ class MainLayout extends ConsumerWidget {
                             loc.accounting,
                             isDark,
                           ),
-                        if (activeModules.contains(ErpModule.settings) && currentUser.canView(SystemModules.settings))
+                        if (activeModules.contains(ErpModule.sales) && currentUser.canView(SystemModules.sales))
                           _buildNavItem(
                             context,
                             4,
+                            Icons.storefront_rounded,
+                            'المتجر',
+                            isDark,
+                            badgeCount: pendingOrdersCount,
+                          ),
+                        if (activeModules.contains(ErpModule.settings) && currentUser.canView(SystemModules.settings))
+                          _buildNavItem(
+                            context,
+                            5,
                             Icons.settings_rounded,
                             loc.settings,
                             isDark,
@@ -460,8 +479,9 @@ class MainLayout extends ConsumerWidget {
     int index,
     IconData icon,
     String label,
-    bool isDark,
-  ) {
+    bool isDark, {
+    int badgeCount = 0,
+  }) {
     final isActive = currentIndex == index;
     final color = isActive
         ? AppColors.primary
@@ -476,7 +496,40 @@ class MainLayout extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 24),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 24),
+                if (badgeCount > 0)
+                  Positioned(
+                    top: -5,
+                    left: -8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: isDark ? AppColors.surfaceDark : Colors.white,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(
+                        badgeCount > 99 ? '99+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             const SizedBox(height: 3),
             Text(
               label,

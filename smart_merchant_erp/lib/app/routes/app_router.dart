@@ -15,7 +15,7 @@ import '../../modules/authentication/presentation/pages/splash_view.dart';
 import '../../kernel/security/permissions_provider.dart';
 import '../../modules/inventory/presentation/views/inventory_module_view.dart';
 import '../../modules/settings/presentation/views/settings_control_center_view.dart';
-import '../../modules/settings/presentation/views/storefront_settings_view.dart';
+import '../../modules/settings/presentation/views/storefront_hub_view.dart';
 import '../../modules/accounting/presentation/pages/financial_dashboard_view.dart';
 
 part 'app_router.g.dart';
@@ -64,8 +64,9 @@ GoRouter appRouter(AppRouterRef ref) {
         case AuthStatus.authenticated:
           if (isAuthRoute ||
               state.matchedLocation == '/setup-business' ||
-              isSplash)
+              isSplash) {
             return '/';
+          }
 
           // --- SECURITY: Module-Level URL Guards ---
           final activeModules = ref.read(modulesNotifierProvider);
@@ -76,7 +77,8 @@ GoRouter appRouter(AppRouterRef ref) {
             return '/';
           }
 
-          if (state.matchedLocation.startsWith('/sales') &&
+          if ((state.matchedLocation.startsWith('/sales') ||
+                  state.matchedLocation.startsWith('/storefront')) &&
               !activeModules.contains(ErpModule.sales)) {
             return '/'; // Deny access and send home
           }
@@ -148,15 +150,29 @@ GoRouter appRouter(AppRouterRef ref) {
         ),
       ),
       GoRoute(
+        path: '/storefront',
+        builder: (context, state) {
+          final tabParam = state.uri.queryParameters['tab'];
+          final initialTab = int.tryParse(tabParam ?? '') ?? 0;
+          return MainLayout(
+            currentIndex: 4,
+            child: StorefrontHubView(initialTabIndex: initialTab),
+          );
+        },
+      ),
+      GoRoute(
         path: '/settings',
         builder: (context, state) => const MainLayout(
-          currentIndex: 4,
+          currentIndex: 5,
           child: SettingsControlCenterView(),
         ),
       ),
       GoRoute(
         path: '/settings/storefront',
-        builder: (context, state) => const StorefrontSettingsView(),
+        builder: (context, state) => const MainLayout(
+          currentIndex: 4,
+          child: StorefrontHubView(initialTabIndex: 3),
+        ),
       ),
     ],
   );
