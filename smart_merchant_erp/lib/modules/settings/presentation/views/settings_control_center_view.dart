@@ -15,6 +15,7 @@ import 'backup_and_restore_view.dart';
 import 'business_profile_view.dart';
 import 'currencies_view.dart';
 import 'print_settings_view.dart';
+import 'message_templates_view.dart';
 import 'product_categories_view.dart';
 import 'roles_permissions_view.dart';
 import 'storefront_settings_view.dart';
@@ -124,6 +125,16 @@ class SettingsControlCenterView extends ConsumerWidget {
       SettingsGroupModel(
         title: 'النظام والتفضيلات',
         cards: [
+          SettingsCardItemModel(
+            id: 'message_templates',
+            title: 'قوالب الرسائل والتنبيهات',
+            description:
+                'إدارة وتخصيص قوالب رسائل الواتساب وSMS للتذكير بالسداد وإشعارات الدفعات',
+            icon: Icons.chat_outlined,
+            color: Color(0xFF25D366),
+            stats: ['واتساب و SMS', 'تذكيرات وسداد'],
+            destinationView: MessageTemplatesView(),
+          ),
           SettingsCardItemModel(
             id: 'print',
             title: 'إعدادات الطباعة',

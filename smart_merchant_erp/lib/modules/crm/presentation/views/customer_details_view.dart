@@ -14,6 +14,9 @@ import '../../../sales/presentation/providers/customer_provider.dart';
 import '../../../sales/presentation/providers/sales_provider.dart';
 import '../../../treasury/application/services/party_statement_service.dart';
 import '../../../treasury/presentation/widgets/party_statement_dialog.dart';
+import '../../../settings/domain/entities/message_template.dart';
+import '../../../settings/presentation/providers/message_templates_provider.dart';
+import 'widgets/message_preview_modal.dart';
 
 class CustomerDetailsView extends ConsumerStatefulWidget {
   final Customer customer;
@@ -54,16 +57,72 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView>
       appBar: AppBar(
         title: Text(widget.customer.customerName),
         actions: [
+          if (ref.watch(messageTemplatesProvider).isEnabled)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  final balanceAsync = ref
+                      .read(customerBalanceProvider(widget.customer.id))
+                      .asData
+                      ?.value;
+                  final currentBalance = balanceAsync?.currentBalance ??
+                      widget.customer.openingBalance;
+                  MessagePreviewModal.show(
+                    context: context,
+                    customerName: widget.customer.customerName,
+                    customerPhone: widget.customer.phone,
+                    currentBalance: currentBalance,
+                    initialType: MessageTemplateType.paymentReminder,
+                  );
+                },
+                icon: const Icon(Icons.notifications_active_outlined, size: 18),
+                label: const Text('تذكير بالسداد'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF25D366),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: ElevatedButton.icon(
-              onPressed: () {
-                showDialog<void>(
+              onPressed: () async {
+                final res = await showDialog<bool>(
                   context: context,
                   builder: (_) => ReceiptVoucherDialog(
                     initialCustomerId: widget.customer.id,
                   ),
                 );
+                if (res == true &&
+                    mounted &&
+                    ref.read(messageTemplatesProvider).isEnabled) {
+                  final balanceAsync = ref
+                      .read(customerBalanceProvider(widget.customer.id))
+                      .asData
+                      ?.value;
+                  final currentBalance = balanceAsync?.currentBalance ??
+                      widget.customer.openingBalance;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text(
+                          'تم تسجيل سند القبض بنجاح. هل تود إرسال إشعار للعميل؟'),
+                      action: SnackBarAction(
+                        label: 'إرسال إشعار',
+                        textColor: Colors.amberAccent,
+                        onPressed: () {
+                          MessagePreviewModal.show(
+                            context: context,
+                            customerName: widget.customer.customerName,
+                            customerPhone: widget.customer.phone,
+                            currentBalance: currentBalance,
+                            initialType: MessageTemplateType.paymentReceipt,
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                }
               },
               icon: const Icon(Icons.call_received_rounded, size: 18),
               label: const Text('قبض دفعة من العميل'),
@@ -177,29 +236,61 @@ class _CustomerDetailsViewState extends ConsumerState<CustomerDetailsView>
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              OutlinedButton.icon(
-                                onPressed: () {
-                                  showDialog<void>(
-                                    context: context,
-                                    builder: (_) => ReceiptVoucherDialog(
-                                      initialCustomerId: widget.customer.id,
+                              Row(
+                                children: [
+                                  if (ref.watch(messageTemplatesProvider).isEnabled) ...[
+                                    OutlinedButton.icon(
+                                      onPressed: () {
+                                        MessagePreviewModal.show(
+                                          context: context,
+                                          customerName: widget.customer.customerName,
+                                          customerPhone: widget.customer.phone,
+                                          currentBalance: currentBalance,
+                                          initialType: MessageTemplateType.paymentReminder,
+                                        );
+                                      },
+                                      icon: const Icon(
+                                        Icons.chat_bubble_outline_rounded,
+                                        size: 16,
+                                        color: Color(0xFF25D366),
+                                      ),
+                                      label: const Text(
+                                        'إرسال تذكير',
+                                        style: TextStyle(color: Color(0xFF25D366)),
+                                      ),
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                          color: Color(0xFF25D366),
+                                        ),
+                                      ),
                                     ),
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.add_card_rounded,
-                                  size: 16,
-                                  color: Color(0xFF10B981),
-                                ),
-                                label: const Text(
-                                  'تسجيل سند قبض',
-                                  style: TextStyle(color: Color(0xFF10B981)),
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  side: const BorderSide(
-                                    color: Color(0xFF10B981),
+                                    const SizedBox(width: 8),
+                                  ],
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      showDialog<void>(
+                                        context: context,
+                                        builder: (_) => ReceiptVoucherDialog(
+                                          initialCustomerId: widget.customer.id,
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(
+                                      Icons.add_card_rounded,
+                                      size: 16,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                    label: const Text(
+                                      'تسجيل سند قبض',
+                                      style: TextStyle(color: Color(0xFF10B981)),
+                                    ),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ],
                           ),
